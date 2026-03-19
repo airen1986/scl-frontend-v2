@@ -1,0 +1,50 @@
+/*
+ * custom.css — shared custom styles
+ *
+ * Use this file for lightweight overrides that don't warrant a full SCSS component.
+ * Import in any page entry JS:
+ *   import '../../common/css/custom.css';
+ *
+ * Rules:
+ *  - Prefer Bootstrap utility classes in HTML over adding rules here.
+ *  - Do NOT duplicate anything already covered by src/scss/.
+ *  - Use CSS custom properties (var(--bs-*)) to stay in sync with the Bootstrap theme.
+ */
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bs-body-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bs-secondary-color);
+  border-radius: 3px;
+}
+
+/* ── Focus ring ─────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+/* ── Utility: truncate text to one line ────────────────────────────────────── */
+.text-truncate-1 {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ── Utility: card hover lift ─────────────────────────────────────────────── */
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: var(--bs-box-shadow);
+  transform: translateY(-2px);
+}

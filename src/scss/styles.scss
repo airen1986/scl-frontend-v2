@@ -1,0 +1,22 @@
+@import 'variables';
+
+// Bootstrap
+@import 'bootstrap/scss/bootstrap';
+
+// Font Awesome
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+// Import fonts
+@import 'fonts';
+
+// Perfect Scrollbar
+// @import "~perfect-scrollbar/css/perfect-scrollbar.css";
+
+// brutopia CSS
+@import 'brutopia';
+
+// Remove the dividing line created by Bootstrap's inset box-shadow on expanded headers
+.accordion-button:not(.collapsed) {
+  box-shadow: none !important;
+  border-bottom: 0 !important;
+}

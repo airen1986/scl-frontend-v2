@@ -1,0 +1,40 @@
+{
+  "name": "frontend-template",
+  "version": "1.0.0",
+  "description": "A frontend starter template with Vite, Bootstrap 5, and SCSS",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix",
+    "format": "prettier --write \"src/**/*.{html,js,scss,json}\"",
+    "format:check": "prettier --check \"src/**/*.{html,js,scss,json}\""
+  },
+  "keywords": [
+    "template",
+    "vite",
+    "bootstrap",
+    "scss",
+    "frontend"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.2",
+    "prettier": "^3.8.1",
+    "sass": "^1.69.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "^5.3.8",
+    "sweetalert2": "^11.26.10"
+  }
+}
