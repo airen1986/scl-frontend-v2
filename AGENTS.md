@@ -23,7 +23,7 @@ This document defines coding conventions for AI agents working in this repositor
 - Each page has a dedicated folder: `src/page_assets/<page-name>/`.
   - Entry JS: `src/page_assets/<page-name>/js/main.js` (referenced by the HTML `<script>` tag).
   - Additional JS modules: `src/page_assets/<page-name>/js/<script-name>.js`.
-  - Page CSS: `src/page_assets/<page-name>/css/<page-name>.css`.
+  - Page CSS: `src/page_assets/<page-name>/css/main.css`.
 - `src/common/` — **READ-ONLY**. Contains shared utilities (`api.js`, `toast.js`, `bsToast.js`, `dom.js`) and shared CSS (`custom.css`). Do NOT add or modify files here.
 - `src/scss/` — **READ-ONLY**. Do not add or modify SCSS files.
 - Static assets (images, fonts) go in `src/public/`.
@@ -53,7 +53,7 @@ import * as bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
 window.bootstrap = bootstrap;
 import '../../../scss/styles.scss';        // Bootstrap + SCSS theme
 import '../../../common/css/custom.css';   // existing shared overrides (READ-ONLY — do not edit)
-import '../css/<page-name>.css';           // page-specific styles
+import '../css/main.css';           // page-specific styles
 ```
 
 ## JavaScript Rules
@@ -75,7 +75,7 @@ import '../css/<page-name>.css';           // page-specific styles
   window.bootstrap = bootstrap;
   import '../../../scss/styles.scss';
   import '../../../common/css/custom.css'; // READ-ONLY
-  import '../css/<page-name>.css';
+  import '../css/main.css';
   ```
   Then import your page modules:
   ```js
