@@ -1,8 +1,26 @@
-# Frontend Template
+# Supply Chain Lite — Frontend
 
-A modern frontend starter template built with **Vite**, **Bootstrap 5**, and **SCSS**.
+Frontend application for **Supply Chain Lite** — lightweight, modern tools to streamline supply chain planning, inventory, logistics, and execution. Built with **Vite**, **Bootstrap 5**, and **SCSS**.
+
+## Architecture
+
+This is the **frontend** repository. The full system consists of:
+
+- **Frontend** (this repo) — multi-page web app built with Vite + Bootstrap
+- **Backend** — Python FastAPI service providing REST APIs
+- **Celery Workers** — asynchronous task workers for heavy-lifting operations like optimization and simulations
 
 ## Features
+
+### Application
+
+- **Demand Planning** — forecast and align supply with customer demand
+- **Inventory & Capacity** — balance stock levels and production constraints
+- **Logistics** — plan shipments and track fulfillment status
+- **Analytics** — insights to improve service and cost
+- **Optimization & Simulation** — run optimizations and simulate scenarios (powered by Celery workers)
+
+### Technical
 
 - **Vite** — fast dev server and optimized builds
 - **Bootstrap 5.3** — with deep SCSS variable customization (Brutopia theme)
