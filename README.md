@@ -25,7 +25,6 @@ This is the **frontend** repository. The full system consists of:
 - **Vite** — fast dev server and optimized builds
 - **Bootstrap 5.3** — with deep SCSS variable customization (Brutopia theme)
 - **Sass** — modular SCSS architecture with components, layouts, mixins, and utilities
-- **SweetAlert2** — pre-configured toast and dialog helpers
 - **ESLint + Prettier + Stylelint** — linting and formatting out of the box
 - **Multi-page support** — Vite auto-discovers `.html` files in `src/`
 - **GitHub Actions CI** — build, lint, and format checks on every PR
@@ -78,11 +77,12 @@ npm run preview
 │   ├── common/
 │   │   └── js/
 │   │       ├── api.js           # Fetch-based API client
-│   │       ├── toast.js         # SweetAlert2 toast helpers
+│   │       ├── bsToast.js       # Bootstrap toast helpers
 │   │       └── dom.js           # DOM utility helpers
 │   ├── page_assets/
 │   │   └── index/
 │   │       └── js/main.js       # Entry point for index page
+│   │       └── css/main.css     # Page specific CSS
 │   ├── public/                  # Static assets (copied as-is)
 │   ├── scss/
 │   │   ├── components/          # Bootstrap component overrides

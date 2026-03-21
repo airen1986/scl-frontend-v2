@@ -9,26 +9,9 @@
  *   await api.post('/users', { name: 'Jane' });
  */
 
-import Swal from 'sweetalert2';
+import { bsToastError } from './bsToast';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-
-/**
- * Show a Bootstrap-themed error confirm box via SweetAlert2.
- * Uses btn-danger for confirm and btn-outline-secondary for cancel.
- */
-function showErrorDialog(title, message) {
-  return Swal.fire({
-    icon: 'error',
-    title,
-    text: message,
-    confirmButtonText: 'Dismiss',
-    customClass: {
-      confirmButton: 'btn btn-danger',
-    },
-    buttonsStyling: false,
-  });
-}
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
@@ -45,10 +28,7 @@ async function request(endpoint, options = {}) {
   try {
     response = await fetch(url, config);
   } catch (networkError) {
-    await showErrorDialog(
-      'Network Error',
-      'Unable to reach the server. Please check your connection.'
-    );
+    bsToastError('Unable to reach the server. Please check your connection.');
     throw networkError;
   }
 
@@ -65,7 +45,7 @@ async function request(endpoint, options = {}) {
       error.data?.detail ||
       `Error ${response.status}: ${response.statusText}`;
 
-    await showErrorDialog('Request Failed', message);
+    bsToastError(message, { errorCode: response.status });
     throw error;
   }
 

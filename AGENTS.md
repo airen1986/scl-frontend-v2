@@ -14,7 +14,7 @@ This document defines coding conventions for AI agents working in this repositor
 - **CSS**: Bootstrap 5.3 with custom SCSS variables (`src/scss/_variables.scss`)
 - **Icons**: Font Awesome 6 (free) — use `<i class="fa-solid fa-*">`, `<i class="fa-regular fa-*">`, or `<i class="fa-brands fa-*">` classes. Do NOT use Bootstrap Icons or inline SVGs.
 - **JS**: Vanilla ES modules (`type: "module"`)
-- **Alerts/Toasts**: SweetAlert2 (already installed) and Bootstrap native toasts
+- **Alerts/Toasts**: Bootstrap native toasts
 - **Package manager**: npm
 
 ## File Structure Conventions
@@ -24,7 +24,7 @@ This document defines coding conventions for AI agents working in this repositor
   - Entry JS: `src/page_assets/<page-name>/js/main.js` (referenced by the HTML `<script>` tag).
   - Additional JS modules: `src/page_assets/<page-name>/js/<script-name>.js`.
   - Page CSS: `src/page_assets/<page-name>/css/main.css`.
-- `src/common/` — **READ-ONLY**. Contains shared utilities (`api.js`, `toast.js`, `bsToast.js`, `dom.js`) and shared CSS (`custom.css`). Do NOT add or modify files here.
+- `src/common/` — **READ-ONLY**. Contains shared utilities (`api.js`, `bsToast.js`, `dom.js`) and shared CSS (`custom.css`). Do NOT add or modify files here.
 - `src/scss/` — **READ-ONLY**. Do not add or modify SCSS files.
 - Static assets (images, fonts) go in `src/public/`.
 - Icons: use Font Awesome classes (`fa-solid`, `fa-regular`, `fa-brands`). Do NOT add icon image files or SVG sprite sheets.
@@ -40,7 +40,7 @@ This document defines coding conventions for AI agents working in this repositor
 
 - Always use Bootstrap utility classes first (e.g. `mt-3`, `d-flex`, `text-muted`).
 - **Write custom styles as plain CSS only.** `src/scss/` is READ-ONLY in this repository, so do not add new SCSS files.
-- All custom CSS must be page-specific: `src/page_assets/<page-name>/css/<page-name>.css`. Do NOT add styles to `src/common/css/`.
+- All custom CSS must be page-specific: `src/page_assets/<page-name>/css/main.css`. Do NOT add styles to `src/common/css/`.
 - Use Bootstrap's CSS custom properties (`var(--bs-primary)`, `var(--bs-body-bg)`, etc.) instead of hardcoding colors or spacing values.
 - Do NOT write new SCSS component files under `src/scss/components/`.
 - Keep custom CSS minimal; prefer Bootstrap's built-in classes.
@@ -64,7 +64,6 @@ import '../css/main.css';           // page-specific styles
 - **Do NOT add new files to `src/common/js/`.** It is READ-ONLY. Only import from it.
 - Use the existing common utilities where applicable (import-only — do not modify):
   - `src/common/js/api.js` — for all HTTP requests (uses `VITE_API_BASE_URL`).
-  - `src/common/js/toast.js` — for SweetAlert2 toast notifications.
   - `src/common/js/bsToast.js` — for Bootstrap native toast notifications.
   - `src/common/js/dom.js` — for DOM helpers (`$`, `$$`, `on`, `off`, `ready`).
 - Do not use `var`. Use `const` by default, `let` only when reassignment is needed.
@@ -87,7 +86,7 @@ import '../css/main.css';           // page-specific styles
 
 1. Create `src/<page-name>.html` with the standard `<head>` (charset, viewport, title, favicon, meta tags).
 2. Create `src/page_assets/<page-name>/js/main.js` — Bootstrap + SCSS + CSS imports, then import page modules.
-3. Create `src/page_assets/<page-name>/css/<page-name>.css` — page-specific styles.
+3. Create `src/page_assets/<page-name>/css/main.css` — page-specific styles.
 4. For each logical concern (table, form, chart, etc.) create `src/page_assets/<page-name>/js/<script-name>.js` and import it from `main.js`.
 5. Reference only the entry script in HTML: `<script type="module" src="/page_assets/<page-name>/js/main.js"></script>`.
 6. Reuse the navbar and footer markup from `index.html`.
@@ -103,7 +102,7 @@ src/
         table.js      ← table logic
         form.js       ← form/validation logic
       css/
-        users.css     ← page-specific styles
+        main.css     ← page-specific styles
 ```
 
 ## Environment Variables
