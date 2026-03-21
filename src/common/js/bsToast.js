@@ -45,9 +45,14 @@ function getContainer() {
   return container;
 }
 
-function show(message, variant = 'success', delay = 4000) {
+function show(message, variant = 'success', { delay = 1500, errorCode } = {}) {
   const { bg, icon, label } = VARIANT_MAP[variant] || VARIANT_MAP.info;
   const textColor = variant === 'warning' ? 'text-dark' : 'text-white';
+  const autohide = variant !== 'danger' && variant !== 'warning';
+  const codeHtml =
+    variant === 'danger' && errorCode
+      ? `<div class="text-muted small mt-1">Error code: <strong>${errorCode}</strong></div>`
+      : '';
 
   const toastEl = document.createElement('div');
   toastEl.className = 'toast align-items-center border-0';
@@ -59,17 +64,17 @@ function show(message, variant = 'success', delay = 4000) {
     <div class="toast-header ${bg} ${textColor}">
       <span class="me-2">${icon}</span>
       <strong class="me-auto">${label}</strong>
-      <small>just now</small>
       <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
     </div>
     <div class="toast-body">
       ${message}
+      ${codeHtml}
     </div>
   `;
 
   getContainer().appendChild(toastEl);
 
-  const bsToast = new window.bootstrap.Toast(toastEl, { delay });
+  const bsToast = new window.bootstrap.Toast(toastEl, { autohide, delay });
   bsToast.show();
 
   // Clean up DOM after toast hides
@@ -77,17 +82,17 @@ function show(message, variant = 'success', delay = 4000) {
 }
 
 export function bsToastSuccess(message, delay) {
-  show(message, 'success', delay);
+  show(message, 'success', { delay });
 }
 
-export function bsToastError(message, delay) {
-  show(message, 'danger', delay);
+export function bsToastError(message, { delay, errorCode } = {}) {
+  show(message, 'danger', { delay, errorCode });
 }
 
 export function bsToastWarning(message, delay) {
-  show(message, 'warning', delay);
+  show(message, 'warning', { delay });
 }
 
 export function bsToastInfo(message, delay) {
-  show(message, 'info', delay);
+  show(message, 'info', { delay });
 }
