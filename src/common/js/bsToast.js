@@ -33,6 +33,13 @@ const VARIANT_MAP = {
   },
 };
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (ch) => {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return map[ch];
+  });
+}
+
 let container = null;
 
 function getContainer() {
@@ -49,9 +56,11 @@ function show(message, variant = 'success', { delay = 1500, errorCode } = {}) {
   const { bg, icon, label } = VARIANT_MAP[variant] || VARIANT_MAP.info;
   const textColor = variant === 'warning' ? 'text-dark' : 'text-white';
   const autohide = variant !== 'danger' && variant !== 'warning';
+  const safeMessage = escapeHtml(message);
+  const safeErrorCode = errorCode === null ? '' : escapeHtml(errorCode);
   const codeHtml =
     variant === 'danger' && errorCode
-      ? `<div class="text-muted small mt-1">Error code: <strong>${errorCode}</strong></div>`
+      ? `<div class="text-muted small mt-1">Error code: <strong>${safeErrorCode}</strong></div>`
       : '';
 
   const toastEl = document.createElement('div');
@@ -67,7 +76,7 @@ function show(message, variant = 'success', { delay = 1500, errorCode } = {}) {
       <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
     </div>
     <div class="toast-body">
-      ${message}
+      ${safeMessage}
       ${codeHtml}
     </div>
   `;

@@ -23,7 +23,7 @@ This document defines coding conventions for AI agents working in this repositor
 - Each page has a dedicated folder: `src/page_assets/<page-name>/`.
   - Entry JS: `src/page_assets/<page-name>/js/main.js` (referenced by the HTML `<script>` tag).
   - Additional JS modules: `src/page_assets/<page-name>/js/<script-name>.js`.
-  - Page CSS: `src/page_assets/<page-name>/css/<page-name>.css`.
+  - Page CSS: `src/page_assets/<page-name>/css/main.css`.
 - `src/common/` — **READ-ONLY**. Contains shared utilities (`api.js`, `bsToast.js`, `dom.js`) and shared CSS (`custom.css`). Do NOT add or modify files here.
 - `src/scss/` — **READ-ONLY**. Do not add or modify SCSS files.
 - Static assets (images, fonts) go in `src/public/`.
