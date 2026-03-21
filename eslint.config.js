@@ -16,6 +16,8 @@ export default [
         FormData: "readonly",
         URLSearchParams: "readonly",
         AbortController: "readonly",
+        sessionStorage: "readonly",
+        localStorage: "readonly",
       },
     },
     rules: {
