@@ -1,0 +1,12 @@
+/*
+ * main.css — styles specific to the forgot-password page only.
+ *
+ * Imported in src/page_assets/forgot-password/js/main.js.
+ * Do NOT import this file from any other page.
+ */
+.split-container {
+    min-height: 100vh;
+}
+.brand-section {
+    background: linear-gradient(to top right, #0a0a0a, #404040);
+}
