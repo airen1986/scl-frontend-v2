@@ -128,7 +128,7 @@ ready(() => {
       signupMessage.textContent = 'Account created successfully! Redirecting to sign in…';
 
       await toastSuccess('Account created successfully!');
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => window.setTimeout(resolve, 200));
       window.location.href = 'login.html';
     } catch (err) {
       // api.js already shows an error toast for network / HTTP errors.
