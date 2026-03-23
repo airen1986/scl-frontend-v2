@@ -81,7 +81,7 @@ npm run preview
 │   │       └── dom.js           # DOM utility helpers
 │   ├── page_assets/
 │   │   └── index/
-│   │       └── js/main.js       # Entry point for index page
+│   │       ├── js/main.js       # Entry point for index page
 │   │       └── css/main.css     # Page specific CSS
 │   ├── public/                  # Static assets (copied as-is)
 │   ├── scss/

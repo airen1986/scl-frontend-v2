@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - Supply Chain Lite</title>
+  </head>
+  <body>
+    <div class="container-fluid split-container p-0">
+      <div class="row g-0 min-vh-100">
+        <!-- Left Side - Branding -->
+        <div class="col-lg-6 d-none d-lg-flex brand-section text-white flex-fill">
+          <div class="d-flex flex-column justify-content-center align-items-center w-100 p-5">
+            <div class="mb-3 mb-lg-4">
+              <!-- Replace with your own branding logo if available -->
+              <img
+                src="/scc.svg"
+                alt="Supply Chain Lite Logo"
+                class="img-fluid"
+                style="width: 4rem; height: 4rem"
+              />
+            </div>
+            <h1 class="fs-3 fs-lg-1 fw-bold mb-3 text-white text-center">Supply Chain Lite</h1>
+            <p
+              class="fs-5 fs-lg-4 fw-500 text-white text-center"
+              style="max-width: 24rem; line-height: 1.6"
+            >
+              Streamline your planning with lightweight, modern supply chain planning tools.
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Side - Sign Up Form -->
+        <div class="col-lg-6 d-flex align-items-center justify-content-center bg-white">
+          <div class="w-100 px-4" style="max-width: 500px">
+            <!-- Mobile Logo -->
+            <div class="d-lg-none text-center mb-4">
+              <img
+                src="./scc.svg"
+                alt="Supply Chain Lite Logo"
+                class="img-fluid mb-3"
+                style="width: 3rem; height: 3rem"
+              />
+              <h2 class="fw-bold">Supply Chain Lite</h2>
+            </div>
+
+            <!-- Sign Up Form -->
+            <form class="bg-white px-4" novalidate>
+              <div class="mb-4">
+                <h1 class="display-5 fw-bold mb-2">Create Account</h1>
+                <p class="text-muted fw-bold fs-5">Sign up to get started with us</p>
+              </div>
+
+              <div id="signupMessage" class="alert d-none" role="alert"></div>
+
+              <!-- Name Fields Row -->
+              <div class="row g-3 mb-4">
+                <div class="col-6">
+                  <label for="firstNameInput" class="form-label fw-bold text-uppercase fs-6">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    id="firstNameInput"
+                    placeholder="John"
+                    required
+                  />
+                </div>
+                <div class="col-6">
+                  <label for="lastNameInput" class="form-label fw-bold text-uppercase fs-6">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    id="lastNameInput"
+                    placeholder="Doe"
+                    required
+                  />
+                </div>
+              </div>
+
+              <!-- Email Input -->
+              <div class="mb-4">
+                <label for="emailInput" class="form-label fw-bold text-uppercase fs-6">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  class="form-control form-control-lg"
+                  id="emailInput"
+                  placeholder="john.doe@example.com"
+                  required
+                />
+              </div>
+
+              <!-- Password Input -->
+              <div class="mb-4">
+                <label for="passwordInput" class="form-label fw-bold text-uppercase fs-6">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  class="form-control form-control-lg"
+                  id="passwordInput"
+                  placeholder="Create a strong password"
+                  required
+                />
+              </div>
+
+              <!-- Confirm Password Input -->
+              <div class="mb-4">
+                <label for="confirmPasswordInput" class="form-label fw-bold text-uppercase fs-6">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  class="form-control form-control-lg"
+                  id="confirmPasswordInput"
+                  placeholder="Re-enter your password"
+                  required
+                />
+              </div>
+
+              <!-- Terms & Conditions -->
+              <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" id="termsCheck" required />
+                <label class="form-check-label fw-semibold" for="termsCheck">
+                  I agree to the
+                  <a href="#" class="text-decoration-none fw-bold text-dark">Terms & Conditions</a>
+                  and
+                  <a href="#" class="text-decoration-none fw-bold text-dark">Privacy Policy</a>
+                </label>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="d-grid mb-4">
+                <button type="submit" class="btn btn-dark btn-lg">Create Account</button>
+              </div>
+            </form>
+
+            <!-- Sign In Link -->
+            <div class="text-center mt-4">
+              <p class="fw-semibold text-muted mb-3">
+                Already have an account?
+                <a href="login.html" class="text-decoration-none fw-bold text-dark">Sign In</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="page_assets/signup/js/main.js"></script>
+  </body>
+</html>
