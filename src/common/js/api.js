@@ -32,6 +32,8 @@ async function request(endpoint, options = {}) {
     throw networkError;
   }
 
+  
+
   if (!response.ok) {
     const error = new Error(`API error: ${response.status} ${response.statusText}`);
     error.status = response.status;
@@ -40,12 +42,24 @@ async function request(endpoint, options = {}) {
     } catch {
       // response body is not JSON — ignore
     }
-    const message =
-      error.data?.message ||
-      error.data?.detail ||
-      `Error ${response.status}: ${response.statusText}`;
+    console.log("Error details:", error.status, error.data);
 
-    bsToastError(message, { errorCode: response.status });
+    let message;
+    if (error.status === 422) {
+       // add more details on what is missing from the error response if available
+       const missingFields = error.data?.detail
+         ?.filter((item) => item.type === 'missing')
+         .map((item) => item.loc.slice(-1)[0])
+         .join(', ');
+       message = missingFields
+        ? `Missing required fields: ${missingFields}`
+        : 'Validation error: Please check your input.';
+      }
+    else {
+      message = error.data?.detail || 'An unexpected error occurred. Please try again.';
+    }
+     
+    bsToastError(message);
     throw error;
   }
 
