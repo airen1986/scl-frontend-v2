@@ -46,7 +46,7 @@ ready(() => {
   const emailInput = $('#emailInput');
   const submitBtn = $('button[type="submit"]', form);
 
-  if (!form) return;
+  if (!form || !emailInput || !submitBtn) return;
 
   // Clear validation on input
   on(emailInput, 'input', () => clearInvalid(emailInput));
