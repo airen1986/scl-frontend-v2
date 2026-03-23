@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activate Account - Supply Chain Lite</title>
+  </head>
+
+  <body>
+    <div class="container-fluid split-container p-0">
+      <div class="row g-0 min-vh-100">
+        <!-- Left Side - Branding -->
+        <div class="col-lg-6 d-none d-lg-flex brand-section text-white">
+          <div class="d-flex flex-column justify-content-center align-items-center w-100 p-5">
+            <img
+              src="/scc.svg"
+              alt="Supply Chain Lite Logo"
+              class="img-fluid mb-4"
+              style="width: 4rem; height: 4rem"
+            />
+            <h1 class="fw-bold text-center mb-3 text-white">Supply Chain Lite</h1>
+            <p class="fs-5 text-center text-white" style="max-width: 24rem">
+              Streamline your planning with lightweight, modern supply chain planning tools.
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Side - Activation Form -->
+        <div class="col-lg-6 d-flex align-items-center justify-content-center bg-white">
+          <div class="w-100 px-4" style="max-width: 420px">
+            <!-- Mobile Logo -->
+            <div class="d-lg-none text-center mb-4">
+              <img
+                src="/scc.svg"
+                alt="Supply Chain Lite Logo"
+                class="img-fluid mb-2"
+                style="width: 3rem; height: 3rem"
+              />
+              <h2 class="fw-bold">Supply Chain Lite</h2>
+            </div>
+
+            <form id="activationForm" class="bg-white px-4">
+              <div class="mb-4">
+                <h1 class="display-6 fw-bold mb-2">Activate Account</h1>
+                <p class="text-muted fw-semibold">Enter the activation code you received.</p>
+              </div>
+
+              <div id="activationMessage" class="alert d-none" role="alert"></div>
+
+              <div class="mb-4">
+                <label for="emailInput" class="form-label fw-bold text-uppercase fs-6">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  class="form-control form-control-lg"
+                  id="emailInput"
+                  placeholder="john.doe@example.com"
+                  required
+                />
+              </div>
+
+              <!-- Activation Code Input -->
+              <div class="mb-4">
+                <label for="activationCodeInput" class="form-label fw-bold text-uppercase fs-6">
+                  Activation Code
+                </label>
+                <input
+                  type="text"
+                  class="form-control form-control-lg"
+                  id="activationCodeInput"
+                  placeholder="Enter activation code"
+                  required
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- Submit Button -->
+              <div class="d-grid mb-4">
+                <button type="submit" class="btn btn-dark btn-lg">Verify & Activate</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="page_assets/activate-account/js/main.js"></script>
+  </body>
+</html>
