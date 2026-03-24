@@ -14,21 +14,22 @@ import { bsToastError } from './bsToast';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 async function request(endpoint, options = {}) {
+  const { silent, ...fetchOptions } = options;
   const url = `${BASE_URL}${endpoint}`;
 
   const config = {
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...fetchOptions.headers,
     },
-    ...options,
+    ...fetchOptions,
   };
 
   let response;
   try {
     response = await fetch(url, config);
   } catch (networkError) {
-    bsToastError('Unable to reach the server. Please check your connection.');
+    if (!silent) bsToastError('Unable to reach the server. Please check your connection.');
     throw networkError;
   }
 
@@ -41,21 +42,23 @@ async function request(endpoint, options = {}) {
       // response body is not JSON — ignore
     }
 
-    let message;
-    if (error.status === 422) {
-      // add more details on what is missing from the error response if available
-      const missingFields = error.data?.detail
-        ?.filter((item) => item.type === 'missing')
-        .map((item) => item.loc.slice(-1)[0])
-        .join(', ');
-      message = missingFields
-        ? `Missing required fields: ${missingFields}`
-        : 'Validation error: Please check your input.';
-    } else {
-      message = error.data?.detail || 'An unexpected error occurred. Please try again.';
-    }
+    if (!silent) {
+      let message;
+      if (error.status === 422) {
+        // add more details on what is missing from the error response if available
+        const missingFields = error.data?.detail
+          ?.filter((item) => item.type === 'missing')
+          .map((item) => item.loc.slice(-1)[0])
+          .join(', ');
+        message = missingFields
+          ? `Missing required fields: ${missingFields}`
+          : 'Validation error: Please check your input.';
+      } else {
+        message = error.data?.detail || 'An unexpected error occurred. Please try again.';
+      }
 
-    bsToastError(message);
+      bsToastError(message);
+    }
     throw error;
   }
 

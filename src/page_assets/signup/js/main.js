@@ -41,7 +41,19 @@ function clearInvalid(input) {
 
 /* ── Signup ─────────────────────────────────────────────────────────────────── */
 
-ready(() => {
+ready(async () => {
+  // ── Already authenticated? Redirect immediately ───────────────────────
+  try {
+    const user = await api.get('/auth/me', { silent: true });
+    if (user && user.role_name) {
+      sessionStorage.setItem('user', JSON.stringify(user));
+      window.location.href = 'home-page.html';
+      return;
+    }
+  } catch {
+    // Not authenticated — continue to show the signup form.
+  }
+
   const form = $('form');
   const firstNameInput = $('#firstNameInput');
   const lastNameInput = $('#lastNameInput');

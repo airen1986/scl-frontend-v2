@@ -7,15 +7,22 @@ import '../css/main.css'; // home-page-specific styles
 import api from '@/common/js/api';
 import { ready } from '@/common/js/dom';
 
-// ── Already authenticated? Redirect immediately ─────────────────────────────
+/* ── Home Page ─────────────────────────────────────────────────────────────── */
+
 ready(async () => {
+  // ── Auth guard: redirect to login if not authenticated ────────────────
   try {
     const user = await api.get('/auth/me', { silent: true });
-    if (user && user.role_name) {
+    if (user && user.rolename) {
       sessionStorage.setItem('user', JSON.stringify(user));
-      window.location.href = 'home-page.html';
+    } else {
+      window.location.href = 'login.html';
+      return;
     }
   } catch {
-    // Not authenticated — stay on current page.
+    window.location.href = 'login.html';
+    return;
   }
+
+  // TODO: home-page initialisation
 });

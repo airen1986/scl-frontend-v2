@@ -1,0 +1,9 @@
+/*
+ * main.css — styles specific to the home page only.
+ *
+ * Imported in src/page_assets/home-page/js/main.js.
+ * Do NOT import this file from any other page.
+ */
+#userDropdown:hover {
+      background-color: transparent;
+}
