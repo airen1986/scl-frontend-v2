@@ -52,7 +52,7 @@ ready(async () => {
   // ── Auth guard: redirect to login if not authenticated ────────────────
   let user;
   try {
-    user = await api.post('/auth/me', { silent: true });
+    user = await api.post('/auth/me', {}, { silent: true });
     if (user && user.role_name) {
       sessionStorage.setItem('user', JSON.stringify(user));
     } else {
@@ -65,7 +65,7 @@ ready(async () => {
   }
 
   // ── Display avatar initials ──────────────────────────────────────────
-  const avatar = $('#displayAvtar');
+  const avatar = $('#displayAvatar');
   if (avatar) {
     avatar.textContent = getInitials(user.display_name);
   }
