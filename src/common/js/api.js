@@ -14,13 +14,13 @@ import { bsToastError } from './bsToast';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 async function request(endpoint, options = {}) {
-  const { silent, ...fetchOptions } = options;
+  const { silent, headers = {}, ...fetchOptions } = options;
   const url = `${BASE_URL}${endpoint}`;
 
   const config = {
     headers: {
       'Content-Type': 'application/json',
-      ...fetchOptions.headers,
+      ...headers,
     },
     ...fetchOptions,
   };

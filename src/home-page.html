@@ -242,6 +242,7 @@
               href="#"
               role="button"
               id="userNotification"
+              aria-label="Notifications"
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
@@ -249,19 +250,7 @@
                 class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center me-2"
                 style="width: 40px; height: 40px; font-weight: bold; position: relative"
               >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
+                <i class="fa-solid fa-bell"></i>
                 <span
                   id="notificationDot"
                   class="position-absolute d-none"
@@ -294,6 +283,7 @@
               aria-expanded="false"
             >
               <div
+                id="displayAvtar"
                 class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center me-2"
                 style="width: 40px; height: 40px; font-weight: bold"
               >
@@ -1000,7 +990,7 @@
               <select class="form-select" id="shareAccessLevel">
                 <option value="read">Read</option>
                 <option value="write">Write</option>
-                <option value="write">Execute</option>
+                <option value="execute">Execute</option>
               </select>
             </div>
 
@@ -1295,6 +1285,7 @@
         </div>
       </div>
     </div>
+
+    <script type="module" src="page_assets/home-page/js/main.js"></script>
   </body>
-  <script type="module" src="page_assets/home-page/js/main.js"></script>
 </html>
