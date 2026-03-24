@@ -41,7 +41,19 @@ function clearInvalid(input) {
 
 /* ── Login ─────────────────────────────────────────────────────────────────── */
 
-ready(() => {
+ready(async () => {
+  // ── Already authenticated? Redirect immediately ───────────────────────
+  try {
+    const user = await api.post('/auth/me', {}, { silent: true });
+    if (user && user.role_name) {
+      sessionStorage.setItem('user', JSON.stringify(user));
+      window.location.href = 'home-page.html';
+      return;
+    }
+  } catch {
+    // Not authenticated — continue to show the login form.
+  }
+
   const form = $('#loginForm');
   const emailInput = $('#emailInput');
   const passwordInput = $('#passwordInput');
@@ -82,7 +94,7 @@ ready(() => {
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in…';
 
     try {
-      const data = await api.post('/login', { email, password });
+      const data = await api.post('/auth/login', { email, password });
 
       if (data.user) {
         sessionStorage.setItem('user', JSON.stringify(data.user));
