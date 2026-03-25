@@ -5,7 +5,7 @@ import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // home-page-specific styles
 
 import api from '@/common/js/api';
-import { fetchModels } from './models';
+import { fetchModels, setupAddNewModel } from './models';
 import { initProjects } from './projects';
 import {
   bsToastSuccess as toastSuccess,
@@ -84,6 +84,9 @@ ready(async () => {
 
   // ── Init projects (fetch current + list, wire up modals) ───────────────
   await initProjects(appState);
+
+  // ── Wire up Add New Model modal ──────────────────────────────────────────
+  setupAddNewModel(appState);
 
   // ── Display avatar initials ──────────────────────────────────────────
   const avatar = $('#displayAvatar');
