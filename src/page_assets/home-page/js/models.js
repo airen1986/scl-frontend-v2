@@ -6,11 +6,20 @@ import api from '@/common/js/api';
 import { $, on } from '@/common/js/dom';
 
 async function fetchModels(appState) {
-  const data = await api.post('/models/list');
-  appState.projectModels = data.project_models || {};
-  appState.projects = Object.keys(appState.projectModels);
-  const template_data = await api.post('/models/templates');
-  appState.modelTemplates = template_data.model_templates || [];
+  try {
+    const data = await api.post('/models/list');
+    appState.projectModels = data.project_models || {};
+    appState.projects = Object.keys(appState.projectModels);
+  } catch {
+    // api.js already displayed the error toast
+  }
+
+  try {
+    const template_data = await api.post('/models/templates');
+    appState.modelTemplates = template_data.model_templates || [];
+  } catch {
+    // api.js already displayed the error toast
+  }
 }
 
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
