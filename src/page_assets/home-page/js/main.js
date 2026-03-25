@@ -59,7 +59,7 @@ const appState = {
   /** List of all project names */
   projects: [],
   /** List of available model templates */
-  modelTemplates: []
+  modelTemplates: [],
 };
 
 /* ── Home Page ─────────────────────────────────────────────────────────────── */

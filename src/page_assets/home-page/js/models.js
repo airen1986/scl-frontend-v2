@@ -6,15 +6,11 @@ import api from '@/common/js/api';
 import { $, on } from '@/common/js/dom';
 
 async function fetchModels(appState) {
-  try {
-    const data = await api.post('/models/list');
-    appState.projectModels = data.project_models || {};
-    appState.projects = Object.keys(appState.projectModels);
-    const template_data = await api.post('/models/templates');
-    appState.modelTemplates = template_data.model_templates || [];
-  } catch {
-    toastError('Failed to load models');
-  }
+  const data = await api.post('/models/list');
+  appState.projectModels = data.project_models || {};
+  appState.projects = Object.keys(appState.projectModels);
+  const template_data = await api.post('/models/templates');
+  appState.modelTemplates = template_data.model_templates || [];
 }
 
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
@@ -83,25 +79,21 @@ function setupAddNewModel(appState) {
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating…';
 
-    try {
-      await api.post('/models/create', {
-        project_name: projectName,
-        model_name: modelName,
-        model_template: template,
-        with_sample_data: sampleDataCheckbox.checked,
-      });
-      await toastSuccess('Model created successfully!');
-      if (!appState.projectModels[projectName]) {
-        appState.projectModels[projectName] = [];
-      }
-      appState.projectModels[projectName].push(modelName);
-      window.bootstrap.Modal.getInstance(modal)?.hide();
-    } catch (err) {
-      if (!err.status) toastError('An unexpected error occurred.');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Create Model';
+    await api.post('/models/create', {
+      project_name: projectName,
+      model_name: modelName,
+      model_template: template,
+      with_sample_data: sampleDataCheckbox.checked,
+    });
+    toastSuccess('Model created successfully!');
+    if (!appState.projectModels[projectName]) {
+      appState.projectModels[projectName] = [];
     }
+    appState.projectModels[projectName].push(modelName);
+    window.bootstrap.Modal.getInstance(modal)?.hide();
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create Model';
   });
 }
 
