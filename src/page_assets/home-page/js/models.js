@@ -88,21 +88,25 @@ function setupAddNewModel(appState) {
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating…';
 
-    await api.post('/models/create', {
-      project_name: projectName,
-      model_name: modelName,
-      model_template: template,
-      with_sample_data: sampleDataCheckbox.checked,
-    });
-    toastSuccess('Model created successfully!');
-    if (!appState.projectModels[projectName]) {
-      appState.projectModels[projectName] = [];
+    try {
+      await api.post('/models/create', {
+        project_name: projectName,
+        model_name: modelName,
+        model_template: template,
+        with_sample_data: sampleDataCheckbox.checked,
+      });
+      toastSuccess('Model created successfully!');
+      if (!appState.projectModels[projectName]) {
+        appState.projectModels[projectName] = [];
+      }
+      appState.projectModels[projectName].push(modelName);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Model';
     }
-    appState.projectModels[projectName].push(modelName);
-    window.bootstrap.Modal.getInstance(modal)?.hide();
-
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Create Model';
   });
 }
 

@@ -18,6 +18,7 @@ function populateProjectSelect(
   const def = document.createElement('option');
   def.disabled = true;
   def.selected = true;
+  def.value = '';
   def.textContent = placeholder;
   selectEl.appendChild(def);
   projects.forEach((name) => {
@@ -71,19 +72,23 @@ function setupCreateProject(appState) {
     submitBtn.disabled = true;
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating…';
-
-    await api.post('/projects/create', {
-      name,
-      create_and_open: openAfter.checked,
-    });
-    toastSuccess('Project created successfully!');
-    appState.projects.push(name);
-    if (openAfter.checked) {
-      appState.currentProject = name;
+    try {
+      await api.post('/projects/create', {
+        name,
+        create_and_open: openAfter.checked,
+      });
+      toastSuccess('Project created successfully!');
+      appState.projects.push(name);
+      if (openAfter.checked) {
+        appState.currentProject = name;
+      }
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create';
     }
-    window.bootstrap.Modal.getInstance(modal)?.hide();
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Create';
   });
 }
 
@@ -108,12 +113,17 @@ function setupOpenProject(appState) {
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Opening…';
 
-    await api.post('/projects/open', { project_name: projectName });
-    toastSuccess('Project opened successfully!');
-    appState.currentProject = projectName;
-    window.bootstrap.Modal.getInstance(modal)?.hide();
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Open';
+    try {
+      await api.post('/projects/open', { project_name: projectName });
+      toastSuccess('Project opened successfully!');
+      appState.currentProject = projectName;
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Open';
+    }
   });
 }
 
@@ -149,22 +159,31 @@ function setupRenameProject(appState) {
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Renaming…';
 
-    await api.post('/projects/rename', {
-      old_project_name: oldName,
-      new_project_name: newName,
-    });
-    toastSuccess('Project renamed successfully!');
-    // replace old name with new name in appState.projects
-    const index = appState.projects.findIndex((p) => p === oldName);
-    if (index !== -1) {
-      appState.projects[index] = newName;
+    try {
+      await api.post('/projects/rename', {
+        old_project_name: oldName,
+        new_project_name: newName,
+      });
+      toastSuccess('Project renamed successfully!');
+      // replace old name with new name in appState.projects
+      const index = appState.projects.findIndex((p) => p === oldName);
+      if (index !== -1) {
+        appState.projects[index] = newName;
+      }
+      if (Object.prototype.hasOwnProperty.call(appState.projectModels, oldName)) {
+        appState.projectModels[newName] = appState.projectModels[oldName];
+        delete appState.projectModels[oldName];
+      }
+      if (appState.currentProject === oldName) {
+        appState.currentProject = newName;
+      }
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Rename';
     }
-    if (appState.currentProject === oldName) {
-      appState.currentProject = newName;
-    }
-    window.bootstrap.Modal.getInstance(modal)?.hide();
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Rename';
   });
 }
 
@@ -206,17 +225,22 @@ function setupDeleteProject(appState) {
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting…';
 
-    await api.post('/projects/delete', { project_name: projectName });
-    toastSuccess('Project deleted successfully!');
-    // remove project from appState.projects
-    appState.projects = appState.projects.filter((p) => p !== projectName);
-    if (appState.currentProject === projectName) {
-      await fetchCurrentProject(appState);
-    }
+    try {
+      await api.post('/projects/delete', { project_name: projectName });
+      toastSuccess('Project deleted successfully!');
+      // remove project from appState.projects
+      appState.projects = appState.projects.filter((p) => p !== projectName);
+      if (appState.currentProject === projectName) {
+        await fetchCurrentProject(appState);
+      }
 
-    window.bootstrap.Modal.getInstance(modal)?.hide();
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Delete';
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Delete';
+    }
   });
 }
 
@@ -227,7 +251,12 @@ function setupDeleteProject(appState) {
  * Call once after auth guard succeeds.
  */
 async function initProjects(appState) {
-  await fetchCurrentProject(appState);
+  try {
+    await fetchCurrentProject(appState);
+  } catch {
+    toastError('Failed to load current project. Please refresh the page.');
+    appState.currentProject = appState.currentProject || 'Default';
+  }
 
   setupCreateProject(appState);
   setupOpenProject(appState);
