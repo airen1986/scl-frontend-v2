@@ -32,10 +32,6 @@ function setupAddNewModel(appState) {
   on(modal, 'show.bs.modal', () => {
     // Populate project select, pre-select current project
     projectSelect.innerHTML = '';
-    const defOpt = document.createElement('option');
-    defOpt.disabled = true;
-    defOpt.textContent = 'Select a project';
-    projectSelect.appendChild(defOpt);
     appState.projects.forEach((name) => {
       const opt = document.createElement('option');
       opt.value = name;
@@ -43,16 +39,9 @@ function setupAddNewModel(appState) {
       if (name === appState.currentProject) opt.selected = true;
       projectSelect.appendChild(opt);
     });
-    if (!appState.currentProject) defOpt.selected = true;
 
     // Populate template select from app state
     templateSelect.innerHTML = '';
-    // const placeholder = document.createElement('option');
-    // placeholder.disabled = true;
-    // placeholder.selected = true;
-    // placeholder.value = '';
-    // placeholder.textContent = 'Select a template';
-    // templateSelect.appendChild(placeholder);
 
     const templates = appState.modelTemplates || [];
     templates.forEach((tpl) => {
