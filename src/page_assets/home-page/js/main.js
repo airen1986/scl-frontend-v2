@@ -5,6 +5,8 @@ import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // home-page-specific styles
 
 import api from '@/common/js/api';
+import { fetchModels } from './models';
+import { initProjects } from './projects';
 import {
   bsToastSuccess as toastSuccess,
   bsToastError as toastError,
@@ -46,6 +48,18 @@ function clearInvalid(input) {
   }
 }
 
+/* ── App State ─────────────────────────────────────────────────────────────── */
+
+const appState = {
+  user: null,
+  /** { [projectName]: string[] }  — project → model names */
+  projectModels: {},
+  /** Current active project name */
+  currentProject: '',
+  /** List of all project names */
+  projects: [],
+};
+
 /* ── Home Page ─────────────────────────────────────────────────────────────── */
 
 ready(async () => {
@@ -54,6 +68,7 @@ ready(async () => {
   try {
     user = await api.post('/auth/me', {}, { silent: true });
     if (user && user.role_name) {
+      appState.user = user;
       sessionStorage.setItem('user', JSON.stringify(user));
     } else {
       window.location.href = 'login.html';
@@ -63,6 +78,12 @@ ready(async () => {
     window.location.href = 'login.html';
     return;
   }
+
+  // ── Fetch project → models mapping ─────────────────────────────────────
+  await fetchModels(appState);
+
+  // ── Init projects (fetch current + list, wire up modals) ───────────────
+  await initProjects(appState);
 
   // ── Display avatar initials ──────────────────────────────────────────
   const avatar = $('#displayAvatar');
