@@ -4,6 +4,7 @@ import {
   bsToastError as toastError,
 } from '../../../common/js/bsToast';
 import { $, on } from '@/common/js/dom';
+import { renderCurrentProjectModels } from './models';
 
 /* ── Helpers ───────────────────────────────────────────────────────────────── */
 
@@ -81,6 +82,7 @@ function setupCreateProject(appState) {
       appState.projects.push(name);
       if (openAfter.checked) {
         appState.currentProject = name;
+        renderCurrentProjectModels(appState);
       }
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
@@ -117,6 +119,7 @@ function setupOpenProject(appState) {
       await api.post('/projects/open', { project_name: projectName });
       toastSuccess('Project opened successfully!');
       appState.currentProject = projectName;
+      renderCurrentProjectModels(appState);
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
       // api.js already displayed the error toast
