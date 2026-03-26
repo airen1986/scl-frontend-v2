@@ -54,7 +54,7 @@ function renderCurrentProjectModels(appState) {
     modelList.appendChild(item);
 
     item.addEventListener('click', (e) => {
-        e.preventDefault();
+      e.preventDefault();
       document
         .querySelectorAll('#modelList .list-group-item')
         .forEach((el) => el.classList.remove('active'));
@@ -62,12 +62,12 @@ function renderCurrentProjectModels(appState) {
       appState.selected_model = item.textContent;
       updateModelActionVisibility(appState);
     });
-    // update appState.selected_model to first model if not set
-    if (!appState.selected_model) {
-      appState.selected_model = modelNames[0];
-    }
-    updateModelActionVisibility(appState);
   });
+  // update appState.selected_model to first model if not set
+  if (!appState.selected_model) {
+    appState.selected_model = modelNames[0];
+  }
+  updateModelActionVisibility(appState);
 }
 
 function updateModelActionVisibility(appState) {
