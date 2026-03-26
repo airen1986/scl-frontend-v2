@@ -53,7 +53,8 @@ function renderCurrentProjectModels(appState) {
     item.textContent = name;
     modelList.appendChild(item);
 
-    item.addEventListener('click', () => {
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
       document
         .querySelectorAll('#modelList .list-group-item')
         .forEach((el) => el.classList.remove('active'));
@@ -65,6 +66,7 @@ function renderCurrentProjectModels(appState) {
     if (!appState.selected_model) {
       appState.selected_model = modelNames[0];
     }
+    updateModelActionVisibility(appState);
   });
 }
 
