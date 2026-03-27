@@ -64,7 +64,7 @@ function renderCurrentProjectModels(appState) {
     });
   });
   // update appState.selected_model to first model if not set
-  if (!appState.selected_model) {
+  if (!appState.selected_model || !modelNames.includes(appState.selected_model)) {
     appState.selected_model = modelNames[0];
   }
   updateModelActionVisibility(appState);

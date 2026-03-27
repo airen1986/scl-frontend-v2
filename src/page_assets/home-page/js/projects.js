@@ -16,12 +16,21 @@ function populateProjectSelect(
   placeholder = 'Select project'
 ) {
   selectEl.innerHTML = '';
-  const def = document.createElement('option');
-  def.disabled = true;
-  def.selected = true;
-  def.value = '';
-  def.textContent = placeholder;
-  selectEl.appendChild(def);
+  // const def = document.createElement('option');
+  // def.disabled = true;
+  // def.selected = true;
+  // def.value = '';
+  // def.textContent = placeholder;
+  // selectEl.appendChild(def);
+  // if length of projects = 1 and it's the current project, show it as selected but disabled
+  if (projects.length === 1) {
+    const opt = document.createElement('option');
+    opt.value = currentProject;
+    opt.textContent = currentProject;
+    opt.disabled = true;
+    selectEl.appendChild(opt);
+    return;
+  }
   projects.forEach((name) => {
     if (name !== currentProject) {
       const opt = document.createElement('option');
