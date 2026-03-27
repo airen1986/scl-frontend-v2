@@ -61,6 +61,11 @@ function autosizeModelListBody() {
   const available = window.innerHeight - rect.top - bottomGap;
 
   modelListContainer.style.maxHeight = `${Math.max(220, Math.floor(available))}px`;
+
+  const tablesContainer = document.getElementById('tablesContainer');
+  if (tablesContainer) {
+    tablesContainer.style.maxHeight = `${Math.max(220, Math.floor(available))}px`;
+  }
 }
 
 /* ── App State ─────────────────────────────────────────────────────────────── */

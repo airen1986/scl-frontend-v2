@@ -12,3 +12,8 @@
       overflow-y: auto;
       min-height: 200px;
 }
+
+#tablesBody {
+      overflow-y: auto;
+      min-height: 200px;
+}
