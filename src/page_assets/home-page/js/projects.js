@@ -12,8 +12,8 @@ import { renderCurrentProjectModels } from './models';
 function populateProjectSelect(
   selectEl,
   projects,
-  currentProject = '',
-  placeholder = 'Select project'
+  currentProject = ''
+  // placeholder = 'Select project'
 ) {
   selectEl.innerHTML = '';
   // const def = document.createElement('option');
