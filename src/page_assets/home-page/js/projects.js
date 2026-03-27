@@ -4,6 +4,7 @@ import {
   bsToastError as toastError,
 } from '../../../common/js/bsToast';
 import { $, on } from '@/common/js/dom';
+import { renderCurrentProjectModels } from './models';
 
 /* ── Helpers ───────────────────────────────────────────────────────────────── */
 
@@ -15,12 +16,21 @@ function populateProjectSelect(
   placeholder = 'Select project'
 ) {
   selectEl.innerHTML = '';
-  const def = document.createElement('option');
-  def.disabled = true;
-  def.selected = true;
-  def.value = '';
-  def.textContent = placeholder;
-  selectEl.appendChild(def);
+  // const def = document.createElement('option');
+  // def.disabled = true;
+  // def.selected = true;
+  // def.value = '';
+  // def.textContent = placeholder;
+  // selectEl.appendChild(def);
+  // if length of projects = 1 and it's the current project, show it as selected but disabled
+  if (projects.length === 1) {
+    const opt = document.createElement('option');
+    opt.value = currentProject;
+    opt.textContent = currentProject;
+    opt.disabled = true;
+    selectEl.appendChild(opt);
+    return;
+  }
   projects.forEach((name) => {
     if (name !== currentProject) {
       const opt = document.createElement('option');
@@ -81,6 +91,7 @@ function setupCreateProject(appState) {
       appState.projects.push(name);
       if (openAfter.checked) {
         appState.currentProject = name;
+        renderCurrentProjectModels(appState);
       }
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
@@ -117,6 +128,7 @@ function setupOpenProject(appState) {
       await api.post('/projects/open', { project_name: projectName });
       toastSuccess('Project opened successfully!');
       appState.currentProject = projectName;
+      renderCurrentProjectModels(appState);
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
       // api.js already displayed the error toast

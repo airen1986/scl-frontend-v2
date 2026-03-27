@@ -22,6 +22,72 @@ async function fetchModels(appState) {
   }
 }
 
+function renderCurrentProjectModels(appState) {
+  const modelList = $('#modelList');
+  if (!modelList) return;
+
+  const currentProject = appState.currentProject;
+  const projectModels = appState.projectModels?.[currentProject];
+
+  let modelNames = [];
+  if (Array.isArray(projectModels)) {
+    modelNames = projectModels;
+  } else if (projectModels && typeof projectModels === 'object') {
+    modelNames = Object.keys(projectModels);
+  }
+
+  modelList.innerHTML = '';
+
+  if (!modelNames.length) {
+    const emptyItem = document.createElement('div');
+    emptyItem.className = 'list-group-item text-muted';
+    emptyItem.textContent = 'No models found for current project.';
+    modelList.appendChild(emptyItem);
+    return;
+  }
+
+  modelNames.forEach((name, index) => {
+    const item = document.createElement('a');
+    item.href = '#';
+    item.className = `list-group-item list-group-item-action${index === 0 ? ' active' : ''}`;
+    item.textContent = name;
+    modelList.appendChild(item);
+
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      document
+        .querySelectorAll('#modelList .list-group-item')
+        .forEach((el) => el.classList.remove('active'));
+      item.classList.add('active');
+      appState.selected_model = item.textContent;
+      updateModelActionVisibility(appState);
+    });
+  });
+  // update appState.selected_model to first model if not set
+  if (!appState.selected_model || !modelNames.includes(appState.selected_model)) {
+    appState.selected_model = modelNames[0];
+  }
+  updateModelActionVisibility(appState);
+}
+
+function updateModelActionVisibility(appState) {
+  const access =
+    appState.projectModels?.[appState.currentProject]?.[appState.selected_model] || 'none';
+  const backup = document.getElementById('backupModelMenu');
+  const restore = document.getElementById('restoreModelMenu');
+  const share = document.getElementById('shareModelMenu');
+  const upload = document.getElementById('uploadModelMenu');
+
+  if (!backup || !restore || !share || !upload) return;
+
+  const isOwner = access === 'owner';
+
+  backup.style.display = isOwner ? '' : 'none';
+  restore.style.display = isOwner ? '' : 'none';
+  share.style.display = isOwner ? '' : 'none';
+  upload.style.display = isOwner ? '' : 'none';
+}
+
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
 
 function setupAddNewModel(appState) {
@@ -44,6 +110,7 @@ function setupAddNewModel(appState) {
       if (name === appState.currentProject) opt.selected = true;
       projectSelect.appendChild(opt);
     });
+    projectSelect.disabled = true;
 
     // Populate template select from app state
     templateSelect.innerHTML = '';
@@ -84,6 +151,13 @@ function setupAddNewModel(appState) {
       return;
     }
 
+    const currentModels = Object.keys(appState.projectModels[projectName] || {});
+
+    if (currentModels.includes(modelName)) {
+      toastError('A model with this name already exists in the selected project.');
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating…';
@@ -97,9 +171,10 @@ function setupAddNewModel(appState) {
       });
       toastSuccess('Model created successfully!');
       if (!appState.projectModels[projectName]) {
-        appState.projectModels[projectName] = [];
+        appState.projectModels[projectName] = {};
       }
-      appState.projectModels[projectName].push(modelName);
+      appState.projectModels[projectName][modelName] = 'owner'; // Add new model to app state with default role
+      renderCurrentProjectModels(appState);
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
       // api.js already displayed the error toast
@@ -110,4 +185,4 @@ function setupAddNewModel(appState) {
   });
 }
 
-export { fetchModels, setupAddNewModel };
+export { fetchModels, renderCurrentProjectModels, setupAddNewModel };

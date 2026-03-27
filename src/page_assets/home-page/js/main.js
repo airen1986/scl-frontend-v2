@@ -5,7 +5,7 @@ import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // home-page-specific styles
 
 import api from '@/common/js/api';
-import { fetchModels, setupAddNewModel } from './models';
+import { fetchModels, renderCurrentProjectModels, setupAddNewModel } from './models';
 import { initProjects } from './projects';
 import {
   bsToastSuccess as toastSuccess,
@@ -60,6 +60,8 @@ const appState = {
   projects: [],
   /** List of available model templates */
   modelTemplates: [],
+
+  selected_model: null,
 };
 
 /* ── Home Page ─────────────────────────────────────────────────────────────── */
@@ -86,6 +88,9 @@ ready(async () => {
 
   // ── Init projects (fetch current + list, wire up modals) ───────────────
   await initProjects(appState);
+
+  // ── Render models for active project ─────────────────────────────────────
+  renderCurrentProjectModels(appState);
 
   // ── Wire up Add New Model modal ──────────────────────────────────────────
   setupAddNewModel(appState);
