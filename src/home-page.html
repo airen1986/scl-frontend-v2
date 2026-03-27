@@ -313,9 +313,9 @@
     <div class="container mt-5 flex-fill d-flex">
       <!-- Sample Cards -->
       <div class="row flex-fill">
-        <div class="col-md-3 mb-3">
+        <div class="col-md-3 mb-3" id="modelListContainer">
           <div class="card h-100">
-            <div class="card-body">
+            <div class="card-body" id="modelListBody">
               <h4 class="card-title text-center mb-3">Models</h4>
               <div class="list-group" id="modelList">
                 <a href="#" class="list-group-item list-group-item-action active">
@@ -323,12 +323,16 @@
                 </a>
               </div>
             </div>
+            <div class="card-footer text-left py-2 px-2">
+              <span class="text-muted">Current Project:</span>
+              <span id="activeProjectDisplay" class="fw-semibold text-dark">—</span>
+            </div>
           </div>
         </div>
         <div class="col-md-6 mb-6"></div>
-        <div class="col-md-3 mb-3">
+        <div class="col-md-3 mb-3" id="tablesContainer">
           <div class="card h-100">
-            <div class="card-body">
+            <div class="card-body" id="tablesBody">
               <h4 class="card-title text-center mb-3">Tables</h4>
               <div class="accordion" id="tablesAccordion">
                 <div class="accordion-item">
