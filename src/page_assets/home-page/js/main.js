@@ -48,6 +48,21 @@ function clearInvalid(input) {
   }
 }
 
+/**
+ * Fit the model list panel to viewport height and enable scrolling when needed.
+ * Keeps a small bottom safety gap so footer/content do not overlap visually.
+ */
+function autosizeModelListBody() {
+  const modelListContainer = document.getElementById('modelListContainer');
+  if (!modelListContainer) return;
+
+  const rect = modelListContainer.getBoundingClientRect();
+  const bottomGap = 110;
+  const available = window.innerHeight - rect.top - bottomGap;
+
+  modelListContainer.style.maxHeight = `${Math.max(220, Math.floor(available))}px`;
+}
+
 /* ── App State ─────────────────────────────────────────────────────────────── */
 
 const appState = {
@@ -67,6 +82,9 @@ const appState = {
 /* ── Home Page ─────────────────────────────────────────────────────────────── */
 
 ready(async () => {
+  autosizeModelListBody();
+  window.addEventListener('resize', autosizeModelListBody);
+
   // ── Auth guard: redirect to login if not authenticated ────────────────
   let user;
   try {
@@ -91,6 +109,13 @@ ready(async () => {
 
   // ── Render models for active project ─────────────────────────────────────
   renderCurrentProjectModels(appState);
+  autosizeModelListBody();
+
+  // ── Display active project ───────────────────────────────────────────────
+  const activeProjectDisplay = document.getElementById('activeProjectDisplay');
+  if (activeProjectDisplay) {
+    activeProjectDisplay.textContent = appState.currentProject || '—';
+  }
 
   // ── Wire up Add New Model modal ──────────────────────────────────────────
   setupAddNewModel(appState);

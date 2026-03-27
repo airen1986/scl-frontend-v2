@@ -8,6 +8,12 @@ import { renderCurrentProjectModels } from './models';
 
 /* ── Helpers ───────────────────────────────────────────────────────────────── */
 
+/** Update the active-project display bar in the navbar. */
+function updateActiveProjectDisplay(name) {
+  const el = document.getElementById('activeProjectDisplay');
+  if (el) el.textContent = name || '—';
+}
+
 /** Populate a <select> element with project names. */
 function populateProjectSelect(
   selectEl,
@@ -91,6 +97,7 @@ function setupCreateProject(appState) {
       appState.projects.push(name);
       if (openAfter.checked) {
         appState.currentProject = name;
+        updateActiveProjectDisplay(name);
         renderCurrentProjectModels(appState);
       }
       window.bootstrap.Modal.getInstance(modal)?.hide();
@@ -128,6 +135,7 @@ function setupOpenProject(appState) {
       await api.post('/projects/open', { project_name: projectName });
       toastSuccess('Project opened successfully!');
       appState.currentProject = projectName;
+      updateActiveProjectDisplay(projectName);
       renderCurrentProjectModels(appState);
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
@@ -188,6 +196,7 @@ function setupRenameProject(appState) {
       }
       if (appState.currentProject === oldName) {
         appState.currentProject = newName;
+        updateActiveProjectDisplay(newName);
       }
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
@@ -244,6 +253,7 @@ function setupDeleteProject(appState) {
       appState.projects = appState.projects.filter((p) => p !== projectName);
       if (appState.currentProject === projectName) {
         await fetchCurrentProject(appState);
+        updateActiveProjectDisplay(appState.currentProject);
       }
 
       window.bootstrap.Modal.getInstance(modal)?.hide();

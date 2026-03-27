@@ -7,3 +7,8 @@
 #userDropdown:hover {
       background-color: transparent;
 }
+
+#modelListBody {
+      overflow-y: auto;
+      min-height: 200px;
+}
