@@ -5,7 +5,13 @@ import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // home-page-specific styles
 
 import api from '@/common/js/api';
-import { fetchModels, renderCurrentProjectModels, setupAddNewModel } from './models';
+import {
+  fetchModels,
+  renderCurrentProjectModels,
+  setupAddNewModel,
+  setupSaveAsModel,
+  setupAddExistingModel,
+} from './models';
 import { initProjects } from './projects';
 import {
   bsToastSuccess as toastSuccess,
@@ -122,8 +128,10 @@ ready(async () => {
     activeProjectDisplay.textContent = appState.currentProject || '—';
   }
 
-  // ── Wire up Add New Model modal ──────────────────────────────────────────
+  // ── Wire up model modals ──────────────────────────────────────────────────
   setupAddNewModel(appState);
+  setupSaveAsModel(appState);
+  setupAddExistingModel(appState);
 
   // ── Display avatar initials ──────────────────────────────────────────
   const avatar = $('#displayAvatar');

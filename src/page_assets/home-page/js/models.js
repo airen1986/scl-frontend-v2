@@ -66,6 +66,17 @@ function renderCurrentProjectModels(appState) {
   // update appState.selected_model to first model if not set
   if (!appState.selected_model || !modelNames.includes(appState.selected_model)) {
     appState.selected_model = modelNames[0];
+  } else {
+    // ensure the correct model is highlighted as active
+    const activeItem = Array.from(document.querySelectorAll('#modelList .list-group-item')).find(
+      (el) => el.textContent === appState.selected_model
+    );
+    if (activeItem) {
+      document
+        .querySelectorAll('#modelList .list-group-item')
+        .forEach((el) => el.classList.remove('active'));
+      activeItem.classList.add('active');
+    }
   }
   updateModelActionVisibility(appState);
 }
@@ -185,4 +196,234 @@ function setupAddNewModel(appState) {
   });
 }
 
-export { fetchModels, renderCurrentProjectModels, setupAddNewModel };
+function setupSaveAsModel(appState) {
+  const modal = $('#saveAsModelModal');
+  const projectInput = $('#saveAsTargetProject');
+  const existingModelInput = $('#saveAsExistingModelName');
+  const newModelNameInput = $('#saveAsNewModelName');
+  const submitBtn = $('#submitSaveAsModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    // Auto-populate and disable current project
+    projectInput.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = appState.currentProject;
+    opt.textContent = appState.currentProject;
+    opt.selected = true;
+    projectInput.appendChild(opt);
+    projectInput.disabled = true;
+
+    // Auto-populate and disable existing (active) model name
+    existingModelInput.value = appState.selected_model || '';
+    existingModelInput.disabled = true;
+
+    // Clear new model name and enable submit
+    newModelNameInput.value = '';
+    submitBtn.disabled = false;
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    newModelNameInput.value = '';
+  });
+
+  on(submitBtn, 'click', async () => {
+    const newModelName = newModelNameInput.value.trim();
+    if (!newModelName) {
+      toastError('New model name is required.');
+      return;
+    }
+
+    // Check for duplicate model name in current project
+    const currentModels = Object.keys(appState.projectModels[appState.currentProject] || {});
+    if (currentModels.includes(newModelName)) {
+      toastError('A model with this name already exists in the current project.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving…';
+
+    try {
+      await api.post('/models/save-as', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+        new_model_name: newModelName,
+      });
+      toastSuccess('Model saved successfully!');
+      // Add new model to app state
+      if (!appState.projectModels[appState.currentProject]) {
+        appState.projectModels[appState.currentProject] = {};
+      }
+      appState.projectModels[appState.currentProject][newModelName] = 'owner';
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save As';
+    }
+  });
+}
+
+/* ── Add Existing Model Modal (tree UI) ─────────────────────────────────── */
+
+/** Build the project→model tree inside #existingModelTree. */
+function buildModelTree(container, projectModels, currentProject) {
+  container.innerHTML = '';
+
+  const ul = document.createElement('ul');
+  ul.className = 'model-tree';
+
+  Object.entries(projectModels).forEach(([project, models]) => {
+    if (project === currentProject) return; // skip current project
+
+    const modelNames = Array.isArray(models) ? models : Object.keys(models || {});
+    if (!modelNames.length) return;
+
+    const projectLi = document.createElement('li');
+    projectLi.className = 'tree-project';
+
+    // Project checkbox + label
+    const projectLabel = document.createElement('label');
+    projectLabel.className = 'tree-label';
+    const projectCb = document.createElement('input');
+    projectCb.type = 'checkbox';
+    projectCb.className = 'tree-cb tree-project-cb';
+    projectCb.dataset.project = project;
+    const projectIcon = document.createElement('span');
+    projectIcon.className = 'tree-icon me-1';
+    projectIcon.innerHTML = '<i class="fa-solid fa-bars text-secondary"></i>';
+    projectLabel.append(projectCb, projectIcon, ` ${project}`);
+    projectLi.appendChild(projectLabel);
+
+    // Model children
+    const modelsUl = document.createElement('ul');
+    modelsUl.className = 'tree-models';
+    modelNames.forEach((modelName) => {
+      const modelLi = document.createElement('li');
+      const modelLabel = document.createElement('label');
+      modelLabel.className = 'tree-label';
+      const modelCb = document.createElement('input');
+      modelCb.type = 'checkbox';
+      modelCb.className = 'tree-cb tree-model-cb';
+      modelCb.dataset.project = project;
+      modelCb.dataset.model = modelName;
+
+      const access = typeof models === 'object' && !Array.isArray(models) ? models[modelName] : '';
+      const iconClass = access === 'owner' ? 'fa-solid fa-database' : 'fa-solid fa-link';
+      const modelIcon = document.createElement('span');
+      modelIcon.className = 'tree-icon me-1';
+      modelIcon.innerHTML = `<i class="${iconClass} text-secondary"></i>`;
+
+      modelLabel.append(modelCb, modelIcon, ` ${modelName}`);
+      modelLi.appendChild(modelLabel);
+      modelsUl.appendChild(modelLi);
+
+      // Update project checkbox state when a model is toggled
+      modelCb.addEventListener('change', () => {
+        const siblings = modelsUl.querySelectorAll('.tree-model-cb');
+        const allChecked = [...siblings].every((cb) => cb.checked);
+        const someChecked = [...siblings].some((cb) => cb.checked);
+        projectCb.checked = allChecked;
+        projectCb.indeterminate = !allChecked && someChecked;
+      });
+    });
+    projectLi.appendChild(modelsUl);
+
+    // Toggle all models when project checkbox is clicked
+    projectCb.addEventListener('change', () => {
+      modelsUl.querySelectorAll('.tree-model-cb').forEach((cb) => (cb.checked = projectCb.checked));
+      projectCb.indeterminate = false;
+    });
+
+    ul.appendChild(projectLi);
+  });
+
+  if (!ul.children.length) {
+    container.innerHTML = '<p class="text-muted">No other projects with models found.</p>';
+    return;
+  }
+  container.appendChild(ul);
+}
+
+/** Return array of { model_name, project_name } for every checked model. */
+function getSelectedModels(container) {
+  return [...container.querySelectorAll('.tree-model-cb:checked')].map((cb) => ({
+    model_name: cb.dataset.model,
+    project_name: cb.dataset.project,
+  }));
+}
+
+function setupAddExistingModel(appState) {
+  const modal = $('#addExistingModelModal');
+  const modelTree = $('#existingModelTree');
+  const submitBtn = $('#submitAddExistingModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    buildModelTree(modelTree, appState.projectModels, appState.currentProject);
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    modelTree.innerHTML = '';
+  });
+
+  on(submitBtn, 'click', async () => {
+    const selected = getSelectedModels(modelTree);
+    if (!selected.length) {
+      toastError('Please select at least one model.');
+      return;
+    }
+
+    // Validate no name collisions with current project models
+    const currentModels = Object.keys(appState.projectModels[appState.currentProject] || {});
+    const conflicts = selected
+      .filter((s) => currentModels.includes(s.model_name))
+      .map((s) => s.model_name);
+    if (conflicts.length) {
+      toastError(`Model name(s) already exist in current project: ${conflicts.join(', ')}`);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Adding…';
+
+    try {
+      await api.post('/models/add-existing', {
+        project_name: appState.currentProject,
+        model_project_pairs: selected.map((s) => [s.model_name, s.project_name]),
+      });
+      toastSuccess('Model(s) added successfully!');
+
+      // Update local app state
+      selected.forEach(({ model_name, project_name }) => {
+        const access = appState.projectModels[project_name]?.[model_name] || 'read';
+        if (!appState.projectModels[appState.currentProject]) {
+          appState.projectModels[appState.currentProject] = {};
+        }
+        appState.projectModels[appState.currentProject][model_name] = access;
+        delete appState.projectModels[project_name][model_name];
+      });
+
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add';
+    }
+  });
+}
+
+export {
+  fetchModels,
+  renderCurrentProjectModels,
+  setupAddNewModel,
+  setupSaveAsModel,
+  setupAddExistingModel,
+};

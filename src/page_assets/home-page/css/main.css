@@ -17,3 +17,72 @@
       overflow-y: auto;
       min-height: 200px;
 }
+
+/* ── Model tree (Add Existing Models modal) ──────────────────────────────── */
+.model-tree,
+.model-tree .tree-models {
+  list-style: none;
+  padding-left: 0;
+}
+
+.model-tree .tree-models {
+  padding-left: 1.5rem;
+  border-left: 1px solid #ccc;
+  margin-left: 0.55rem;
+}
+
+.model-tree .tree-models > li {
+  position: relative;
+  padding-left: 0.5rem;
+}
+
+.model-tree .tree-models > li::before {
+  content: '';
+  position: absolute;
+  left: -1.5rem;
+  top: 50%;
+  width: 2rem;
+  border-top: 1px solid #ccc;
+}
+
+.model-tree .tree-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.15rem 0;
+  user-select: none;
+}
+
+.model-tree .tree-project > .tree-label {
+  font-weight: 600;
+}
+
+/* Hide the actual checkbox */
+.model-tree .tree-cb {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Icon wrapper needs relative positioning for the tick overlay */
+.model-tree .tree-icon {
+  position: relative;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* Tick overlay on the icon when selected */
+.model-tree .tree-cb:checked ~ .tree-icon::after {
+  content: '\2714';
+  position: absolute;
+  top: -0.35em;
+  left: -0.15em;
+  font-size: 1.75em;
+  color: #141414;
+  font-weight: 900;
+  text-shadow: 0 0 1px #fff;
+  pointer-events: none;
+}
