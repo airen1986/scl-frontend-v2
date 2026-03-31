@@ -436,6 +436,11 @@ function setupRenameModel(appState) {
     currentModelInput.value = appState.selected_model || '';
     currentModelInput.disabled = true;
     newModelNameInput.value = '';
+    if (!appState.selected_model || !appState.currentProject) {
+      toastError('No model selected for deletion.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
   });
 
   on(modal, 'hidden.bs.modal', () => {
@@ -503,6 +508,11 @@ function setupDeleteModel(appState) {
     modelActualName.value = appState.selected_model || '';
     modelActualName.disabled = true;
     modelNameLabel.textContent = appState.selected_model || '';
+    if (!appState.selected_model || !appState.currentProject) {
+      toastError('No model selected for deletion.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
     confirmInput.value = '';
     confirmCheckbox.checked = false;
   });
