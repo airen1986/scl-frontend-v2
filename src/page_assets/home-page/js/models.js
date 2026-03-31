@@ -420,10 +420,139 @@ function setupAddExistingModel(appState) {
   });
 }
 
+/* ── Rename Model Modal ───────────────────────────────────────────────────── */
+
+function setupRenameModel(appState) {
+  const modal = $('#renameModelModal');
+  const projectInput = $('#RenameProjectName');
+  const currentModelInput = $('#currentModelName');
+  const newModelNameInput = $('#newModelName');
+  const submitBtn = $('#submitRenameModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    projectInput.value = appState.currentProject || '';
+    projectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    newModelNameInput.value = '';
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    newModelNameInput.value = '';
+  });
+
+  on(submitBtn, 'click', async () => {
+    const newModelName = newModelNameInput.value.trim();
+    if (!newModelName) {
+      toastError('New model name is required.');
+      return;
+    }
+
+    const currentModels = Object.keys(appState.projectModels[appState.currentProject] || {});
+    if (currentModels.includes(newModelName)) {
+      toastError('A model with this name already exists in the current project.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Renaming…';
+
+    try {
+      await api.post('/models/rename', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+        new_model_name: newModelName,
+      });
+      toastSuccess('Model renamed successfully!');
+
+      // Update app state: replace old key with new key, preserve access
+      const access =
+        appState.projectModels[appState.currentProject]?.[appState.selected_model] || 'owner';
+      delete appState.projectModels[appState.currentProject][appState.selected_model];
+      appState.projectModels[appState.currentProject][newModelName] = access;
+      appState.selected_model = newModelName;
+
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Rename';
+    }
+  });
+}
+
+/* ── Delete Model Modal ───────────────────────────────────────────────────── */
+
+function setupDeleteModel(appState) {
+  const modal = $('#deleteModelModal');
+  const projectInput = $('#DeleteProjectName');
+  const modelActualName = $('#deleteModelActualName');
+  const confirmInput = $('#deleteModelConfirmInput');
+  const confirmCheckbox = $('#confirmDeleteModel');
+  const modelNameLabel = $('#deleteModelName');
+  const submitBtn = $('#submitDeleteModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    projectInput.value = appState.currentProject || '';
+    projectInput.disabled = true;
+    modelActualName.value = appState.selected_model || '';
+    modelActualName.disabled = true;
+    modelNameLabel.textContent = appState.selected_model || '';
+    confirmInput.value = '';
+    confirmCheckbox.checked = false;
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    confirmInput.value = '';
+    confirmCheckbox.checked = false;
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!confirmCheckbox.checked) {
+      toastError('Please confirm you understand this action is permanent.');
+      return;
+    }
+    if (confirmInput.value.trim() !== appState.selected_model) {
+      toastError('Model name does not match. Please type the exact model name.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting…';
+
+    try {
+      await api.post('/models/delete', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+      });
+      toastSuccess('Model deleted successfully!');
+
+      delete appState.projectModels[appState.currentProject]?.[appState.selected_model];
+      appState.selected_model = null;
+
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Delete';
+    }
+  });
+}
+
 export {
   fetchModels,
   renderCurrentProjectModels,
   setupAddNewModel,
   setupSaveAsModel,
   setupAddExistingModel,
+  setupRenameModel,
+  setupDeleteModel,
 };

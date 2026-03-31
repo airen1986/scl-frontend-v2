@@ -11,6 +11,8 @@ import {
   setupAddNewModel,
   setupSaveAsModel,
   setupAddExistingModel,
+  setupRenameModel,
+  setupDeleteModel,
 } from './models';
 import { initProjects } from './projects';
 import {
@@ -132,6 +134,8 @@ ready(async () => {
   setupAddNewModel(appState);
   setupSaveAsModel(appState);
   setupAddExistingModel(appState);
+  setupRenameModel(appState);
+  setupDeleteModel(appState);
 
   // ── Display avatar initials ──────────────────────────────────────────
   const avatar = $('#displayAvatar');
