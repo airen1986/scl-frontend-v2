@@ -1024,13 +1024,13 @@ function setupShareModel(appState) {
 }
 
 /**
- * Connects the "Move Model" modal UI to validation, server call, and local state updates for moving a model to another project.
+ * Wire the "Move Model" modal: populate fields, validate user input, call the move API, and update local state on success.
  *
- * When activated, the modal is populated from appState, enforces selection and name-collision validation, calls the move API,
- * and on success updates appState.projectModels (moving the model entry to the target project), clears appState.selected_model,
- * re-renders the current project's model list, shows success toast messages, and hides the modal.
+ * Populates the modal from `appState`, enforces selection and name-collision checks, posts to `/models/move`, and on success
+ * moves the model entry in `appState.projectModels` to the target project, clears `appState.selected_model`, re-renders the
+ * current project's model list, shows a success toast, and hides the modal.
  *
- * @param {Object} appState - Application state object; expected keys used: `currentProject`, `selected_model`, `projects`, and `projectModels` (mapping project -> { modelName: access }).
+ * @param {Object} appState - Application state; expected keys: `currentProject`, `selected_model`, `projects`, and `projectModels` (mapping project -> { modelName: access }).
  */
 
 function setupMoveModel(appState) {
@@ -1125,6 +1125,17 @@ function setupMoveModel(appState) {
   });
 }
 
+/**
+ * Wires the Accept Model modal to accept or reject incoming model notifications.
+ *
+ * When shown, the modal is prefilled with the current project and an editable suggested model name.
+ * On accept: validates the new model name and notification id, posts an accept request, adds the new
+ * model to appState.projectModels[currentProject] with `'read'` access, re-renders the model list,
+ * and closes the modal.
+ * On reject: posts a reject request and closes the modal.
+ *
+ * @param {Object} appState - Application state object used to read/write `currentProject` and `projectModels`.
+ */
 function setupAcceptModel(appState) {
   const modal = $('#acceptModelModal');
   const fromUserInput = $('#acceptFromUser');
