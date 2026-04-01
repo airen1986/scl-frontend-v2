@@ -19,8 +19,10 @@ import {
   setupUploadModel,
   setupShareModel,
   setupMoveModel,
+  setupAcceptModel,
 } from './models';
 import { initProjects } from './projects';
+import { initNotifications } from './notifications';
 import {
   bsToastSuccess as toastSuccess,
   bsToastError as toastError,
@@ -130,6 +132,9 @@ ready(async () => {
   renderCurrentProjectModels(appState);
   autosizeModelListBody();
 
+  // ── Load notifications ─────────────────────────────────────────────────────
+  void initNotifications();
+
   // ── Display active project ───────────────────────────────────────────────
   const activeProjectDisplay = document.getElementById('activeProjectDisplay');
   if (activeProjectDisplay) {
@@ -148,11 +153,36 @@ ready(async () => {
   setupUploadModel(appState);
   setupShareModel(appState);
   setupMoveModel(appState);
+  setupAcceptModel(appState);
 
-  // ── Display avatar initials ──────────────────────────────────────────
+  // ── Display avatar initials & user info ───────────────────────────────
   const avatar = $('#displayAvatar');
   if (avatar) {
     avatar.textContent = getInitials(user.display_name);
+  }
+
+  const userInfoActions = $('#userInfoActions');
+  if (userInfoActions) {
+    const infoItem = document.createElement('li');
+    infoItem.className = 'px-3 py-2';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'fw-semibold';
+    nameEl.textContent = user.display_name || '';
+
+    const emailEl = document.createElement('div');
+    emailEl.className = 'text-muted small';
+    emailEl.textContent = user.email || '';
+
+    infoItem.append(nameEl, emailEl);
+
+    const dividerItem = document.createElement('li');
+    const divider = document.createElement('hr');
+    divider.className = 'dropdown-divider';
+    dividerItem.appendChild(divider);
+
+    userInfoActions.prepend(dividerItem);
+    userInfoActions.prepend(infoItem);
   }
 
   // ── Logout ───────────────────────────────────────────────────────────

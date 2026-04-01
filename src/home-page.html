@@ -253,7 +253,7 @@
                 <i class="fa-solid fa-bell"></i>
                 <span
                   id="notificationDot"
-                  class="position-absolute d-none"
+                  class="position-absolute"
                   style="
                     width: 10px;
                     height: 10px;
@@ -290,7 +290,11 @@
                 JD
               </div>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <ul
+              class="dropdown-menu dropdown-menu-end"
+              id="userInfoActions"
+              aria-labelledby="userDropdown"
+            >
               <li>
                 <a
                   class="dropdown-item"
@@ -301,7 +305,6 @@
                   Reset Password
                 </a>
               </li>
-              <li><hr class="dropdown-divider" /></li>
               <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
             </ul>
           </div>
@@ -711,6 +714,65 @@
           <div class="modal-footer">
             <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
             <button class="btn btn-dark" id="submitSaveAsModelBtn" disabled>Save As</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accept Model Modal -->
+    <div
+      class="modal fade"
+      id="acceptModelModal"
+      tabindex="-1"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Accept Model</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <!-- Target project -->
+            <div class="mb-3">
+              <label class="form-label">From User</label>
+              <input type="text" class="form-control" id="acceptFromUser" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Model Name</label>
+              <input type="text" class="form-control" id="acceptModelName" disabled />
+              <input type="hidden" id="acceptProjectName" />
+              <input type="hidden" id="acceptNotificationId" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Current Project</label>
+              <input type="text" class="form-control" id="acceptCurrentProject" disabled />
+            </div>
+
+            <!-- New model name -->
+            <div class="mb-3">
+              <label class="form-label">New Model Name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="acceptNewModelName"
+                placeholder="Enter new model name"
+              />
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="acceptSaveCopy" required="" />
+              <label class="form-check-label">Save As copy</label>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary me-auto" id="submitRejectModelBtn">Reject</button>
+            <button class="btn btn-dark" id="submitAcceptModelBtn" disabled>Accept</button>
           </div>
         </div>
       </div>

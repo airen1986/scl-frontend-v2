@@ -1024,13 +1024,13 @@ function setupShareModel(appState) {
 }
 
 /**
- * Connects the "Move Model" modal UI to validation, server call, and local state updates for moving a model to another project.
+ * Wire the "Move Model" modal: populate fields, validate user input, call the move API, and update local state on success.
  *
- * When activated, the modal is populated from appState, enforces selection and name-collision validation, calls the move API,
- * and on success updates appState.projectModels (moving the model entry to the target project), clears appState.selected_model,
- * re-renders the current project's model list, shows success toast messages, and hides the modal.
+ * Populates the modal from `appState`, enforces selection and name-collision checks, posts to `/models/move`, and on success
+ * moves the model entry in `appState.projectModels` to the target project, clears `appState.selected_model`, re-renders the
+ * current project's model list, shows a success toast, and hides the modal.
  *
- * @param {Object} appState - Application state object; expected keys used: `currentProject`, `selected_model`, `projects`, and `projectModels` (mapping project -> { modelName: access }).
+ * @param {Object} appState - Application state; expected keys: `currentProject`, `selected_model`, `projects`, and `projectModels` (mapping project -> { modelName: access }).
  */
 
 function setupMoveModel(appState) {
@@ -1125,6 +1125,142 @@ function setupMoveModel(appState) {
   });
 }
 
+/**
+ * Wires the Accept Model modal to accept or reject incoming model notifications.
+ *
+ * When shown, the modal is prefilled with the current project and an editable suggested model name.
+ * On accept: validates the new model name and notification id, posts an accept request, adds the new
+ * model to appState.projectModels[currentProject] with `'read'` access, re-renders the model list,
+ * and closes the modal.
+ * On reject: posts a reject request and closes the modal.
+ *
+ * @param {Object} appState - Application state object used to read/write `currentProject` and `projectModels`.
+ */
+function setupAcceptModel(appState) {
+  const modal = $('#acceptModelModal');
+  const fromUserInput = $('#acceptFromUser');
+  const modelNameInput = $('#acceptModelName');
+  const projectNameHidden = $('#acceptProjectName');
+  const notificationIdHidden = $('#acceptNotificationId');
+  const currentProjectInput = $('#acceptCurrentProject');
+  const newModelNameInput = $('#acceptNewModelName');
+  const saveCopyCheckbox = $('#acceptSaveCopy');
+  const submitBtn = $('#submitAcceptModelBtn');
+  const rejectBtn = $('#submitRejectModelBtn');
+  if (!modal || !submitBtn || !rejectBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    // Current project from appState
+    currentProjectInput.value = appState.currentProject || '';
+    if (!appState.currentProject) {
+      toastError('No current project selected for accepting the model.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+    // Default new model name to the incoming model name (editable)
+    newModelNameInput.value = modelNameInput.value || '';
+    submitBtn.disabled = false;
+    rejectBtn.disabled = false;
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    fromUserInput.value = '';
+    modelNameInput.value = '';
+    projectNameHidden.value = '';
+    notificationIdHidden.value = '';
+    currentProjectInput.value = '';
+    newModelNameInput.value = '';
+    saveCopyCheckbox.checked = false;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Accept';
+    rejectBtn.disabled = true;
+    rejectBtn.textContent = 'Reject';
+  });
+
+  // ── Accept ──────────────────────────────────────────────────────────────
+  on(submitBtn, 'click', async () => {
+    const newModelName = newModelNameInput.value.trim();
+    if (!newModelName) {
+      toastError('New model name is required.');
+      return;
+    }
+
+    // Duplicate check in current project
+    const currentModels = Object.keys(appState.projectModels[appState.currentProject] || {});
+    if (currentModels.includes(newModelName)) {
+      toastError('A model with this name already exists in the current project.');
+      return;
+    }
+
+    const notificationId = notificationIdHidden.value;
+    if (!notificationId) {
+      toastError('Notification ID is missing.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Accepting…';
+    rejectBtn.disabled = true;
+
+    try {
+      await api.post('/models/accept', {
+        notification_id: notificationId,
+        accept: true,
+        model_name: newModelName,
+        project_name: appState.currentProject,
+        create_new_copy: saveCopyCheckbox.checked,
+      });
+      toastSuccess('Model accepted successfully!');
+
+      if (!appState.projectModels[appState.currentProject]) {
+        appState.projectModels[appState.currentProject] = {};
+      }
+      if (saveCopyCheckbox.checked) {
+        appState.projectModels[appState.currentProject][newModelName] = 'owner';
+      } else {
+        appState.projectModels[appState.currentProject][newModelName] = 'read';
+      }
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Accept';
+      rejectBtn.disabled = false;
+      rejectBtn.textContent = 'Reject';
+    }
+  });
+
+  // ── Reject ─────────────────────────────────────────────────────────────
+  if (rejectBtn) {
+    on(rejectBtn, 'click', async () => {
+      const notificationId = notificationIdHidden.value;
+      if (!notificationId) return;
+      rejectBtn.disabled = true;
+      submitBtn.disabled = true;
+      rejectBtn.innerHTML =
+        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Rejecting…';
+      try {
+        await api.post('/models/accept', {
+          notification_id: notificationId,
+          accept: false,
+        });
+        toastSuccess('Model rejected.');
+        window.bootstrap.Modal.getInstance(modal)?.hide();
+      } catch {
+        // api.js already displayed the error toast
+      } finally {
+        rejectBtn.disabled = false;
+        rejectBtn.textContent = 'Reject';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Accept';
+      }
+    });
+  }
+}
+
 export {
   fetchModels,
   renderCurrentProjectModels,
@@ -1139,4 +1275,5 @@ export {
   setupUploadModel,
   setupShareModel,
   setupMoveModel,
+  setupAcceptModel,
 };
