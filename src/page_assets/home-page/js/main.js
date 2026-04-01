@@ -133,7 +133,7 @@ ready(async () => {
   autosizeModelListBody();
 
   // ── Load notifications ─────────────────────────────────────────────────────
-  await initNotifications();
+  void initNotifications();
 
   // ── Display active project ───────────────────────────────────────────────
   const activeProjectDisplay = document.getElementById('activeProjectDisplay');
@@ -163,12 +163,26 @@ ready(async () => {
 
   const userInfoActions = $('#userInfoActions');
   if (userInfoActions) {
-    const infoHtml =
-      `<li class="px-3 py-2">` +
-      `<div class="fw-semibold">${user.display_name || ''}</div>` +
-      `<div class="text-muted small">${user.email || ''}</div>` +
-      `</li><li><hr class="dropdown-divider" /></li>`;
-    userInfoActions.insertAdjacentHTML('afterbegin', infoHtml);
+    const infoItem = document.createElement('li');
+    infoItem.className = 'px-3 py-2';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'fw-semibold';
+    nameEl.textContent = user.display_name || '';
+
+    const emailEl = document.createElement('div');
+    emailEl.className = 'text-muted small';
+    emailEl.textContent = user.email || '';
+
+    infoItem.append(nameEl, emailEl);
+
+    const dividerItem = document.createElement('li');
+    const divider = document.createElement('hr');
+    divider.className = 'dropdown-divider';
+    dividerItem.appendChild(divider);
+
+    userInfoActions.prepend(dividerItem);
+    userInfoActions.prepend(infoItem);
   }
 
   // ── Logout ───────────────────────────────────────────────────────────

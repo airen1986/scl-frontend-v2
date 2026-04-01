@@ -1147,7 +1147,7 @@ function setupAcceptModel(appState) {
   const saveCopyCheckbox = $('#acceptSaveCopy');
   const submitBtn = $('#submitAcceptModelBtn');
   const rejectBtn = $('#submitRejectModelBtn');
-  if (!modal || !submitBtn) return;
+  if (!modal || !submitBtn || !rejectBtn) return;
 
   on(modal, 'show.bs.modal', () => {
     // Current project from appState
@@ -1160,6 +1160,7 @@ function setupAcceptModel(appState) {
     // Default new model name to the incoming model name (editable)
     newModelNameInput.value = modelNameInput.value || '';
     submitBtn.disabled = false;
+    rejectBtn.disabled = false;
   });
 
   on(modal, 'hidden.bs.modal', () => {
@@ -1172,6 +1173,8 @@ function setupAcceptModel(appState) {
     saveCopyCheckbox.checked = false;
     submitBtn.disabled = true;
     submitBtn.textContent = 'Accept';
+    rejectBtn.disabled = true;
+    rejectBtn.textContent = 'Reject';
   });
 
   // ── Accept ──────────────────────────────────────────────────────────────
@@ -1198,6 +1201,7 @@ function setupAcceptModel(appState) {
     submitBtn.disabled = true;
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Accepting…';
+    rejectBtn.disabled = true;
 
     try {
       await api.post('/models/accept', {
@@ -1212,7 +1216,11 @@ function setupAcceptModel(appState) {
       if (!appState.projectModels[appState.currentProject]) {
         appState.projectModels[appState.currentProject] = {};
       }
-      appState.projectModels[appState.currentProject][newModelName] = 'read';
+      if (saveCopyCheckbox.checked) {
+        appState.projectModels[appState.currentProject][newModelName] = 'owner';
+      } else {
+        appState.projectModels[appState.currentProject][newModelName] = 'read';
+      }
       renderCurrentProjectModels(appState);
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
@@ -1220,6 +1228,8 @@ function setupAcceptModel(appState) {
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Accept';
+      rejectBtn.disabled = false;
+      rejectBtn.textContent = 'Reject';
     }
   });
 
@@ -1229,6 +1239,7 @@ function setupAcceptModel(appState) {
       const notificationId = notificationIdHidden.value;
       if (!notificationId) return;
       rejectBtn.disabled = true;
+      submitBtn.disabled = true;
       rejectBtn.innerHTML =
         '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Rejecting…';
       try {
@@ -1243,6 +1254,8 @@ function setupAcceptModel(appState) {
       } finally {
         rejectBtn.disabled = false;
         rejectBtn.textContent = 'Reject';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Accept';
       }
     });
   }
