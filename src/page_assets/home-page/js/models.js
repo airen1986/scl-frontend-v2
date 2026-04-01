@@ -349,7 +349,11 @@ function buildModelTree(container, projectModels, currentProject) {
   container.appendChild(ul);
 }
 
-/** Return array of { model_name, project_name } for every checked model. */
+/**
+ * Collect selected models from a tree container.
+ * @param {Element} container - DOM element that contains model checkboxes (`.tree-model-cb`) with `data-model` and `data-project` attributes.
+ * @returns {{model_name: string, project_name: string}[]} An array of objects for each checked model, each containing `model_name` and `project_name`.
+ */
 function getSelectedModels(container) {
   return [...container.querySelectorAll('.tree-model-cb:checked')].map((cb) => ({
     model_name: cb.dataset.model,
@@ -357,7 +361,11 @@ function getSelectedModels(container) {
   }));
 }
 
-/* ── Backup Model Modal ───────────────────────────────────────────────────── */
+/**
+ * Initialize and wire the "Backup Model" modal: populate inputs, validate user comment, submit backup request, and manage button/modal state.
+ *
+ * @param {Object} appState - Application state object containing currentProject and selected_model used to prefill and validate the modal.
+ */
 
 function setupBackupModel(appState) {
   const modal = $('#backupModelModal');
@@ -420,7 +428,11 @@ function setupBackupModel(appState) {
   });
 }
 
-/* ── Restore Model Modal ─────────────────────────────────────────────────── */
+/**
+ * Format a backup timestamp into a human-readable string using the runtime locale.
+ * @param {(string|Date|null|undefined)} dateTime - The timestamp to format; may be a Date object, an ISO/string, or falsy.
+ * @returns {string} `'Unknown date'` if `dateTime` is falsy, the original `dateTime` converted to a string if it cannot be parsed as a valid date, or the formatted date string using the runtime locale.
+ */
 
 function formatBackupDateTime(dateTime) {
   if (!dateTime) return 'Unknown date';
@@ -433,6 +445,15 @@ function formatBackupDateTime(dateTime) {
   return parsedDate.toLocaleString();
 }
 
+/**
+ * Initialize and wire the Restore Model modal: populate inputs, load available backups, and handle restore actions.
+ *
+ * When the modal is shown, the current project and model are set from `appState` and the backup list is loaded from the server;
+ * the backup select is populated and the submit button is enabled only when backups are available. Selecting a backup enables the submit button.
+ * Submitting sends a restore request for the chosen backup, shows success feedback, and closes the modal on success.
+ *
+ * @param {Object} appState - Application state; this function reads `appState.currentProject` and `appState.selected_model`.
+ */
 function setupRestoreModel(appState) {
   const modal = $('#restoreModelModal');
   const currentProjectInput = $('#restoreCurrentProject');
