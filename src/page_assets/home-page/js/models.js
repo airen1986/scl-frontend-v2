@@ -840,15 +840,11 @@ function setupDownloadModel(appState) {
 }
 
 /**
- * Initialize the Upload Model Bootstrap modal, validating input and handling artifact upload.
+ * Wire the upload-model modal to the UI and handle validating and uploading a model artifact file.
  *
- * Wires modal show/hidden events and the submit button to:
- * - populate and lock current project/model inputs from `appState`,
- * - validate a chosen file has an allowed extension (.db or .sqlite3),
- * - POST the file as FormData to the server and show success feedback,
- * - restore submit button state after completion.
- *
- * @param {Object} appState - Application state object. Expected to provide `currentProject` and `selected_model`.
+ * Validates the selected file has a `.db` or `.sqlite3` extension, sends it as FormData to `/models/upload`,
+ * shows a success toast and closes the modal on success.
+ * @param {Object} appState - Application state containing `currentProject` and `selected_model` used to populate the modal.
  */
 
 function setupUploadModel(appState) {
@@ -921,6 +917,13 @@ function setupUploadModel(appState) {
   });
 }
 
+/**
+ * Wire and manage the "Share Model" modal: populate fields from app state, validate input, enable/disable the submit button, and perform the share request.
+ *
+ * Sets up modal show/hidden handlers, input change handlers, and the submit flow which validates the target email and access level, prevents sharing with the current user, calls the API to share the model, shows a success toast, and hides the modal on success.
+ *
+ * @param {object} appState - Application state containing at least `currentProject`, `selected_model`, and optionally `user.email`; used to populate inputs and determine the share target.
+ */
 function setupShareModel(appState) {
   const modal = $('#shareModelModal');
   const currentProjectInput = $('#shareCurrentProject');
