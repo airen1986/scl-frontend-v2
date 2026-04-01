@@ -967,34 +967,33 @@
             <!-- Current Project -->
             <div class="mb-3">
               <label class="form-label">Current Project</label>
-              <select class="form-select" id="shareProjectSelect">
-                <option disabled selected value="">Select project</option>
-              </select>
+              <input type="text" class="form-control" id="shareCurrentProject" disabled />
             </div>
 
-            <!-- Current Model -->
             <div class="mb-3">
-              <label class="form-label">Model</label>
-              <select class="form-select" id="shareModelSelect">
-                <option disabled selected value="">Select model</option>
-              </select>
+              <label class="form-label">Model Name</label>
+              <input type="text" class="form-control" id="shareModelName" disabled />
             </div>
 
             <!-- User Dropdown -->
             <div class="mb-3">
               <label class="form-label">Share With</label>
-              <select class="form-select" id="shareUserSelect">
-                <option disabled selected value="">Loading users...</option>
-              </select>
+              <input
+                type="email"
+                class="form-control"
+                id="shareWithUser"
+                placeholder="Enter user's email"
+              />
             </div>
 
             <!-- Access Level -->
             <div class="mb-3">
               <label class="form-label">Access Level</label>
               <select class="form-select" id="shareAccessLevel">
-                <option value="read">Read</option>
-                <option value="write">Write</option>
-                <option value="execute">Execute</option>
+                <option value="read">Read Only</option>
+                <option value="execute">Read & Execute</option>
+                <option value="write">Write & Execute</option>
+                <option value="admin">Full Access</option>
               </select>
             </div>
 

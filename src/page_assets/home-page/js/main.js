@@ -17,6 +17,7 @@ import {
   setupRestoreModel,
   setupDownloadModel,
   setupUploadModel,
+  setupShareModel,
   setupMoveModel,
 } from './models';
 import { initProjects } from './projects';
@@ -145,6 +146,7 @@ ready(async () => {
   setupRestoreModel(appState);
   setupDownloadModel(appState);
   setupUploadModel(appState);
+  setupShareModel(appState);
   setupMoveModel(appState);
 
   // ── Display avatar initials ──────────────────────────────────────────

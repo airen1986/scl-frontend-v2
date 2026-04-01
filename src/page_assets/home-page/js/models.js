@@ -921,6 +921,101 @@ function setupUploadModel(appState) {
   });
 }
 
+function setupShareModel(appState) {
+  const modal = $('#shareModelModal');
+  const currentProjectInput = $('#shareCurrentProject');
+  const currentModelInput = $('#shareModelName');
+  const shareWithUserInput = $('#shareWithUser');
+  const accessLevelSelect = $('#shareAccessLevel');
+  const submitBtn = $('#submitShareModelBtn');
+  if (!modal || !submitBtn || !shareWithUserInput || !accessLevelSelect) return;
+
+  function updateSubmitState() {
+    const hasValidEmail =
+      shareWithUserInput.value.trim().length > 0 && shareWithUserInput.checkValidity();
+    submitBtn.disabled = !hasValidEmail || !accessLevelSelect.value;
+  }
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    shareWithUserInput.value = '';
+    accessLevelSelect.value = 'read';
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for sharing.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+
+    updateSubmitState();
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    shareWithUserInput.value = '';
+    accessLevelSelect.value = 'read';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Share';
+  });
+
+  on(shareWithUserInput, 'input', updateSubmitState);
+  on(accessLevelSelect, 'change', updateSubmitState);
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for sharing.');
+      return;
+    }
+
+    const targetUserEmail = shareWithUserInput.value.trim();
+    if (!targetUserEmail) {
+      toastError('Please enter the user email to share with.');
+      shareWithUserInput.focus();
+      return;
+    }
+
+    if (targetUserEmail === appState.user.email) {
+      toastError('You cannot share a model with yourself.');
+      shareWithUserInput.focus();
+      return;
+    }
+
+    if (!shareWithUserInput.checkValidity()) {
+      toastError('Please enter a valid email address.');
+      shareWithUserInput.focus();
+      return;
+    }
+
+    const accessLevel = accessLevelSelect.value;
+    if (!accessLevel) {
+      toastError('Please select an access level.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Sharing…';
+
+    try {
+      await api.post('/models/share', {
+        target_user_email: targetUserEmail,
+        access_level: accessLevel,
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+      });
+      toastSuccess('Model shared successfully!');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.textContent = 'Share';
+      updateSubmitState();
+    }
+  });
+}
+
 /**
  * Connects the "Move Model" modal UI to validation, server call, and local state updates for moving a model to another project.
  *
@@ -1035,5 +1130,6 @@ export {
   setupRestoreModel,
   setupDownloadModel,
   setupUploadModel,
+  setupShareModel,
   setupMoveModel,
 };
