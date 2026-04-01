@@ -13,6 +13,8 @@ import {
   setupAddExistingModel,
   setupRenameModel,
   setupDeleteModel,
+  setupBackupModel,
+  setupRestoreModel,
   setupDownloadModel,
   setupUploadModel,
   setupMoveModel,
@@ -139,6 +141,8 @@ ready(async () => {
   setupAddExistingModel(appState);
   setupRenameModel(appState);
   setupDeleteModel(appState);
+  setupBackupModel(appState);
+  setupRestoreModel(appState);
   setupDownloadModel(appState);
   setupUploadModel(appState);
   setupMoveModel(appState);
