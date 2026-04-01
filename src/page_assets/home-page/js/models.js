@@ -437,7 +437,7 @@ function setupRenameModel(appState) {
     currentModelInput.disabled = true;
     newModelNameInput.value = '';
     if (!appState.selected_model || !appState.currentProject) {
-      toastError('No model selected for deletion.');
+      toastError('No model selected for renaming.');
       window.bootstrap.Modal.getInstance(modal)?.hide();
       return;
     }
@@ -589,43 +589,14 @@ function setupDownloadModel(appState) {
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Downloading…';
 
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-      const response = await fetch(`${baseUrl}/models/download`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          project_name: appState.currentProject,
-          model_name: appState.selected_model,
-        }),
+      const { blob: artifactBlob, fileName } = await api.postDownload('/models/download', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
       });
-
-      if (!response.ok) {
-        let message = 'Unable to download model artifact.';
-        try {
-          const errorData = await response.json();
-          message = errorData?.detail || message;
-        } catch {
-          // non-JSON error response
-        }
-        toastError(message);
-        return;
-      }
-
-      const contentDisposition = response.headers.get('content-disposition') || '';
-      const fileNameMatch = contentDisposition.match(
-        /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i
-      );
-      const fileName = fileNameMatch
-        ? decodeURIComponent(fileNameMatch[1] || fileNameMatch[2])
-        : `${appState.selected_model}.db`;
-
-      const artifactBlob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(artifactBlob);
       const anchor = document.createElement('a');
       anchor.href = downloadUrl;
-      anchor.download = fileName;
+      anchor.download = fileName || `${appState.selected_model}.db`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -634,7 +605,7 @@ function setupDownloadModel(appState) {
       toastSuccess('Model artifact download started.');
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
-      toastError('Unable to download model artifact. Please try again.');
+      // api.js already displayed the error toast
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Download';
@@ -702,29 +673,11 @@ function setupUploadModel(appState) {
       formData.append('project_name', appState.currentProject);
       formData.append('model_name', appState.selected_model);
       formData.append('upload_file', selectedFile);
-
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-      const response = await fetch(`${baseUrl}/models/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        let message = 'Unable to upload model artifact.';
-        try {
-          const errorData = await response.json();
-          message = errorData?.detail || message;
-        } catch {
-          // non-JSON error response
-        }
-        toastError(message);
-        return;
-      }
-
+      await api.postFormData('/models/upload', formData);
       toastSuccess('Model artifact uploaded successfully!');
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {
-      toastError('Unable to upload model artifact. Please try again.');
+      // api.js already displayed the error toast
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Upload';

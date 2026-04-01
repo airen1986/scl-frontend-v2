@@ -13,15 +13,26 @@ import { bsToastError } from './bsToast';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+function getDownloadFileName(contentDisposition) {
+  if (!contentDisposition) return '';
+
+  const fileNameMatch = contentDisposition.match(
+    /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i
+  );
+  return fileNameMatch ? decodeURIComponent(fileNameMatch[1] || fileNameMatch[2]) : '';
+}
+
 async function request(endpoint, options = {}) {
-  const { silent, headers = {}, ...fetchOptions } = options;
+  const { silent, headers = {}, responseType = 'json', ...fetchOptions } = options;
   const url = `${BASE_URL}${endpoint}`;
+  const isFormDataBody = fetchOptions.body instanceof FormData;
+  const resolvedHeaders = {
+    ...(isFormDataBody ? {} : { 'Content-Type': 'application/json' }),
+    ...headers,
+  };
 
   const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
+    headers: resolvedHeaders,
     ...fetchOptions,
   };
 
@@ -65,6 +76,14 @@ async function request(endpoint, options = {}) {
   // 204 No Content
   if (response.status === 204) return null;
 
+  if (responseType === 'blob') {
+    return {
+      blob: await response.blob(),
+      fileName: getDownloadFileName(response.headers.get('content-disposition') || ''),
+      contentType: response.headers.get('content-type') || '',
+    };
+  }
+
   return response.json();
 }
 
@@ -73,6 +92,17 @@ const api = {
 
   post: (endpoint, body, options = {}) =>
     request(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) }),
+
+  postDownload: (endpoint, body, options = {}) =>
+    request(endpoint, {
+      ...options,
+      method: 'POST',
+      body: JSON.stringify(body),
+      responseType: 'blob',
+    }),
+
+  postFormData: (endpoint, formData, options = {}) =>
+    request(endpoint, { ...options, method: 'POST', body: formData, headers: {} }),
 
   put: (endpoint, body, options = {}) =>
     request(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) }),
