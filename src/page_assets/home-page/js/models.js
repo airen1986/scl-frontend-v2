@@ -357,6 +357,16 @@ function getSelectedModels(container) {
   }));
 }
 
+/**
+ * Wire the "Add Existing Model" modal: populate the model-selection tree on show and handle adding selected models into the current project.
+ *
+ * When the modal is submitted this function validates selection and name collisions, POSTs to `/models/add-existing`,
+ * updates `appState.projectModels` by adding the selected models (preserving their access level or defaulting to `"read"`)
+ * into the current project and removing them from their source project, re-renders the current project's model list,
+ * and hides the modal. Validation failures show an error toast and abort the operation.
+ *
+ * @param {Object} appState - Application state object containing `projects`, `currentProject`, `projectModels`, and UI selection state.
+ */
 function setupAddExistingModel(appState) {
   const modal = $('#addExistingModelModal');
   const modelTree = $('#existingModelTree');
@@ -420,7 +430,15 @@ function setupAddExistingModel(appState) {
   });
 }
 
-/* ── Rename Model Modal ───────────────────────────────────────────────────── */
+/**
+ * Wire the Rename Model modal: validate input, call the rename API, and update UI state.
+ *
+ * Validates a non-empty new model name and checks for name collisions within the current project;
+ * on success it updates appState.projectModels for the current project (preserving the model's access),
+ * sets appState.selected_model to the new name, re-renders the model list, and closes the modal.
+ *
+ * @param {Object} appState - Application state object (expects properties like `currentProject`, `selected_model`, and `projectModels`).
+ */
 
 function setupRenameModel(appState) {
   const modal = $('#renameModelModal');
@@ -490,7 +508,17 @@ function setupRenameModel(appState) {
   });
 }
 
-/* ── Delete Model Modal ───────────────────────────────────────────────────── */
+/**
+ * Wire up the Delete Model modal: populate and validate inputs, perform deletion, and update appState on success.
+ *
+ * On modal show this populates and disables the project and model inputs and requires a confirmation checkbox
+ * and exact model-name typing before enabling deletion. On submit it disables the button, shows a spinner,
+ * posts to /models/delete, removes the model entry from appState.projectModels[currentProject], clears
+ * appState.selected_model, re-renders the model list, and hides the modal on success.
+ *
+ * @param {Object} appState - Application state; used to read `currentProject` and `selected_model` and to update
+ *                            `projectModels` and `selected_model` after a successful deletion.
+ */
 
 function setupDeleteModel(appState) {
   const modal = $('#deleteModelModal');
@@ -557,7 +585,15 @@ function setupDeleteModel(appState) {
   });
 }
 
-/* ── Download Model Modal ─────────────────────────────────────────────────── */
+/**
+ * Initialize the download-model modal: populate inputs from app state, validate selection, and trigger model artifact download.
+ *
+ * When shown, the modal fills and disables project/model inputs and hides itself with an error toast if no model is selected.
+ * On submit, it requests the selected model artifact from the server, starts the file download, displays a success toast, and hides the modal.
+ * The submit button is disabled while the download is in progress and its label/state is restored afterwards.
+ *
+ * @param {Object} appState - Application state containing at least `currentProject` and `selected_model`.
+ */
 
 function setupDownloadModel(appState) {
   const modal = $('#downloadModelModal');
@@ -613,7 +649,17 @@ function setupDownloadModel(appState) {
   });
 }
 
-/* ── Upload Model Modal ───────────────────────────────────────────────────── */
+/**
+ * Initialize the Upload Model Bootstrap modal, validating input and handling artifact upload.
+ *
+ * Wires modal show/hidden events and the submit button to:
+ * - populate and lock current project/model inputs from `appState`,
+ * - validate a chosen file has an allowed extension (.db or .sqlite3),
+ * - POST the file as FormData to the server and show success feedback,
+ * - restore submit button state after completion.
+ *
+ * @param {Object} appState - Application state object. Expected to provide `currentProject` and `selected_model`.
+ */
 
 function setupUploadModel(appState) {
   const modal = $('#uploadModelModal');
@@ -685,7 +731,15 @@ function setupUploadModel(appState) {
   });
 }
 
-/* ── Move Model To Project Modal ─────────────────────────────────────────── */
+/**
+ * Connects the "Move Model" modal UI to validation, server call, and local state updates for moving a model to another project.
+ *
+ * When activated, the modal is populated from appState, enforces selection and name-collision validation, calls the move API,
+ * and on success updates appState.projectModels (moving the model entry to the target project), clears appState.selected_model,
+ * re-renders the current project's model list, shows success toast messages, and hides the modal.
+ *
+ * @param {Object} appState - Application state object; expected keys used: `currentProject`, `selected_model`, `projects`, and `projectModels` (mapping project -> { modelName: access }).
+ */
 
 function setupMoveModel(appState) {
   const modal = $('#moveModelModal');

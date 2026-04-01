@@ -55,7 +55,15 @@ async function fetchCurrentProject(appState) {
   appState.currentProject = data.project_name || 'Default';
 }
 
-/* ── Modal handlers ────────────────────────────────────────────────────────── */
+/**
+ * Attach behavior to the Create Project modal to handle creating a new project.
+ *
+ * Validates the entered project name, sends a create request to the backend, updates
+ * application state and UI on success, and optionally opens the newly created project.
+ *
+ * @param {Object} appState - Global application state. This function may push to
+ *   `appState.projects`, set `appState.currentProject`, and set `appState.selected_model` to null.
+ */
 
 function setupCreateProject(appState) {
   const modal = $('#createProjectModal');
@@ -111,6 +119,19 @@ function setupCreateProject(appState) {
   });
 }
 
+/**
+ * Initialize and wire the "Open Project" modal: populate the project list and handle opening the chosen project.
+ *
+ * When the modal is shown, repopulates the select control with available projects excluding the current one.
+ * When a project is submitted, validates selection, calls the backend to open it, shows a success toast,
+ * updates appState.currentProject, updates the active-project display, clears appState.selected_model,
+ * triggers rendering of models for the newly opened project, and closes the modal.
+ *
+ * @param {Object} appState - Application state object containing project-related fields.
+ * @param {string[]} appState.projects - Array of known project names.
+ * @param {string} appState.currentProject - Name of the currently active project.
+ * @param {?string} appState.selected_model - Currently selected model; will be set to null when a project is opened.
+ */
 function setupOpenProject(appState) {
   const modal = $('#openProjectModal');
   const select = $('#openProjectSelect');

@@ -13,6 +13,11 @@ import { bsToastError } from './bsToast';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+/**
+ * Extracts and decodes a filename from a Content-Disposition header value.
+ * @param {string} contentDisposition - The raw Content-Disposition header (for example: `attachment; filename="file.txt"` or `attachment; filename*=UTF-8''file%20name.txt`).
+ * @returns {string} The decoded filename if present, otherwise an empty string.
+ */
 function getDownloadFileName(contentDisposition) {
   if (!contentDisposition) return '';
 
@@ -22,6 +27,19 @@ function getDownloadFileName(contentDisposition) {
   return fileNameMatch ? decodeURIComponent(fileNameMatch[1] || fileNameMatch[2]) : '';
 }
 
+/**
+ * Execute an HTTP request against the configured API base URL with unified header handling, error reporting, and response parsing.
+ *
+ * @param {string} endpoint - Path appended to the configured BASE_URL.
+ * @param {Object} [options] - Request options and overrides.
+ * @param {boolean} [options.silent=false] - If true, suppresses user-facing toast error notifications.
+ * @param {Object} [options.headers] - Additional headers to merge into the request; caller-provided headers override defaults.
+ * @param {'json'|'blob'} [options.responseType='json'] - Expected response type; `'blob'` causes a `{ blob, fileName, contentType }` result.
+ * @param {...any} [options.*] - Any other fetch options (method, body, credentials, etc.). If `body` is a FormData instance, no default `Content-Type` is set.
+ * @returns {any|null|{blob: Blob, fileName: string, contentType: string}} Parsed response: JSON by default, `null` for 204 No Content, or an object containing the blob and file metadata when `responseType` is `'blob'`.
+ * @throws {Error} Throws the original network error if the request fails to reach the server.
+ * @throws {Error} Throws an Error with `status` and optional `data` properties when the HTTP response has a non-OK status.
+ */
 async function request(endpoint, options = {}) {
   const { silent, headers = {}, responseType = 'json', ...fetchOptions } = options;
   const url = `${BASE_URL}${endpoint}`;
