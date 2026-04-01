@@ -19,8 +19,10 @@ import {
   setupUploadModel,
   setupShareModel,
   setupMoveModel,
+  setupAcceptModel,
 } from './models';
 import { initProjects } from './projects';
+import { initNotifications } from './notifications';
 import {
   bsToastSuccess as toastSuccess,
   bsToastError as toastError,
@@ -130,6 +132,9 @@ ready(async () => {
   renderCurrentProjectModels(appState);
   autosizeModelListBody();
 
+  // ── Load notifications ─────────────────────────────────────────────────────
+  await initNotifications();
+
   // ── Display active project ───────────────────────────────────────────────
   const activeProjectDisplay = document.getElementById('activeProjectDisplay');
   if (activeProjectDisplay) {
@@ -148,11 +153,22 @@ ready(async () => {
   setupUploadModel(appState);
   setupShareModel(appState);
   setupMoveModel(appState);
+  setupAcceptModel(appState);
 
-  // ── Display avatar initials ──────────────────────────────────────────
+  // ── Display avatar initials & user info ───────────────────────────────
   const avatar = $('#displayAvatar');
   if (avatar) {
     avatar.textContent = getInitials(user.display_name);
+  }
+
+  const userInfoActions = $('#userInfoActions');
+  if (userInfoActions) {
+    const infoHtml =
+      `<li class="px-3 py-2">` +
+      `<div class="fw-semibold">${user.display_name || ''}</div>` +
+      `<div class="text-muted small">${user.email || ''}</div>` +
+      `</li><li><hr class="dropdown-divider" /></li>`;
+    userInfoActions.insertAdjacentHTML('afterbegin', infoHtml);
   }
 
   // ── Logout ───────────────────────────────────────────────────────────

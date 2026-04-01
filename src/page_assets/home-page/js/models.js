@@ -1125,6 +1125,118 @@ function setupMoveModel(appState) {
   });
 }
 
+function setupAcceptModel(appState) {
+  const modal = $('#acceptModelModal');
+  const fromUserInput = $('#acceptFromUser');
+  const modelNameInput = $('#acceptModelName');
+  const projectNameHidden = $('#acceptProjectName');
+  const notificationIdHidden = $('#acceptNotificationId');
+  const currentProjectInput = $('#acceptCurrentProject');
+  const newModelNameInput = $('#acceptNewModelName');
+  const saveCopyCheckbox = $('#acceptSaveCopy');
+  const submitBtn = $('#submitAcceptModelBtn');
+  const rejectBtn = $('#submitRejectModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    // Current project from appState
+    currentProjectInput.value = appState.currentProject || '';
+    if (!appState.currentProject) {
+      toastError('No current project selected for accepting the model.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+    // Default new model name to the incoming model name (editable)
+    newModelNameInput.value = modelNameInput.value || '';
+    submitBtn.disabled = false;
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    fromUserInput.value = '';
+    modelNameInput.value = '';
+    projectNameHidden.value = '';
+    notificationIdHidden.value = '';
+    currentProjectInput.value = '';
+    newModelNameInput.value = '';
+    saveCopyCheckbox.checked = false;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Accept';
+  });
+
+  // ── Accept ──────────────────────────────────────────────────────────────
+  on(submitBtn, 'click', async () => {
+    const newModelName = newModelNameInput.value.trim();
+    if (!newModelName) {
+      toastError('New model name is required.');
+      return;
+    }
+
+    // Duplicate check in current project
+    const currentModels = Object.keys(appState.projectModels[appState.currentProject] || {});
+    if (currentModels.includes(newModelName)) {
+      toastError('A model with this name already exists in the current project.');
+      return;
+    }
+
+    const notificationId = notificationIdHidden.value;
+    if (!notificationId) {
+      toastError('Notification ID is missing.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Accepting…';
+
+    try {
+      await api.post('/models/accept', {
+        notification_id: notificationId,
+        accept: true,
+        model_name: newModelName,
+        project_name: appState.currentProject,
+        create_new_copy: saveCopyCheckbox.checked,
+      });
+      toastSuccess('Model accepted successfully!');
+
+      if (!appState.projectModels[appState.currentProject]) {
+        appState.projectModels[appState.currentProject] = {};
+      }
+      appState.projectModels[appState.currentProject][newModelName] = 'read';
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Accept';
+    }
+  });
+
+  // ── Reject ─────────────────────────────────────────────────────────────
+  if (rejectBtn) {
+    on(rejectBtn, 'click', async () => {
+      const notificationId = notificationIdHidden.value;
+      if (!notificationId) return;
+      rejectBtn.disabled = true;
+      rejectBtn.innerHTML =
+        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Rejecting…';
+      try {
+        await api.post('/models/accept', {
+          notification_id: notificationId,
+          accept: false,
+        });
+        toastSuccess('Model rejected.');
+        window.bootstrap.Modal.getInstance(modal)?.hide();
+      } catch {
+        // api.js already displayed the error toast
+      } finally {
+        rejectBtn.disabled = false;
+        rejectBtn.textContent = 'Reject';
+      }
+    });
+  }
+}
+
 export {
   fetchModels,
   renderCurrentProjectModels,
@@ -1139,4 +1251,5 @@ export {
   setupUploadModel,
   setupShareModel,
   setupMoveModel,
+  setupAcceptModel,
 };
