@@ -11,6 +11,11 @@ import {
   setupAddNewModel,
   setupSaveAsModel,
   setupAddExistingModel,
+  setupRenameModel,
+  setupDeleteModel,
+  setupDownloadModel,
+  setupUploadModel,
+  setupMoveModel,
 } from './models';
 import { initProjects } from './projects';
 import {
@@ -132,6 +137,11 @@ ready(async () => {
   setupAddNewModel(appState);
   setupSaveAsModel(appState);
   setupAddExistingModel(appState);
+  setupRenameModel(appState);
+  setupDeleteModel(appState);
+  setupDownloadModel(appState);
+  setupUploadModel(appState);
+  setupMoveModel(appState);
 
   // ── Display avatar initials ──────────────────────────────────────────
   const avatar = $('#displayAvatar');

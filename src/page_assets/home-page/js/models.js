@@ -357,6 +357,16 @@ function getSelectedModels(container) {
   }));
 }
 
+/**
+ * Wire the "Add Existing Model" modal: populate the model-selection tree on show and handle adding selected models into the current project.
+ *
+ * When the modal is submitted this function validates selection and name collisions, POSTs to `/models/add-existing`,
+ * updates `appState.projectModels` by adding the selected models (preserving their access level or defaulting to `"read"`)
+ * into the current project and removing them from their source project, re-renders the current project's model list,
+ * and hides the modal. Validation failures show an error toast and abort the operation.
+ *
+ * @param {Object} appState - Application state object containing `projects`, `currentProject`, `projectModels`, and UI selection state.
+ */
 function setupAddExistingModel(appState) {
   const modal = $('#addExistingModelModal');
   const modelTree = $('#existingModelTree');
@@ -420,10 +430,418 @@ function setupAddExistingModel(appState) {
   });
 }
 
+/**
+ * Wire the Rename Model modal: validate input, call the rename API, and update UI state.
+ *
+ * Validates a non-empty new model name and checks for name collisions within the current project;
+ * on success it updates appState.projectModels for the current project (preserving the model's access),
+ * sets appState.selected_model to the new name, re-renders the model list, and closes the modal.
+ *
+ * @param {Object} appState - Application state object (expects properties like `currentProject`, `selected_model`, and `projectModels`).
+ */
+
+function setupRenameModel(appState) {
+  const modal = $('#renameModelModal');
+  const projectInput = $('#RenameProjectName');
+  const currentModelInput = $('#currentModelName');
+  const newModelNameInput = $('#newModelName');
+  const submitBtn = $('#submitRenameModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    projectInput.value = appState.currentProject || '';
+    projectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    newModelNameInput.value = '';
+    if (!appState.selected_model || !appState.currentProject) {
+      toastError('No model selected for renaming.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    newModelNameInput.value = '';
+  });
+
+  on(submitBtn, 'click', async () => {
+    const newModelName = newModelNameInput.value.trim();
+    if (!newModelName) {
+      toastError('New model name is required.');
+      return;
+    }
+
+    const currentModels = Object.keys(appState.projectModels[appState.currentProject] || {});
+    if (currentModels.includes(newModelName)) {
+      toastError('A model with this name already exists in the current project.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Renaming…';
+
+    try {
+      await api.post('/models/rename', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+        new_model_name: newModelName,
+      });
+      toastSuccess('Model renamed successfully!');
+
+      // Update app state: replace old key with new key, preserve access
+      const access =
+        appState.projectModels[appState.currentProject]?.[appState.selected_model] || 'owner';
+      delete appState.projectModels[appState.currentProject][appState.selected_model];
+      appState.projectModels[appState.currentProject][newModelName] = access;
+      appState.selected_model = newModelName;
+
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Rename';
+    }
+  });
+}
+
+/**
+ * Wire up the Delete Model modal: populate and validate inputs, perform deletion, and update appState on success.
+ *
+ * On modal show this populates and disables the project and model inputs and requires a confirmation checkbox
+ * and exact model-name typing before enabling deletion. On submit it disables the button, shows a spinner,
+ * posts to /models/delete, removes the model entry from appState.projectModels[currentProject], clears
+ * appState.selected_model, re-renders the model list, and hides the modal on success.
+ *
+ * @param {Object} appState - Application state; used to read `currentProject` and `selected_model` and to update
+ *                            `projectModels` and `selected_model` after a successful deletion.
+ */
+
+function setupDeleteModel(appState) {
+  const modal = $('#deleteModelModal');
+  const projectInput = $('#DeleteProjectName');
+  const modelActualName = $('#deleteModelActualName');
+  const confirmInput = $('#deleteModelConfirmInput');
+  const confirmCheckbox = $('#confirmDeleteModel');
+  const modelNameLabel = $('#deleteModelName');
+  const submitBtn = $('#submitDeleteModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    projectInput.value = appState.currentProject || '';
+    projectInput.disabled = true;
+    modelActualName.value = appState.selected_model || '';
+    modelActualName.disabled = true;
+    modelNameLabel.textContent = appState.selected_model || '';
+    if (!appState.selected_model || !appState.currentProject) {
+      toastError('No model selected for deletion.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+    confirmInput.value = '';
+    confirmCheckbox.checked = false;
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    confirmInput.value = '';
+    confirmCheckbox.checked = false;
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!confirmCheckbox.checked) {
+      toastError('Please confirm you understand this action is permanent.');
+      return;
+    }
+    if (confirmInput.value.trim() !== appState.selected_model) {
+      toastError('Model name does not match. Please type the exact model name.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting…';
+
+    try {
+      await api.post('/models/delete', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+      });
+      toastSuccess('Model deleted successfully!');
+
+      delete appState.projectModels[appState.currentProject]?.[appState.selected_model];
+      appState.selected_model = null;
+
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Delete';
+    }
+  });
+}
+
+/**
+ * Initialize the download-model modal: populate inputs from app state, validate selection, and trigger model artifact download.
+ *
+ * When shown, the modal fills and disables project/model inputs and hides itself with an error toast if no model is selected.
+ * On submit, it requests the selected model artifact from the server, starts the file download, displays a success toast, and hides the modal.
+ * The submit button is disabled while the download is in progress and its label/state is restored afterwards.
+ *
+ * @param {Object} appState - Application state containing at least `currentProject` and `selected_model`.
+ */
+
+function setupDownloadModel(appState) {
+  const modal = $('#downloadModelModal');
+  const currentProjectInput = $('#downloadProjectName');
+  const currentModelInput = $('#downloadModelName');
+  const submitBtn = $('#submitDownloadModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for download.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    }
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for download.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Downloading…';
+
+    try {
+      const { blob: artifactBlob, fileName } = await api.postDownload('/models/download', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+      });
+      const downloadUrl = window.URL.createObjectURL(artifactBlob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = fileName || `${appState.selected_model}.db`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toastSuccess('Model artifact download started.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Download';
+    }
+  });
+}
+
+/**
+ * Initialize the Upload Model Bootstrap modal, validating input and handling artifact upload.
+ *
+ * Wires modal show/hidden events and the submit button to:
+ * - populate and lock current project/model inputs from `appState`,
+ * - validate a chosen file has an allowed extension (.db or .sqlite3),
+ * - POST the file as FormData to the server and show success feedback,
+ * - restore submit button state after completion.
+ *
+ * @param {Object} appState - Application state object. Expected to provide `currentProject` and `selected_model`.
+ */
+
+function setupUploadModel(appState) {
+  const modal = $('#uploadModelModal');
+  const currentProjectInput = $('#uploadProjectName');
+  const currentModelInput = $('#uploadModelName');
+  const fileInput = $('#uploadModelFile');
+  const submitBtn = $('#submitUploadModelBtn');
+  if (!modal || !submitBtn || !fileInput) return;
+
+  const allowedExtensions = ['.db', '.sqlite3'];
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    fileInput.value = '';
+    fileInput.accept = allowedExtensions.join(',');
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for upload.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    }
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    fileInput.value = '';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Upload';
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for upload.');
+      return;
+    }
+
+    const selectedFile = fileInput.files?.[0];
+    if (!selectedFile) {
+      toastError('Please choose a model artifact file.');
+      return;
+    }
+
+    const lowerName = selectedFile.name.toLowerCase();
+    const isAllowedFile = allowedExtensions.some((extension) => lowerName.endsWith(extension));
+    if (!isAllowedFile) {
+      toastError('Only .db and .sqlite3 files are supported.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Uploading…';
+
+    try {
+      const formData = new FormData();
+      formData.append('project_name', appState.currentProject);
+      formData.append('model_name', appState.selected_model);
+      formData.append('upload_file', selectedFile);
+      await api.postFormData('/models/upload', formData);
+      toastSuccess('Model artifact uploaded successfully!');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Upload';
+    }
+  });
+}
+
+/**
+ * Connects the "Move Model" modal UI to validation, server call, and local state updates for moving a model to another project.
+ *
+ * When activated, the modal is populated from appState, enforces selection and name-collision validation, calls the move API,
+ * and on success updates appState.projectModels (moving the model entry to the target project), clears appState.selected_model,
+ * re-renders the current project's model list, shows success toast messages, and hides the modal.
+ *
+ * @param {Object} appState - Application state object; expected keys used: `currentProject`, `selected_model`, `projects`, and `projectModels` (mapping project -> { modelName: access }).
+ */
+
+function setupMoveModel(appState) {
+  const modal = $('#moveModelModal');
+  const currentProjectInput = $('#moveModelModalProjectName');
+  const currentModelInput = $('#moveModelName');
+  const targetProjectSelect = $('#targetProjectSelect');
+  const submitBtn = $('#submitMoveModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for moving.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+
+    targetProjectSelect.innerHTML = '';
+    const targetProjects = (appState.projects || []).filter(
+      (project) => project !== appState.currentProject
+    );
+
+    targetProjects.forEach((project) => {
+      const opt = document.createElement('option');
+      opt.value = project;
+      opt.textContent = project;
+      targetProjectSelect.appendChild(opt);
+    });
+
+    submitBtn.disabled = !targetProjects.length;
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    targetProjectSelect.innerHTML = '<option disabled selected value="">Select project</option>';
+    submitBtn.disabled = false;
+  });
+
+  on(submitBtn, 'click', async () => {
+    const targetProject = targetProjectSelect.value;
+    if (!targetProject) {
+      toastError('Please select a target project.');
+      return;
+    }
+
+    if (targetProject === appState.currentProject) {
+      toastError('Target project must be different from current project.');
+      return;
+    }
+
+    const targetProjectModels = Object.keys(appState.projectModels[targetProject] || {});
+    if (targetProjectModels.includes(appState.selected_model)) {
+      toastError('The target project already has a model with the same name.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Moving…';
+
+    try {
+      await api.post('/models/move', {
+        project_name: appState.currentProject,
+        new_project_name: targetProject,
+        model_name: appState.selected_model,
+      });
+      toastSuccess('Model moved successfully!');
+
+      const modelAccess =
+        appState.projectModels[appState.currentProject]?.[appState.selected_model] || 'owner';
+
+      if (!appState.projectModels[targetProject]) {
+        appState.projectModels[targetProject] = {};
+      }
+
+      appState.projectModels[targetProject][appState.selected_model] = modelAccess;
+      delete appState.projectModels[appState.currentProject]?.[appState.selected_model];
+      appState.selected_model = null;
+
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Move';
+    }
+  });
+}
+
 export {
   fetchModels,
   renderCurrentProjectModels,
   setupAddNewModel,
   setupSaveAsModel,
   setupAddExistingModel,
+  setupRenameModel,
+  setupDeleteModel,
+  setupDownloadModel,
+  setupUploadModel,
+  setupMoveModel,
 };
