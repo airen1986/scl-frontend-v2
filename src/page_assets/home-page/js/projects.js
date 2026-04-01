@@ -98,6 +98,7 @@ function setupCreateProject(appState) {
       if (openAfter.checked) {
         appState.currentProject = name;
         updateActiveProjectDisplay(name);
+        appState.selected_model = null;
         renderCurrentProjectModels(appState);
       }
       window.bootstrap.Modal.getInstance(modal)?.hide();
@@ -136,6 +137,7 @@ function setupOpenProject(appState) {
       toastSuccess('Project opened successfully!');
       appState.currentProject = projectName;
       updateActiveProjectDisplay(projectName);
+      appState.selected_model = null;
       renderCurrentProjectModels(appState);
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } catch {

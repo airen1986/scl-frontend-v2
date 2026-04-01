@@ -557,6 +557,275 @@ function setupDeleteModel(appState) {
   });
 }
 
+/* ── Download Model Modal ─────────────────────────────────────────────────── */
+
+function setupDownloadModel(appState) {
+  const modal = $('#downloadModelModal');
+  const currentProjectInput = $('#downloadProjectName');
+  const currentModelInput = $('#downloadModelName');
+  const submitBtn = $('#submitDownloadModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for download.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    }
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for download.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Downloading…';
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${baseUrl}/models/download`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_name: appState.currentProject,
+          model_name: appState.selected_model,
+        }),
+      });
+
+      if (!response.ok) {
+        let message = 'Unable to download model artifact.';
+        try {
+          const errorData = await response.json();
+          message = errorData?.detail || message;
+        } catch {
+          // non-JSON error response
+        }
+        toastError(message);
+        return;
+      }
+
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      const fileNameMatch = contentDisposition.match(
+        /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i
+      );
+      const fileName = fileNameMatch
+        ? decodeURIComponent(fileNameMatch[1] || fileNameMatch[2])
+        : `${appState.selected_model}.db`;
+
+      const artifactBlob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(artifactBlob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toastSuccess('Model artifact download started.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      toastError('Unable to download model artifact. Please try again.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Download';
+    }
+  });
+}
+
+/* ── Upload Model Modal ───────────────────────────────────────────────────── */
+
+function setupUploadModel(appState) {
+  const modal = $('#uploadModelModal');
+  const currentProjectInput = $('#uploadProjectName');
+  const currentModelInput = $('#uploadModelName');
+  const fileInput = $('#uploadModelFile');
+  const submitBtn = $('#submitUploadModelBtn');
+  if (!modal || !submitBtn || !fileInput) return;
+
+  const allowedExtensions = ['.db', '.sqlite3'];
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    fileInput.value = '';
+    fileInput.accept = allowedExtensions.join(',');
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for upload.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    }
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    fileInput.value = '';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Upload';
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for upload.');
+      return;
+    }
+
+    const selectedFile = fileInput.files?.[0];
+    if (!selectedFile) {
+      toastError('Please choose a model artifact file.');
+      return;
+    }
+
+    const lowerName = selectedFile.name.toLowerCase();
+    const isAllowedFile = allowedExtensions.some((extension) => lowerName.endsWith(extension));
+    if (!isAllowedFile) {
+      toastError('Only .db and .sqlite3 files are supported.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Uploading…';
+
+    try {
+      const formData = new FormData();
+      formData.append('project_name', appState.currentProject);
+      formData.append('model_name', appState.selected_model);
+      formData.append('upload_file', selectedFile);
+
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${baseUrl}/models/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let message = 'Unable to upload model artifact.';
+        try {
+          const errorData = await response.json();
+          message = errorData?.detail || message;
+        } catch {
+          // non-JSON error response
+        }
+        toastError(message);
+        return;
+      }
+
+      toastSuccess('Model artifact uploaded successfully!');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      toastError('Unable to upload model artifact. Please try again.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Upload';
+    }
+  });
+}
+
+/* ── Move Model To Project Modal ─────────────────────────────────────────── */
+
+function setupMoveModel(appState) {
+  const modal = $('#moveModelModal');
+  const currentProjectInput = $('#moveModelModalProjectName');
+  const currentModelInput = $('#moveModelName');
+  const targetProjectSelect = $('#targetProjectSelect');
+  const submitBtn = $('#submitMoveModelBtn');
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for moving.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+
+    targetProjectSelect.innerHTML = '';
+    const targetProjects = (appState.projects || []).filter(
+      (project) => project !== appState.currentProject
+    );
+
+    targetProjects.forEach((project) => {
+      const opt = document.createElement('option');
+      opt.value = project;
+      opt.textContent = project;
+      targetProjectSelect.appendChild(opt);
+    });
+
+    submitBtn.disabled = !targetProjects.length;
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    targetProjectSelect.innerHTML = '<option disabled selected value="">Select project</option>';
+    submitBtn.disabled = false;
+  });
+
+  on(submitBtn, 'click', async () => {
+    const targetProject = targetProjectSelect.value;
+    if (!targetProject) {
+      toastError('Please select a target project.');
+      return;
+    }
+
+    if (targetProject === appState.currentProject) {
+      toastError('Target project must be different from current project.');
+      return;
+    }
+
+    const targetProjectModels = Object.keys(appState.projectModels[targetProject] || {});
+    if (targetProjectModels.includes(appState.selected_model)) {
+      toastError('The target project already has a model with the same name.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Moving…';
+
+    try {
+      await api.post('/models/move', {
+        project_name: appState.currentProject,
+        new_project_name: targetProject,
+        model_name: appState.selected_model,
+      });
+      toastSuccess('Model moved successfully!');
+
+      const modelAccess =
+        appState.projectModels[appState.currentProject]?.[appState.selected_model] || 'owner';
+
+      if (!appState.projectModels[targetProject]) {
+        appState.projectModels[targetProject] = {};
+      }
+
+      appState.projectModels[targetProject][appState.selected_model] = modelAccess;
+      delete appState.projectModels[appState.currentProject]?.[appState.selected_model];
+      appState.selected_model = null;
+
+      renderCurrentProjectModels(appState);
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Move';
+    }
+  });
+}
+
 export {
   fetchModels,
   renderCurrentProjectModels,
@@ -565,4 +834,7 @@ export {
   setupAddExistingModel,
   setupRenameModel,
   setupDeleteModel,
+  setupDownloadModel,
+  setupUploadModel,
+  setupMoveModel,
 };
