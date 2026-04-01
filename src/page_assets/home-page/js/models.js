@@ -349,12 +349,202 @@ function buildModelTree(container, projectModels, currentProject) {
   container.appendChild(ul);
 }
 
-/** Return array of { model_name, project_name } for every checked model. */
+/**
+ * Collect selected models from a tree container.
+ * @param {Element} container - DOM element that contains model checkboxes (`.tree-model-cb`) with `data-model` and `data-project` attributes.
+ * @returns {{model_name: string, project_name: string}[]} An array of objects for each checked model, each containing `model_name` and `project_name`.
+ */
 function getSelectedModels(container) {
   return [...container.querySelectorAll('.tree-model-cb:checked')].map((cb) => ({
     model_name: cb.dataset.model,
     project_name: cb.dataset.project,
   }));
+}
+
+/**
+ * Initialize and wire the "Backup Model" modal: populate inputs, validate user comment, submit backup request, and manage button/modal state.
+ *
+ * @param {Object} appState - Application state object containing currentProject and selected_model used to prefill and validate the modal.
+ */
+
+function setupBackupModel(appState) {
+  const modal = $('#backupModelModal');
+  const currentProjectInput = $('#backupCurrentProject');
+  const currentModelInput = $('#backupModelName');
+  const commentInput = $('#backupUserComment');
+  const submitBtn = $('#submitBackupModelBtn');
+  if (!modal || !submitBtn || !commentInput) return;
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    commentInput.value = '';
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for backup.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    }
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    commentInput.value = '';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Backup';
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for backup.');
+      return;
+    }
+
+    const userComment = commentInput.value.trim();
+    if (!userComment) {
+      toastError('Backup comment is required.');
+      commentInput.focus();
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Backing up…';
+
+    try {
+      await api.post('/models/backup', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+        backup_comment: userComment,
+      });
+      toastSuccess('Model backup created successfully!');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Backup';
+    }
+  });
+}
+
+/**
+ * Format a backup timestamp into a human-readable string using the runtime locale.
+ * @param {(string|Date|null|undefined)} dateTime - The timestamp to format; may be a Date object, an ISO/string, or falsy.
+ * @returns {string} `'Unknown date'` if `dateTime` is falsy, the original `dateTime` converted to a string if it cannot be parsed as a valid date, or the formatted date string using the runtime locale.
+ */
+
+function formatBackupDateTime(dateTime) {
+  if (!dateTime) return 'Unknown date';
+
+  const parsedDate = new Date(dateTime);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return String(dateTime);
+  }
+
+  return parsedDate.toLocaleString();
+}
+
+/**
+ * Initialize and wire the Restore Model modal: populate inputs, load available backups, and handle restore actions.
+ *
+ * When the modal is shown, the current project and model are set from `appState` and the backup list is loaded from the server;
+ * the backup select is populated and the submit button is enabled only when backups are available. Selecting a backup enables the submit button.
+ * Submitting sends a restore request for the chosen backup, shows success feedback, and closes the modal on success.
+ *
+ * @param {Object} appState - Application state; this function reads `appState.currentProject` and `appState.selected_model`.
+ */
+function setupRestoreModel(appState) {
+  const modal = $('#restoreModelModal');
+  const currentProjectInput = $('#restoreCurrentProject');
+  const currentModelInput = $('#restoreModelName');
+  const backupSelect = $('#restoreBackupSelect');
+  const submitBtn = $('#submitRestoreModelBtn');
+  if (!modal || !submitBtn || !backupSelect) return;
+
+  on(modal, 'show.bs.modal', async () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    backupSelect.innerHTML = '<option disabled selected value="">Loading backups...</option>';
+    submitBtn.disabled = true;
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for restore.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+
+    try {
+      const data = await api.post('/models/get-backups', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+      });
+
+      const backups = data.model_backups || [];
+
+      backupSelect.innerHTML = '';
+
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      placeholder.textContent = backups.length ? 'Select backup' : 'No backups available';
+      backupSelect.appendChild(placeholder);
+
+      backups.forEach((backup) => {
+        const option = document.createElement('option');
+        option.value = backup[0];
+        const comment = backup[1] || 'No comment';
+        const dateTime = formatBackupDateTime(backup[2] || backup[3] || backup[4]);
+        option.textContent = `${comment} (${dateTime})`;
+        backupSelect.appendChild(option);
+      });
+
+      submitBtn.disabled = !backups.length;
+    } catch {
+      backupSelect.innerHTML = '<option disabled selected value="">Unable to load backups</option>';
+      submitBtn.disabled = true;
+    }
+  });
+
+  on(backupSelect, 'change', () => {
+    submitBtn.disabled = !backupSelect.value;
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    backupSelect.innerHTML = '<option disabled selected value="">Select backup</option>';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Restore';
+  });
+
+  on(submitBtn, 'click', async () => {
+    const backupId = backupSelect.value;
+    if (!backupId) {
+      toastError('Please select a backup to restore.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Restoring…';
+
+    try {
+      await api.post('/models/restore', {
+        backup_id: backupId,
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+      });
+      toastSuccess('Model restored successfully!');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Restore';
+    }
+  });
 }
 
 /**
@@ -841,6 +1031,8 @@ export {
   setupAddExistingModel,
   setupRenameModel,
   setupDeleteModel,
+  setupBackupModel,
+  setupRestoreModel,
   setupDownloadModel,
   setupUploadModel,
   setupMoveModel,
