@@ -976,7 +976,11 @@ function setupShareModel(appState) {
       return;
     }
 
-    if (targetUserEmail === appState.user.email) {
+    const normalizedTargetEmail = targetUserEmail.toLowerCase();
+    const normalizedCurrentUserEmail = String(appState.user?.email || '')
+      .trim()
+      .toLowerCase();
+    if (normalizedCurrentUserEmail && normalizedTargetEmail === normalizedCurrentUserEmail) {
       toastError('You cannot share a model with yourself.');
       shareWithUserInput.focus();
       return;
@@ -1000,7 +1004,7 @@ function setupShareModel(appState) {
 
     try {
       await api.post('/models/share', {
-        target_user_email: targetUserEmail,
+        target_user_email: normalizedTargetEmail,
         access_level: accessLevel,
         project_name: appState.currentProject,
         model_name: appState.selected_model,
