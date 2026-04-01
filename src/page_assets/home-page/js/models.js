@@ -482,9 +482,7 @@ function setupRestoreModel(appState) {
         model_name: appState.selected_model,
       });
 
-      const backups = Array.isArray(data['model_backups'])
-        ? data['model_backups']
-        : data.backups || data.available_backups || data.model_backups || [];
+      const backups = data.model_backups || [];
 
       backupSelect.innerHTML = '';
 
