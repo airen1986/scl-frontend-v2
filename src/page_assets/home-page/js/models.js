@@ -53,6 +53,7 @@ function renderCurrentProjectModels(appState) {
     emptyItem.className = 'list-group-item text-muted';
     emptyItem.textContent = 'No models found for current project.';
     modelList.appendChild(emptyItem);
+    updateTableAccordion(appState); // Clear tables since no model is selected
     return;
   }
 
@@ -1302,6 +1303,14 @@ async function updateTableAccordion(appState) {
   if (!accordion) return;
 
   accordion.innerHTML = '';
+
+  if (!appState.currentProject || !appState.selected_model) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'text-muted fst-italic';
+    placeholder.textContent = 'Select a model to view its tables.';
+    accordion.appendChild(placeholder);
+    return;
+  }
 
   try {
     const data = await api.post('/models/table-groups', {
