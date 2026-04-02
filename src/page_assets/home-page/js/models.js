@@ -1348,12 +1348,25 @@ async function updateTableAccordion(appState) {
 
       (tables || []).forEach(([tableKey, displayName]) => {
         const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
         const td = document.createElement('td');
         const link = document.createElement('a');
-        link.href = `/tables/${tableKey}`;
+        link.href =
+          '/tables?' +
+          new URLSearchParams({
+            table: tableKey,
+            project: appState.currentProject,
+            model: appState.selected_model,
+          });
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.textContent = displayName;
+
+        tr.addEventListener('click', (event) => {
+          if (event.target.closest('a')) return;
+          link.click();
+        });
+
         td.appendChild(link);
         tr.appendChild(td);
         tbody.appendChild(tr);
