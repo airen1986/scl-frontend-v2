@@ -22,6 +22,15 @@ async function fetchModels(appState) {
   }
 }
 
+/**
+ * Render the list of models for the current project, ensure a valid selected model, and refresh related UI.
+ *
+ * Populates the DOM element #modelList with the models found in appState.projectModels for appState.currentProject,
+ * wires click handlers to update appState.selected_model and active styling, and calls updateModelActionVisibility
+ * and updateTableAccordion to reflect the current selection.
+ *
+ * @param {Object} appState - Global application state containing at least `currentProject`, `projectModels`, and `selected_model`.
+ */
 function renderCurrentProjectModels(appState) {
   const modelList = $('#modelList');
   if (!modelList) return;
@@ -83,6 +92,15 @@ function renderCurrentProjectModels(appState) {
   updateTableAccordion(appState); // Refresh tables for the newly selected model
 }
 
+/**
+ * Toggle visibility of model action menu items based on the selected model's access level.
+ *
+ * Reads the access level for appState.currentProject's appState.selected_model and makes the
+ * menu elements with IDs "backupModelMenu", "restoreModelMenu", "shareModelMenu", and
+ * "uploadModelMenu" visible only when the access level is exactly "owner"; hides them otherwise.
+ *
+ * @param {Object} appState - Application state containing projectModels, currentProject, and selected_model.
+ */
 function updateModelActionVisibility(appState) {
   const access =
     appState.projectModels?.[appState.currentProject]?.[appState.selected_model] || 'none';
@@ -1128,15 +1146,14 @@ function setupMoveModel(appState) {
 }
 
 /**
- * Wires the Accept Model modal to accept or reject incoming model notifications.
+ * Initialize the Accept Model modal behavior, handling accept and reject flows for incoming model notifications.
  *
- * When shown, the modal is prefilled with the current project and an editable suggested model name.
- * On accept: validates the new model name and notification id, posts an accept request, adds the new
- * model to appState.projectModels[currentProject] with `'read'` access, re-renders the model list,
- * and closes the modal.
- * On reject: posts a reject request and closes the modal.
+ * On accept: validates the provided new model name and notification id, sends an accept request to the server,
+ * adds the accepted model to appState.projectModels[currentProject] with `'owner'` access if saving a copy or `'read'` otherwise,
+ * refreshes the rendered model list, and closes the modal.
+ * On reject: sends a reject request to the server and closes the modal.
  *
- * @param {Object} appState - Application state object used to read/write `currentProject` and `projectModels`.
+ * @param {Object} appState - Application state containing `currentProject` and `projectModels`; this function will read and update those fields.
  */
 function setupAcceptModel(appState) {
   const modal = $('#acceptModelModal');
@@ -1264,6 +1281,21 @@ function setupAcceptModel(appState) {
 }
 
 
+/**
+ * Populate the #tablesAccordion element with table groups for the currently selected model.
+ *
+ * Calls the backend `/models/table-groups` with the current project and selected model, clears
+ * any existing content in `#tablesAccordion`, and builds a Bootstrap accordion where each group
+ * becomes a collapsible section containing links to tables.
+ *
+ * If `#tablesAccordion` is not present the function returns immediately. On API failure the
+ * accordion remains empty and the function suppresses the error (error reporting is handled by
+ * the API helper).
+ *
+ * @param {Object} appState - Application state object.
+ * @param {string} appState.currentProject - Name of the current project to request table groups for.
+ * @param {string} appState.selected_model - Name of the currently selected model to request table groups for.
+ */
 async function updateTableAccordion(appState) {
   const accordion = $('#tablesAccordion');
   if (!accordion) return;
