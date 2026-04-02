@@ -47,7 +47,7 @@ ready(async () => {
     const user = await api.post('/auth/me', {}, { silent: true });
     if (user && user.role_name) {
       sessionStorage.setItem('user', JSON.stringify(user));
-      window.location.href = 'home-page.html';
+      window.location.href = '/home-page.html';
       return;
     }
   } catch {
@@ -101,7 +101,7 @@ ready(async () => {
       }
 
       await toastSuccess('Signed in successfully');
-      window.location.href = 'home-page.html';
+      window.location.href = '/home-page.html';
     } catch (err) {
       // api.js already shows an error dialog for network / HTTP errors.
       // Only show a toast for unexpected issues not caught by api.js.

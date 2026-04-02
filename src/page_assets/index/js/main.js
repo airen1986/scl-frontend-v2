@@ -13,7 +13,7 @@ ready(async () => {
     const user = await api.post('/auth/me', {}, { silent: true });
     if (user && user.role_name) {
       sessionStorage.setItem('user', JSON.stringify(user));
-      window.location.href = 'home-page.html';
+      window.location.href = '/home-page.html';
     }
   } catch {
     // Not authenticated — stay on current page.

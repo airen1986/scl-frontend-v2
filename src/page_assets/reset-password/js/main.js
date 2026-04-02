@@ -122,7 +122,7 @@ ready(() => {
 
       await toastSuccess('Password reset successfully!');
       await new Promise((resolve) => window.setTimeout(resolve, 2000));
-      window.location.href = 'login.html';
+      window.location.href = '/login.html';
     } catch (err) {
       // api.js already shows an error toast for network / HTTP errors.
       // Only show a toast for unexpected issues not caught by api.js.
