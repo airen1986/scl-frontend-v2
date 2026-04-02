@@ -4,6 +4,7 @@ import {
 } from '../../../common/js/bsToast';
 import api from '@/common/js/api';
 import { $, on } from '@/common/js/dom';
+let latestTableAccordionRequestId = 0;
 
 async function fetchModels(appState) {
   try {
@@ -1280,7 +1281,6 @@ function setupAcceptModel(appState) {
   }
 }
 
-
 /**
  * Populate the #tablesAccordion element with table groups for the currently selected model.
  *
@@ -1297,6 +1297,7 @@ function setupAcceptModel(appState) {
  * @param {string} appState.selected_model - Name of the currently selected model to request table groups for.
  */
 async function updateTableAccordion(appState) {
+  const requestId = ++latestTableAccordionRequestId;
   const accordion = $('#tablesAccordion');
   if (!accordion) return;
 
@@ -1307,6 +1308,8 @@ async function updateTableAccordion(appState) {
       project_name: appState.currentProject,
       model_name: appState.selected_model,
     });
+    if (requestId !== latestTableAccordionRequestId) return;
+
     const tableGroups = data.table_groups || {};
 
     Object.entries(tableGroups).forEach(([groupName, tables], index) => {
