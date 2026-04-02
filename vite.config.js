@@ -16,6 +16,7 @@ function getHtmlInputs() {
 }
 
 export default defineConfig({
+  appType: 'mpa',
   root: resolve(__dirname, 'src'),
   envDir: resolve(__dirname),
   resolve: {

@@ -61,6 +61,7 @@ function renderCurrentProjectModels(appState) {
       item.classList.add('active');
       appState.selected_model = item.textContent;
       updateModelActionVisibility(appState);
+      updateTableAccordion(appState); // Refresh tables for the newly selected model
     });
   });
   // update appState.selected_model to first model if not set
@@ -79,6 +80,7 @@ function renderCurrentProjectModels(appState) {
     }
   }
   updateModelActionVisibility(appState);
+  updateTableAccordion(appState); // Refresh tables for the newly selected model
 }
 
 function updateModelActionVisibility(appState) {
@@ -1261,6 +1263,78 @@ function setupAcceptModel(appState) {
   }
 }
 
+
+async function updateTableAccordion(appState) {
+  const accordion = $('#tablesAccordion');
+  if (!accordion) return;
+
+  accordion.innerHTML = '';
+
+  try {
+    const data = await api.post('/models/table-groups', {
+      project_name: appState.currentProject,
+      model_name: appState.selected_model,
+    });
+    const tableGroups = data.table_groups || {};
+
+    Object.entries(tableGroups).forEach(([groupName, tables], index) => {
+      const itemId = `tablesAccordionItem-${index}`;
+      const collapseId = `tablesCollapse-${index}`;
+
+      const item = document.createElement('div');
+      item.className = 'accordion-item';
+
+      const header = document.createElement('h2');
+      header.className = 'accordion-header';
+      header.id = itemId;
+
+      const button = document.createElement('button');
+      button.className = 'accordion-button collapsed';
+      button.type = 'button';
+      button.dataset.bsToggle = 'collapse';
+      button.dataset.bsTarget = `#${collapseId}`;
+      button.setAttribute('aria-expanded', 'false');
+      button.setAttribute('aria-controls', collapseId);
+      button.textContent = groupName;
+      header.appendChild(button);
+
+      const collapse = document.createElement('div');
+      collapse.id = collapseId;
+      collapse.className = 'accordion-collapse collapse';
+      collapse.setAttribute('aria-labelledby', itemId);
+      collapse.dataset.bsParent = '#tablesAccordion';
+
+      const body = document.createElement('div');
+      body.className = 'accordion-body';
+
+      const table = document.createElement('table');
+      table.className = 'table table-md table-bordered align-middle mb-0';
+      const tbody = document.createElement('tbody');
+
+      (tables || []).forEach(([tableKey, displayName]) => {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        const link = document.createElement('a');
+        link.href = `/tables/${tableKey}`;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = displayName;
+        td.appendChild(link);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      body.appendChild(table);
+      collapse.appendChild(body);
+      item.appendChild(header);
+      item.appendChild(collapse);
+      accordion.appendChild(item);
+    });
+  } catch {
+    // api.js already displayed the error toast
+  }
+}
 export {
   fetchModels,
   renderCurrentProjectModels,

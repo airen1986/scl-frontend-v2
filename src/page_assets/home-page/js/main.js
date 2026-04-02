@@ -114,11 +114,11 @@ ready(async () => {
       appState.user = user;
       sessionStorage.setItem('user', JSON.stringify(user));
     } else {
-      window.location.href = 'login.html';
+      window.location.href = '/login.html';
       return;
     }
   } catch {
-    window.location.href = 'login.html';
+    window.location.href = '/login.html';
     return;
   }
 
@@ -196,7 +196,7 @@ ready(async () => {
         // Even if the server call fails, clear local session.
       }
       sessionStorage.removeItem('user');
-      window.location.href = 'login.html';
+      window.location.href = '/login.html';
     });
   }
 

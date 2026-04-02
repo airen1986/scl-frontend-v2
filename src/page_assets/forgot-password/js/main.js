@@ -88,7 +88,7 @@ ready(() => {
       await toastSuccess('Reset link sent!');
 
       await new Promise((resolve) => window.setTimeout(resolve, 2000));
-      window.location.href = 'reset-password.html?useremail=' + encodeURIComponent(email);
+      window.location.href = '/reset-password.html?useremail=' + encodeURIComponent(email);
 
       // Keep button disabled with a confirmation label — no redirect needed
       submitBtn.textContent = 'Email Sent';

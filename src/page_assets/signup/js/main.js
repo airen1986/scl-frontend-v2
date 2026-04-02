@@ -47,7 +47,7 @@ ready(async () => {
     const user = await api.post('/auth/me', {}, { silent: true });
     if (user && user.role_name) {
       sessionStorage.setItem('user', JSON.stringify(user));
-      window.location.href = 'home-page.html';
+      window.location.href = '/home-page.html';
       return;
     }
   } catch {
@@ -143,7 +143,7 @@ ready(async () => {
 
       await toastSuccess('Account created successfully!');
       await new Promise((resolve) => window.setTimeout(resolve, 2000));
-      window.location.href = 'activate-account.html?useremail=' + encodeURIComponent(email);
+      window.location.href = '/activate-account.html?useremail=' + encodeURIComponent(email);
     } catch (err) {
       // api.js already shows an error toast for network / HTTP errors.
       // Only show a toast for unexpected issues not caught by api.js.
