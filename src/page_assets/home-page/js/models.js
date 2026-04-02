@@ -1352,7 +1352,7 @@ async function updateTableAccordion(appState) {
       body.className = 'accordion-body';
 
       const table = document.createElement('table');
-      table.className = 'table table-md table-bordered align-middle mb-0';
+      table.className = 'table table-sm table-hover table-bordered align-middle mb-0';
       const tbody = document.createElement('tbody');
 
       (tables || []).forEach(([tableKey, displayName]) => {
