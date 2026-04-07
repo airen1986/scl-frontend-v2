@@ -218,6 +218,11 @@
   border-right: none;
 }
 
+.input-group > input:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
 .input-group input ~ .input-group-text:not(:last-child),
 .input-group select ~ .input-group-text:not(:last-child) {
   border-radius: 8px 0px 0px 8px;
