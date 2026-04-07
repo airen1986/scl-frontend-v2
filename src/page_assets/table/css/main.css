@@ -1,0 +1,74 @@
+/*
+ * main.css — styles specific to the table page only.
+ *
+ * Imported in src/page_assets/table/js/main.js.
+ * Do NOT import this file from any other page.
+ */
+ /* Results table */
+
+ #sclTableDiv {
+      border-bottom: 1px solid var(--bs-heading-color);
+    }
+
+td .form-check-input {
+  margin-top: 0.3rem;
+}
+
+.scl-table {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8rem;
+  overflow-y: auto;
+}
+
+.scl-table .head1 th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  white-space: nowrap;
+  background-color: #f8f9fa;
+  box-shadow: inset 0 -2px 0 var(--bs-heading-color), inset 0 2px 0 var(--bs-heading-color);
+}
+
+.scl-table .head2 th {
+  /* position: sticky;
+  top: 38px; */
+  z-index: 1;
+  white-space: nowrap;
+  background-color: #f8f9fa;
+  box-shadow: inset 0 -2px 0 var(--bs-heading-color);
+}
+
+.scl-table thead tr {
+  border: 0;
+}
+
+.scl-table tbody tr:first-child {
+  border-top: 0;
+}
+
+.scl-table td {
+  white-space: pre;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scl-table .form-check-input {
+  border-width: 2px;
+  border-color: var(--bs-heading-color);
+}
+
+.scl-table .form-check-input:focus {
+  box-shadow: none;
+}
+
+
+.scl-table .form-check-input:not(:checked) {
+  background-color: transparent;
+}
+
+.scl-table span.input-group-text {
+  border-right: 2px solid var(--bs-heading-color) !important;
+  border-top-right-radius: 8px !important;
+  border-bottom-right-radius: 8px !important;
+}

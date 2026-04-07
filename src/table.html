@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Forecast Orders</title>
+  </head>
+  <body class="min-vh-100 d-flex flex-column">
+    <!-- Table Title and Refresh -->
+
+    <div class="d-flex justify-content-between align-items-center my-2 mx-1">
+      <h5 class="mb-0">ForecastOrders</h5>
+      <button class="btn btn-sm btn-outline-dark rounded-2" type="button">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+
+    <!-- <div class="flex-fill d-flex">
+
+        </div> -->
+    <!-- Table -->
+    <div id="sclTableDiv" class="flex-fill d-flex align-items-start mx-1" style="overflow-y: auto">
+      <table class="table table-hover table-sm table-bordered mb-0 scl-table">
+        <thead class="scl-thead">
+          <tr class="head1">
+            <th style="width: 40px">
+              <input type="checkbox" class="form-check-input" />
+            </th>
+            <th>
+              <div class="d-flex justify-content-between align-items-center">
+                <span>OrderId</span>
+                <i class="fas fa-sort"></i>
+              </div>
+            </th>
+            <th>
+              <div class="d-flex justify-content-between align-items-center">
+                <span>ItemId</span>
+                <i class="fas fa-sort"></i>
+              </div>
+            </th>
+            <th>
+              <div class="d-flex justify-content-between align-items-center">
+                <span>LocationId</span>
+                <i class="fas fa-sort"></i>
+              </div>
+            </th>
+            <th>
+              <div class="d-flex justify-content-between align-items-center">
+                <span>ForecastArrivalDate</span>
+                <i class="fas fa-sort"></i>
+              </div>
+            </th>
+            <th>
+              <div class="d-flex justify-content-between align-items-center">
+                <span>Quantity</span>
+                <i class="fas fa-sort"></i>
+              </div>
+            </th>
+            <th>
+              <div class="d-flex justify-content-between align-items-center">
+                <span>SalesPrice</span>
+                <i class="fas fa-sort"></i>
+              </div>
+            </th>
+          </tr>
+          <!-- Filter Row -->
+          <tr class="head2">
+            <th></th>
+            <th>
+              <div class="input-group input-group-sm my-1">
+                <input type="text" class="form-control" />
+                <span
+                  class="input-group-text px-1"
+                  style="cursor: pointer"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="fas fa-chevron-down"></i>
+                </span>
+                <div class="dropdown-menu dropdown-menu-end">
+                  <form>
+                    <a class="dropdown-item px-2 py-0">
+                      <input class="form-check-input" type="checkbox" />
+                      <label class="form-check-label">Select All</label>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <div class="lov-values">
+                      <a class="dropdown-item px-2 py-0">
+                        <input class="form-check-input" type="checkbox" />
+                        <label class="form-check-label" value="FG_1">FG_1</label>
+                      </a>
+                      <a class="dropdown-item px-2 py-0">
+                        <input class="form-check-input" type="checkbox" />
+                        <label class="form-check-label" value="FG_2">FG_2</label>
+                      </a>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item d-flex px-2 py-0">
+                      <button type="button" class="btn btn-sm btn-secondary rounded-2">
+                        Clear
+                      </button>
+                      <button type="button" class="btn btn-sm btn-dark rounded-2 ms-auto">
+                        OK
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </th>
+            <th>
+              <div class="input-group input-group-sm my-1">
+                <input type="text" class="form-control" />
+                <span
+                  class="input-group-text px-1"
+                  style="cursor: pointer"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="fas fa-chevron-down"></i>
+                </span>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="#">Option 1</a></li>
+                  <li><a class="dropdown-item" href="#">Option 2</a></li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li><a class="dropdown-item" href="#">Option 3</a></li>
+                </ul>
+              </div>
+            </th>
+            <th>
+              <div class="input-group input-group-sm my-1">
+                <input type="text" class="form-control" />
+                <span class="input-group-text px-1"><i class="fas fa-chevron-down"></i></span>
+              </div>
+            </th>
+            <th>
+              <div class="input-group input-group-sm my-1">
+                <input type="text" class="form-control" />
+                <span class="input-group-text px-1"><i class="fas fa-chevron-down"></i></span>
+              </div>
+            </th>
+            <th>
+              <div class="input-group input-group-sm my-1">
+                <input type="text" class="form-control" />
+                <span class="input-group-text px-1"><i class="fas fa-chevron-down"></i></span>
+              </div>
+            </th>
+            <th>
+              <div class="input-group input-group-sm my-1">
+                <input type="text" class="form-control" />
+                <span class="input-group-text px-1"><i class="fas fa-chevron-down"></i></span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="scl-tbody">
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_079</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-01-01</td>
+            <td class="text-end">73.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_080</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-02-01</td>
+            <td class="text-end">42.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_081</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-03-01</td>
+            <td class="text-end">68.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_082</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-04-01</td>
+            <td class="text-end">27.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_083</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-05-01</td>
+            <td class="text-end">95.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_084</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-06-01</td>
+            <td class="text-end">52.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_085</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-07-01</td>
+            <td class="text-end">33.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_086</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-08-01</td>
+            <td class="text-end">85.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_087</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-09-01</td>
+            <td class="text-end">61.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_088</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-10-01</td>
+            <td class="text-end">17.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_089</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-11-01</td>
+            <td class="text-end">94.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_090</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-12-01</td>
+            <td class="text-end">78.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_091</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2025-01-01</td>
+            <td class="text-end">36.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_092</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2025-02-01</td>
+            <td class="text-end">69.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_079</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-01-01</td>
+            <td class="text-end">73.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_080</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-02-01</td>
+            <td class="text-end">42.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_081</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-03-01</td>
+            <td class="text-end">68.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_082</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-04-01</td>
+            <td class="text-end">27.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_083</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-05-01</td>
+            <td class="text-end">95.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_084</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-06-01</td>
+            <td class="text-end">52.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_085</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-07-01</td>
+            <td class="text-end">33.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_086</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-08-01</td>
+            <td class="text-end">85.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_087</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-09-01</td>
+            <td class="text-end">61.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_088</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-10-01</td>
+            <td class="text-end">17.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_089</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-11-01</td>
+            <td class="text-end">94.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_090</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2024-12-01</td>
+            <td class="text-end">78.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_091</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2025-01-01</td>
+            <td class="text-end">36.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="form-check-input" /></td>
+            <td>ORDER_092</td>
+            <td>FG_1</td>
+            <td>CustomerA</td>
+            <td>2025-02-01</td>
+            <td class="text-end">69.00</td>
+            <td class="text-end">100.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Toolbar and Pagination -->
+    <div class="d-flex justify-content-between align-items-center my-2 mx-1">
+      <!-- Action Buttons -->
+      <div class="btn-group">
+        <button class="btn btn-sm btn-outline-dark" title="Delete">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Download">
+          <i class="fas fa-download"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Upload">
+          <i class="fas fa-upload"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Export">
+          <i class="fas fa-file-export"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Add">
+          <i class="fas fa-plus-circle"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Remove">
+          <i class="fas fa-minus-circle"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Grid View">
+          <i class="fas fa-th"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Previous">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Next">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Edit">
+          <i class="fas fa-pencil-alt"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Undo">
+          <i class="fas fa-undo"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Columns">
+          <i class="fas fa-columns"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Filter">
+          <i class="fas fa-filter"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Copy">
+          <i class="fas fa-copy"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Save">
+          <i class="fas fa-save"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark" title="Table View">
+          <i class="fas fa-table"></i>
+        </button>
+      </div>
+
+      <!-- Pagination -->
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-dark">
+          <i class="fas fa-chevron-left"></i>
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <span class="text-muted">Page</span>
+        <input type="text" class="form-control form-control-sm" value="1" style="width: 50px" />
+        <span class="text-muted">of 1</span>
+        <button class="btn btn-sm btn-outline-dark">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-dark">
+          <i class="fas fa-chevron-right"></i>
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        <span class="text-muted ms-2">1-48 of 48</span>
+      </div>
+    </div>
+
+    <script type="module" src="page_assets/table/js/main.js"></script>
+  </body>
+</html>
