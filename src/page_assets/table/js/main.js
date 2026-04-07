@@ -6,7 +6,7 @@ import '../css/main.css'; // table-specific styles
 
 import { ready } from '@/common/js/dom';
 
-ready(async () => {
+ready(() => {
   autosizeSclTable();
   window.addEventListener('resize', autosizeSclTable);
 });

@@ -10,8 +10,8 @@
 
     <div class="d-flex justify-content-between align-items-center my-2 mx-1">
       <h5 class="mb-0">ForecastOrders</h5>
-      <button class="btn btn-sm btn-outline-dark rounded-2" type="button">
-        <i class="fas fa-sync-alt"></i>
+      <button class="btn btn-sm btn-outline-dark rounded-2" type="button" aria-label="Refresh Data">
+        <i class="fa-solid fa-sync-alt"></i>
       </button>
     </div>
 
@@ -29,37 +29,37 @@
             <th>
               <div class="d-flex justify-content-between align-items-center">
                 <span>OrderId</span>
-                <i class="fas fa-sort"></i>
+                <i class="fa-solid fa-sort"></i>
               </div>
             </th>
             <th>
               <div class="d-flex justify-content-between align-items-center">
                 <span>ItemId</span>
-                <i class="fas fa-sort"></i>
+                <i class="fa-solid fa-sort"></i>
               </div>
             </th>
             <th>
               <div class="d-flex justify-content-between align-items-center">
                 <span>LocationId</span>
-                <i class="fas fa-sort"></i>
+                <i class="fa-solid fa-sort"></i>
               </div>
             </th>
             <th>
               <div class="d-flex justify-content-between align-items-center">
                 <span>ForecastArrivalDate</span>
-                <i class="fas fa-sort"></i>
+                <i class="fa-solid fa-sort"></i>
               </div>
             </th>
             <th>
               <div class="d-flex justify-content-between align-items-center">
                 <span>Quantity</span>
-                <i class="fas fa-sort"></i>
+                <i class="fa-solid fa-sort"></i>
               </div>
             </th>
             <th>
               <div class="d-flex justify-content-between align-items-center">
                 <span>SalesPrice</span>
-                <i class="fas fa-sort"></i>
+                <i class="fa-solid fa-sort"></i>
               </div>
             </th>
           </tr>
@@ -69,31 +69,35 @@
             <th>
               <div class="input-group input-group-sm my-1">
                 <input type="text" class="form-control" />
-                <span
+                <button
+                  type="button"
                   class="input-group-text px-1"
-                  style="cursor: pointer"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  <i class="fas fa-chevron-down"></i>
-                </span>
-                <div class="dropdown-menu dropdown-menu-end">
-                  <form>
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div id="sampleDesignElement" class="dropdown-menu dropdown-menu-end">
+                  <form style="font-size: 0.8rem">
                     <a class="dropdown-item px-2 py-0">
-                      <input class="form-check-input" type="checkbox" />
-                      <label class="form-check-label">Select All</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" />
+                        <label class="form-check-label">Select All</label>
+                      </div>
                     </a>
                     <div class="dropdown-divider"></div>
-                    <div class="lov-values">
-                      <a class="dropdown-item px-2 py-0">
+                    <a class="dropdown-item px-2 py-0">
+                      <div class="form-check">
                         <input class="form-check-input" type="checkbox" />
                         <label class="form-check-label" value="FG_1">FG_1</label>
-                      </a>
-                      <a class="dropdown-item px-2 py-0">
+                      </div>
+                    </a>
+                    <a class="dropdown-item px-2 py-0">
+                      <div class="form-check">
                         <input class="form-check-input" type="checkbox" />
                         <label class="form-check-label" value="FG_2">FG_2</label>
-                      </a>
-                    </div>
+                      </div>
+                    </a>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-item d-flex px-2 py-0">
                       <button type="button" class="btn btn-sm btn-secondary rounded-2">
@@ -110,14 +114,14 @@
             <th>
               <div class="input-group input-group-sm my-1">
                 <input type="text" class="form-control" />
-                <span
+                <button
+                  type="button"
                   class="input-group-text px-1"
-                  style="cursor: pointer"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  <i class="fas fa-chevron-down"></i>
-                </span>
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                   <li><a class="dropdown-item" href="#">Option 1</a></li>
                   <li><a class="dropdown-item" href="#">Option 2</a></li>
@@ -129,25 +133,33 @@
             <th>
               <div class="input-group input-group-sm my-1">
                 <input type="text" class="form-control" />
-                <span class="input-group-text px-1"><i class="fas fa-chevron-down"></i></span>
+                <button type="button" class="input-group-text px-1">
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
               </div>
             </th>
             <th>
               <div class="input-group input-group-sm my-1">
                 <input type="text" class="form-control" />
-                <span class="input-group-text px-1"><i class="fas fa-chevron-down"></i></span>
+                <button type="button" class="input-group-text px-1">
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
               </div>
             </th>
             <th>
               <div class="input-group input-group-sm my-1">
                 <input type="text" class="form-control" />
-                <span class="input-group-text px-1"><i class="fas fa-chevron-down"></i></span>
+                <button type="button" class="input-group-text px-1">
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
               </div>
             </th>
             <th>
               <div class="input-group input-group-sm my-1">
                 <input type="text" class="form-control" />
-                <span class="input-group-text px-1"><i class="fas fa-chevron-down"></i></span>
+                <button type="button" class="input-group-text px-1">
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
               </div>
             </th>
           </tr>
