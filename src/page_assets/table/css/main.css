@@ -34,8 +34,8 @@ td .form-check-input {
 }
 
 .scl-table .head2 th {
-  /* position: sticky;
-  top: 38px; */
+  position: sticky;
+  top: var(--head1-height, 0px);
   z-index: 1;
   white-space: nowrap;
   background-color: var(--bs-tertiary-bg);
