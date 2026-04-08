@@ -1361,7 +1361,7 @@ async function updateTableAccordion(appState) {
         const td = document.createElement('td');
         const link = document.createElement('a');
         link.href =
-          '/table?' +
+          '/table.html?' +
           new URLSearchParams({
             table: tableKey,
             project: appState.currentProject,
