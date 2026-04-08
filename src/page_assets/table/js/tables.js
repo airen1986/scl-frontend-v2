@@ -1,5 +1,9 @@
 import api from '@/common/js/api';
 
+/**
+ * Request table column metadata, render the table header rows (including a leading select-all checkbox and per-column text filters), attach filter and checkbox handlers, and clear the table body.
+ * @param {Object} appState - Application state object; must include `tableName`, `projectName`, and `modelName`. This function updates `appState.columnNames` with the returned headers and may initialize `appState.textFilters`.
+ */
 async function getTableHeaders(appState) {
   const { headers } = await api.post('/tables/headers', {
     table_name: appState.tableName,
@@ -97,6 +101,21 @@ async function getTableHeaders(appState) {
   document.getElementById('sclTableBody').innerHTML = '';
 }
 
+/**
+ * Fetches paginated, filtered rows for the current table state and renders them into the table body.
+ *
+ * Renders each returned row as a <tr> appended to #sclTableBody where the first row value is used as the row's checkbox value and remaining values populate subsequent cells. Null or undefined cell values are rendered as an empty string.
+ *
+ * @param {Object} appState - Application state used to build the request and rendering.
+ * @param {string} appState.tableName - Name of the table to request.
+ * @param {string} appState.projectName - Project identifier sent with the request.
+ * @param {string} appState.modelName - Model identifier sent with the request.
+ * @param {number} appState.currentPage - Page number for pagination.
+ * @param {number} appState.pageSize - Number of rows per page.
+ * @param {Object} appState.selectFilters - Selection filters included in the request body.
+ * @param {Object} appState.textFilters - Text filters included in the request body.
+ * @param {Array<[string,string]>} appState.columnNames - Array of [columnName, dataType] tuples; column names are sent as `column_names`.
+ */
 async function fetchTableData(appState) {
   const column_names = appState.columnNames.map(([name]) => name);
   const { data } = await api.post('/tables/data', {
@@ -137,6 +156,12 @@ async function fetchTableData(appState) {
   }
 }
 
+/**
+ * Wire the page's refresh button to reset table filters, clear related UI controls, and reload table rows.
+ *
+ * Resets appState.textFilters and appState.selectFilters to empty objects, clears the header row text inputs, resets the select-all checkbox state, and triggers a table data refresh.
+ * @param {Object} appState - Application state for the table. The function mutates `textFilters` and `selectFilters` and relies on other fields (e.g., pagination, table identifiers) used by the data fetch.
+ */
 function initRefreshDataBtn(appState) {
   document.getElementById('refreshDataBtn').addEventListener('click', () => {
     appState.textFilters = {};

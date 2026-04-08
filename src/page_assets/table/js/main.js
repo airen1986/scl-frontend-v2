@@ -8,6 +8,11 @@ import { getTableHeaders, fetchTableData, initRefreshDataBtn } from './tables';
 import { bsToastError } from '../../../common/js/bsToast';
 import { $, ready } from '@/common/js/dom';
 
+/**
+ * Synchronizes header row heights by setting the CSS variable `--head1-height` on each `.scl-table .head2 th` to match the computed height of `.scl-table .head1`.
+ *
+ * If `.scl-table .head1` is not present, the function does nothing.
+ */
 function setStickyHead2() {
   const head1 = document.querySelector('.scl-table .head1');
   if (!head1) return;
@@ -17,6 +22,13 @@ function setStickyHead2() {
   });
 }
 
+/**
+ * Adjusts the max-height of the table container (#sclTableDiv) so it fits the viewport.
+ *
+ * If the container exists, sets its inline `maxHeight` CSS property to the larger of 220px
+ * or the available vertical space calculated as window.innerHeight minus the container's
+ * top offset and a 60px bottom gap.
+ */
 function autosizeSclTable() {
   const tableContainer = document.getElementById('sclTableDiv');
   if (!tableContainer) return;
