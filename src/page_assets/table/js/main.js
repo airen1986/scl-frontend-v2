@@ -53,6 +53,8 @@ const appState = {
 
   currentPage: 1,
 
+  currentRowCount: 0,
+
   pageSize: 1000,
 
   /** { [columnName]: string[] }  — column → filter values */
