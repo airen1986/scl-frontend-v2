@@ -15,12 +15,15 @@ async function getTableHeaders(appState) {
     '<th style="width: 40px"><input type="checkbox" class="form-check-input" /></th>';
   for (const [colName] of headers) {
     const th = document.createElement('th');
-    th.style.minWidth = '100px';
-    th.innerHTML =
-      `<div class="d-flex justify-content-between align-items-center">` +
-      `<span>${colName}</span>` +
-      `<i class="fa-solid fa-sort"></i>` +
-      `</div>`;
+    th.style.minWidth = '80px';
+    const div = document.createElement('div');
+    div.className = 'd-flex justify-content-between align-items-center';
+    const span = document.createElement('span');
+    span.textContent = colName;
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-sort';
+    div.append(span, icon);
+    th.appendChild(div);
     head1.appendChild(th);
   }
 
@@ -31,13 +34,23 @@ async function getTableHeaders(appState) {
     const th = document.createElement('th');
     th.style.minWidth = '80px';
     th.style.overflow = 'hidden';
-    th.innerHTML =
-      `<div class="input-group input-group-sm my-1" style="flex-wrap: nowrap;">` +
-      `<input type="text" class="form-control" data-col="${colName}" style="min-width: 0;" />` +
-      `<button type="button" class="input-group-text px-1">` +
-      `<i class="fa-solid fa-chevron-down"></i>` +
-      `</button>` +
-      `</div>`;
+    const div = document.createElement('div');
+    div.className = 'input-group input-group-sm my-1';
+    div.style.flexWrap = 'nowrap';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control';
+    input.dataset.col = colName; // Safe: dataset escapes automatically
+    input.style.minWidth = '0';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'input-group-text px-1';
+    btn.innerHTML = '<i class="fa-solid fa-chevron-down"></i>';
+
+    div.append(input, btn);
+    th.appendChild(div);
     head2.appendChild(th);
   }
 
@@ -59,6 +72,25 @@ async function getTableHeaders(appState) {
     }
 
     fetchTableData(appState);
+  });
+
+  // Select-all checkbox: toggle all body checkboxes
+  const selectAllCb = head1.querySelector('input[type="checkbox"]');
+  selectAllCb.addEventListener('change', () => {
+    const tbody = document.getElementById('sclTableBody');
+    for (const cb of tbody.querySelectorAll('input[type="checkbox"]')) {
+      cb.checked = selectAllCb.checked;
+    }
+  });
+
+  // Body checkbox: sync select-all when individual rows change
+  document.getElementById('sclTableBody').addEventListener('change', (e) => {
+    if (e.target.type !== 'checkbox') return;
+    const tbody = document.getElementById('sclTableBody');
+    const all = tbody.querySelectorAll('input[type="checkbox"]');
+    const checked = tbody.querySelectorAll('input[type="checkbox"]:checked');
+    selectAllCb.checked = all.length > 0 && checked.length === all.length;
+    selectAllCb.indeterminate = checked.length > 0 && checked.length < all.length;
   });
 
   // Clear body
@@ -87,7 +119,11 @@ async function fetchTableData(appState) {
 
     // Checkbox cell with rowid
     const checkTd = document.createElement('td');
-    checkTd.innerHTML = `<input type="checkbox" class="form-check-input" value="${rowid}" />`;
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'form-check-input';
+    checkbox.value = rowid;
+    checkTd.appendChild(checkbox);
     tr.appendChild(checkTd);
 
     // Data cells
@@ -105,6 +141,11 @@ function initRefreshDataBtn(appState) {
   document.getElementById('refreshDataBtn').addEventListener('click', () => {
     appState.textFilters = {};
     appState.selectFilters = {};
+
+    const head1 = document.getElementById('sclTableHead1');
+    const selectAllCb = head1.querySelector('input[type="checkbox"]');
+    selectAllCb.checked = false;
+    selectAllCb.indeterminate = false;
 
     // Clear filter inputs in head2
     const head2 = document.getElementById('sclTableHead2');
