@@ -9,8 +9,13 @@
     <!-- Table Title and Refresh -->
 
     <div class="d-flex justify-content-between align-items-center my-2 mx-1">
-      <h5 class="mb-0">ForecastOrders</h5>
-      <button class="btn btn-sm btn-outline-dark rounded-2" type="button" aria-label="Refresh Data">
+      <h5 class="mb-0" id="tableDisplayName">ForecastOrders</h5>
+      <button
+        class="btn btn-sm btn-outline-dark rounded-2"
+        type="button"
+        id="refreshDataBtn"
+        aria-label="Refresh Data"
+      >
         <i class="fa-solid fa-sync-alt"></i>
       </button>
     </div>
@@ -22,7 +27,7 @@
     <div id="sclTableDiv" class="flex-fill d-flex align-items-start mx-1" style="overflow-y: auto">
       <table class="table table-hover table-sm table-bordered mb-0 scl-table">
         <thead class="scl-thead">
-          <tr class="head1">
+          <tr id="sclTableHead1" class="head1">
             <th style="width: 40px">
               <input type="checkbox" class="form-check-input" />
             </th>
@@ -64,7 +69,7 @@
             </th>
           </tr>
           <!-- Filter Row -->
-          <tr class="head2">
+          <tr id="sclTableHead2" class="head2">
             <th></th>
             <th>
               <div class="input-group input-group-sm my-1">
@@ -164,7 +169,7 @@
             </th>
           </tr>
         </thead>
-        <tbody class="scl-tbody">
+        <tbody class="scl-tbody" id="sclTableBody">
           <tr>
             <td><input type="checkbox" class="form-check-input" /></td>
             <td>ORDER_079</td>

@@ -1361,11 +1361,12 @@ async function updateTableAccordion(appState) {
         const td = document.createElement('td');
         const link = document.createElement('a');
         link.href =
-          '/tables?' +
+          '/table?' +
           new URLSearchParams({
             table: tableKey,
             project: appState.currentProject,
             model: appState.selected_model,
+            displayName: displayName,
           });
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
