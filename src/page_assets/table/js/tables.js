@@ -173,24 +173,34 @@ async function fetchTableData(appState) {
  * @param {Object} appState - Application state for the table. The function mutates `textFilters` and `selectFilters` and relies on other fields (e.g., pagination, table identifiers) used by the data fetch.
  */
 function initRefreshDataBtn(appState) {
-  document.getElementById('refreshDataBtn').addEventListener('click', () => {
+  const refreshButton = document.getElementById('refreshDataBtn');
+
+  refreshButton.addEventListener('click', async () => {
+    if (refreshButton.disabled) return;
+
+    refreshButton.disabled = true;
+
     appState.textFilters = {};
     appState.selectFilters = {};
 
-    const head1 = document.getElementById('sclTableHead1');
-    const selectAllCb = head1.querySelector('input[type="checkbox"]');
-    selectAllCb.checked = false;
-    selectAllCb.indeterminate = false;
+    try {
+      const head1 = document.getElementById('sclTableHead1');
+      const selectAllCb = head1.querySelector('input[type="checkbox"]');
+      selectAllCb.checked = false;
+      selectAllCb.indeterminate = false;
 
-    // Clear filter inputs in head2
-    const head2 = document.getElementById('sclTableHead2');
-    for (const input of head2.querySelectorAll('input[type="text"]')) {
-      input.value = '';
+      // Clear filter inputs in head2
+      const head2 = document.getElementById('sclTableHead2');
+      for (const input of head2.querySelectorAll('input[type="text"]')) {
+        input.value = '';
+      }
+
+      // Clear select filters in head2 (if implemented as dropdowns in the future)
+
+      await fetchTableData(appState);
+    } finally {
+      refreshButton.disabled = false;
     }
-
-    // Clear select filters in head2 (if implemented as dropdowns in the future)
-
-    fetchTableData(appState);
   });
 }
 
