@@ -1,11 +1,33 @@
 import api from '@/common/js/api';
 
+let tableLoaderDepth = 0;
+
+function showTableLoader() {
+  const loader = document.getElementById('pageLoader');
+  if (!loader) return;
+
+  tableLoaderDepth += 1;
+  loader.classList.remove('d-none');
+  loader.setAttribute('aria-hidden', 'false');
+}
+
+function hideTableLoader() {
+  const loader = document.getElementById('pageLoader');
+  if (!loader) return;
+
+  tableLoaderDepth = Math.max(0, tableLoaderDepth - 1);
+  if (tableLoaderDepth > 0) return;
+
+  loader.classList.add('d-none');
+  loader.setAttribute('aria-hidden', 'true');
+}
+
 /**
  * Request table column metadata, render the table header rows (including a leading select-all checkbox and per-column text filters), attach filter and checkbox handlers, and clear the table body.
  * @param {Object} appState - Application state object; must include `tableName`, `projectName`, and `modelName`. This function updates `appState.columnNames` with the returned headers and may initialize `appState.textFilters`.
  */
 async function getTableHeaders(appState) {
-  // showTableLoader();
+  showTableLoader();
   try {
     const { headers } = await api.post('/tables/headers', {
       table_name: appState.tableName,
@@ -133,7 +155,7 @@ async function getTableHeaders(appState) {
     // Clear body
     document.getElementById('sclTableBody').innerHTML = '';
   } finally {
-    // hideTableLoader();
+    hideTableLoader();
   }
 }
 
@@ -153,7 +175,7 @@ async function getTableHeaders(appState) {
  * @param {Array<[string,string]>} appState.columnNames - Array of [columnName, dataType] tuples; column names are sent as `column_names`.
  */
 async function fetchTableData(appState) {
-  // showTableLoader();
+  showTableLoader();
   try {
     const column_names = appState.columnNames.map(([name]) => name);
     const { data } = await api.post('/tables/data', {
@@ -193,10 +215,11 @@ async function fetchTableData(appState) {
 
       tbody.appendChild(tr);
     }
+
+    await populatePaginationInfo(appState);
   } finally {
-    // hideTableLoader();
+    hideTableLoader();
   }
-  populatePaginationInfo(appState);
 }
 
 /**
