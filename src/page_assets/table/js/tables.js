@@ -2,6 +2,13 @@ import api from '@/common/js/api';
 
 let tableLoaderDepth = 0;
 
+/**
+ * Makes the global page loader visible and increments the internal reference counter.
+ *
+ * If the '#pageLoader' element is not present, the function does nothing. It increments the module-level
+ * `tableLoaderDepth`, removes the 'd-none' class from the loader, and sets `aria-hidden` to "false"
+ * so the loader remains visible across nested async operations.
+ */
 function showTableLoader() {
   const loader = document.getElementById('pageLoader');
   if (!loader) return;
@@ -11,6 +18,11 @@ function showTableLoader() {
   loader.setAttribute('aria-hidden', 'false');
 }
 
+/**
+ * Decrements the table-loader reference counter and hides the #pageLoader element when the counter reaches zero.
+ *
+ * If the #pageLoader element is not present this function does nothing. The internal counter is never allowed to go below zero; when it becomes zero the loader receives `d-none` and `aria-hidden="true"`.
+ */
 function hideTableLoader() {
   const loader = document.getElementById('pageLoader');
   if (!loader) return;
@@ -236,10 +248,10 @@ async function fetchTableData(appState) {
 }
 
 /**
- * Wire the page's refresh button to reset table filters, clear related UI controls, and reload table rows.
+ * Attach click behavior to the page's refresh button to clear table filters, reset related UI, and reload table rows.
  *
- * Resets appState.textFilters and appState.selectFilters to empty objects, clears the header row text inputs, resets the select-all checkbox state, and triggers a table data refresh.
- * @param {Object} appState - Application state for the table. The function mutates `textFilters` and `selectFilters` and relies on other fields (e.g., pagination, table identifiers) used by the data fetch.
+ * Clears in-memory filters and pagination state, resets header UI (header text inputs, the header select-all checkbox, and per-column dropdown icons), and triggers a fresh table data fetch.
+ * @param {Object} appState - Table application state. This function mutates `appState.textFilters` (set to {}), `appState.selectFilters` (set to {}), and `appState.currentPage` (set to 1); other fields are read by the subsequent data fetch.
  */
 function initRefreshDataBtn(appState) {
   const refreshButton = document.getElementById('refreshDataBtn');
@@ -277,6 +289,18 @@ function initRefreshDataBtn(appState) {
   });
 }
 
+/**
+ * Populate a column's filter dropdown with distinct values and wire its selection controls.
+ *
+ * Loads distinct values for `colName`, renders checkbox items and Select All/OK/Clear controls
+ * inside the provided dropdown element, synchronizes the Select All state with individual items,
+ * updates `appState.selectFilters` when OK or Clear are used, updates the filter icon, and triggers
+ * a table data refresh (and resets pagination) when the effective filter set changes.
+ *
+ * @param {HTMLElement} dropdown - The dropdown menu element for the column's filter (contains `.lovValuesFieldset`, `.selectAll`, and `.clearOKBtn`).
+ * @param {string} colName - The column name whose distinct values should be loaded and edited.
+ * @param {Object} appState - Application state object (reads/writes properties such as `tableName`, `projectName`, `modelName`, `pageSize`, `selectFilters`, `textFilters`, and `currentPage`).
+ */
 async function populateFilterDropdown(dropdown, colName, appState) {
   const fieldset = dropdown.querySelector('.lovValuesFieldset');
   const selectAllCb = dropdown.querySelector('.selectAll');
@@ -407,16 +431,38 @@ async function populateFilterDropdown(dropdown, colName, appState) {
   });
 }
 
+/**
+ * Check whether two arrays have the same length and identical elements in the same order using strict equality.
+ * @param {Array} left - The first array to compare.
+ * @param {Array} right - The second array to compare.
+ * @returns {boolean} `true` if both arrays have the same length and each element is strictly equal to the corresponding element, `false` otherwise.
+ */
 function areArraysEqual(left, right) {
   if (left.length !== right.length) return false;
   return left.every((value, index) => value === right[index]);
 }
 
+/**
+ * Update the icon inside a column filter toggle button to reflect whether the column is filtered.
+ *
+ * @param {HTMLElement} toggleButton - The button element that contains the icon to update.
+ * @param {boolean} isFiltered - `true` to show the filter icon, `false` to show the chevron.
+ */
 function updateFilterIcon(toggleButton, isFiltered) {
   const icon = toggleButton.querySelector('i');
   icon.className = isFiltered ? 'fa-solid fa-filter' : 'fa-solid fa-chevron-down';
 }
 
+/**
+ * Attach a click handler to a dropdown item that toggles its associated checkbox and emits a bubbling change event.
+ *
+ * When the user clicks the dropdown item (except directly on the checkbox input), this handler prevents the default
+ * action, clears `indeterminate` if set, toggles the checkbox to the next checked state (clicking an indeterminate box
+ * sets it to `true`), and dispatches a bubbling `change` event.
+ *
+ * @param {HTMLElement} dropdownItem - The clickable container element representing a selectable dropdown row.
+ * @param {HTMLInputElement} checkbox - The checkbox input associated with the dropdown row.
+ */
 function bindDropdownItemToggle(dropdownItem, checkbox) {
   dropdownItem.addEventListener('click', (e) => {
     if (e.target.closest('input') === checkbox) return;
@@ -432,6 +478,22 @@ function bindDropdownItemToggle(dropdownItem, checkbox) {
   });
 }
 
+/**
+ * Update pagination UI and appState.totalRowCount based on the currently fetched rows and, when necessary, a remote total row count.
+ *
+ * Updates the contents and visibility of #paginationInfo and #paginationControls, sets #paginationPageInput and #paginationTotalPages, and assigns appState.totalRowCount when determinable. If appState.currentRowCount is less than pageSize the function computes and sets the total from the current page; if currentRowCount equals pageSize it may call the server endpoint `/tables/row-count` to obtain the total. On request failure the pagination UI is hidden and the info cleared.
+ *
+ * @param {Object} appState - Application state object.
+ * @param {number} appState.currentRowCount - Number of rows returned for the current page (required to decide pagination state).
+ * @param {number} appState.pageSize - Number of rows per page.
+ * @param {number} appState.currentPage - Current page number (1-based).
+ * @param {string} appState.tableName - Table name used when requesting total row count.
+ * @param {string} appState.projectName - Project name used when requesting total row count.
+ * @param {string} appState.modelName - Model name used when requesting total row count.
+ * @param {Object} [appState.selectFilters] - Current select filters passed to the row-count request.
+ * @param {Object} [appState.textFilters] - Current text filters passed to the row-count request.
+ * @param {number} [appState.totalRowCount] - Will be set to the computed or fetched total row count.
+ */
 async function populatePaginationInfo(appState) {
   if (appState.currentRowCount === undefined) return;
 
@@ -493,10 +555,9 @@ async function populatePaginationInfo(appState) {
 }
 
 /**
- * Wire pagination control buttons (first, prev, next, last) and the page
- * input field so the user can navigate between pages.
- * @param {Object} appState - Application state; uses and mutates `currentPage`
- *   and reads `totalRowCount` and `pageSize` to compute bounds.
+ * Wire pagination controls and the page-number input so users can navigate table pages.
+ * The controls clamp requested pages to [1, totalPages], update `appState.currentPage`, and trigger data fetches.
+ * @param {Object} appState - Application state; reads `totalRowCount` and `pageSize`, and mutates `currentPage`.
  */
 function initPaginationControls(appState) {
   const getTotalPages = () =>
