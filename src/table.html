@@ -6,6 +6,19 @@
     <title>Forecast Orders</title>
   </head>
   <body class="min-vh-100 d-flex flex-column">
+    <div
+      id="pageLoader"
+      class="page-loader d-none"
+      role="status"
+      aria-live="polite"
+      aria-hidden="true"
+    >
+      <div class="page-loader__content text-center">
+        <div class="spinner-border text-dark" aria-hidden="true"></div>
+        <div class="mt-2 small text-body-secondary">Loading table data...</div>
+      </div>
+    </div>
+
     <!-- Table Title and Refresh -->
 
     <div class="d-flex justify-content-between align-items-center my-2 mx-1">
@@ -27,402 +40,11 @@
     <div id="sclTableDiv" class="flex-fill d-flex align-items-start mx-1" style="overflow-y: auto">
       <table class="table table-hover table-sm table-bordered mb-0 scl-table">
         <thead class="scl-thead">
-          <tr id="sclTableHead1" class="head1">
-            <th style="width: 40px">
-              <input type="checkbox" class="form-check-input" />
-            </th>
-            <th>
-              <div class="d-flex justify-content-between align-items-center">
-                <span>OrderId</span>
-                <i class="fa-solid fa-sort"></i>
-              </div>
-            </th>
-            <th>
-              <div class="d-flex justify-content-between align-items-center">
-                <span>ItemId</span>
-                <i class="fa-solid fa-sort"></i>
-              </div>
-            </th>
-            <th>
-              <div class="d-flex justify-content-between align-items-center">
-                <span>LocationId</span>
-                <i class="fa-solid fa-sort"></i>
-              </div>
-            </th>
-            <th>
-              <div class="d-flex justify-content-between align-items-center">
-                <span>ForecastArrivalDate</span>
-                <i class="fa-solid fa-sort"></i>
-              </div>
-            </th>
-            <th>
-              <div class="d-flex justify-content-between align-items-center">
-                <span>Quantity</span>
-                <i class="fa-solid fa-sort"></i>
-              </div>
-            </th>
-            <th>
-              <div class="d-flex justify-content-between align-items-center">
-                <span>SalesPrice</span>
-                <i class="fa-solid fa-sort"></i>
-              </div>
-            </th>
-          </tr>
+          <tr id="sclTableHead1" class="head1"></tr>
           <!-- Filter Row -->
-          <tr id="sclTableHead2" class="head2">
-            <th></th>
-            <th>
-              <div class="input-group input-group-sm my-1">
-                <input type="text" class="form-control" />
-                <button
-                  type="button"
-                  class="input-group-text px-1"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                >
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div id="sampleDesignElement" class="dropdown-menu dropdown-menu-end">
-                  <form style="font-size: 0.8rem">
-                    <a class="dropdown-item px-2 py-0">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" />
-                        <label class="form-check-label">Select All</label>
-                      </div>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item px-2 py-0">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" />
-                        <label class="form-check-label" value="FG_1">FG_1</label>
-                      </div>
-                    </a>
-                    <a class="dropdown-item px-2 py-0">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" />
-                        <label class="form-check-label" value="FG_2">FG_2</label>
-                      </div>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-item d-flex px-2 py-0">
-                      <button type="button" class="btn btn-sm btn-secondary rounded-2">
-                        Clear
-                      </button>
-                      <button type="button" class="btn btn-sm btn-dark rounded-2 ms-auto">
-                        OK
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </th>
-            <th>
-              <div class="input-group input-group-sm my-1">
-                <input type="text" class="form-control" />
-                <button
-                  type="button"
-                  class="input-group-text px-1"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                >
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="#">Option 1</a></li>
-                  <li><a class="dropdown-item" href="#">Option 2</a></li>
-                  <li><hr class="dropdown-divider" /></li>
-                  <li><a class="dropdown-item" href="#">Option 3</a></li>
-                </ul>
-              </div>
-            </th>
-            <th>
-              <div class="input-group input-group-sm my-1">
-                <input type="text" class="form-control" />
-                <button type="button" class="input-group-text px-1">
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-              </div>
-            </th>
-            <th>
-              <div class="input-group input-group-sm my-1">
-                <input type="text" class="form-control" />
-                <button type="button" class="input-group-text px-1">
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-              </div>
-            </th>
-            <th>
-              <div class="input-group input-group-sm my-1">
-                <input type="text" class="form-control" />
-                <button type="button" class="input-group-text px-1">
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-              </div>
-            </th>
-            <th>
-              <div class="input-group input-group-sm my-1">
-                <input type="text" class="form-control" />
-                <button type="button" class="input-group-text px-1">
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-              </div>
-            </th>
-          </tr>
+          <tr id="sclTableHead2" class="head2"></tr>
         </thead>
-        <tbody class="scl-tbody" id="sclTableBody">
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_079</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-01-01</td>
-            <td class="text-end">73.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_080</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-02-01</td>
-            <td class="text-end">42.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_081</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-03-01</td>
-            <td class="text-end">68.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_082</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-04-01</td>
-            <td class="text-end">27.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_083</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-05-01</td>
-            <td class="text-end">95.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_084</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-06-01</td>
-            <td class="text-end">52.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_085</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-07-01</td>
-            <td class="text-end">33.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_086</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-08-01</td>
-            <td class="text-end">85.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_087</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-09-01</td>
-            <td class="text-end">61.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_088</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-10-01</td>
-            <td class="text-end">17.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_089</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-11-01</td>
-            <td class="text-end">94.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_090</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-12-01</td>
-            <td class="text-end">78.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_091</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2025-01-01</td>
-            <td class="text-end">36.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_092</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2025-02-01</td>
-            <td class="text-end">69.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_079</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-01-01</td>
-            <td class="text-end">73.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_080</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-02-01</td>
-            <td class="text-end">42.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_081</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-03-01</td>
-            <td class="text-end">68.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_082</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-04-01</td>
-            <td class="text-end">27.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_083</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-05-01</td>
-            <td class="text-end">95.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_084</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-06-01</td>
-            <td class="text-end">52.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_085</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-07-01</td>
-            <td class="text-end">33.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_086</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-08-01</td>
-            <td class="text-end">85.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_087</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-09-01</td>
-            <td class="text-end">61.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_088</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-10-01</td>
-            <td class="text-end">17.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_089</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-11-01</td>
-            <td class="text-end">94.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_090</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2024-12-01</td>
-            <td class="text-end">78.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_091</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2025-01-01</td>
-            <td class="text-end">36.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-          <tr>
-            <td><input type="checkbox" class="form-check-input" /></td>
-            <td>ORDER_092</td>
-            <td>FG_1</td>
-            <td>CustomerA</td>
-            <td>2025-02-01</td>
-            <td class="text-end">69.00</td>
-            <td class="text-end">100.00</td>
-          </tr>
-        </tbody>
+        <tbody class="scl-tbody" id="sclTableBody"></tbody>
       </table>
     </div>
 
@@ -482,24 +104,32 @@
 
       <!-- Pagination -->
       <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-sm btn-outline-dark">
-          <i class="fas fa-chevron-left"></i>
-          <i class="fas fa-chevron-left"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-dark">
-          <i class="fas fa-chevron-left"></i>
-        </button>
-        <span class="text-muted">Page</span>
-        <input type="text" class="form-control form-control-sm" value="1" style="width: 50px" />
-        <span class="text-muted">of 1</span>
-        <button class="btn btn-sm btn-outline-dark">
-          <i class="fas fa-chevron-right"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-dark">
-          <i class="fas fa-chevron-right"></i>
-          <i class="fas fa-chevron-right"></i>
-        </button>
-        <span class="text-muted ms-2">1-48 of 48</span>
+        <div class="d-flex align-items-center gap-2" id="paginationControls">
+          <button id="paginationFirstBtn" class="btn btn-sm btn-outline-dark">
+            <i class="fas fa-chevron-left"></i>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button id="paginationPrevBtn" class="btn btn-sm btn-outline-dark">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span class="text-muted">Page</span>
+          <input
+            id="paginationPageInput"
+            type="text"
+            class="form-control form-control-sm"
+            value="1"
+            style="width: 50px"
+          />
+          <span class="text-muted" id="paginationTotalPages">of 1</span>
+          <button id="paginationNextBtn" class="btn btn-sm btn-outline-dark">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <button id="paginationLastBtn" class="btn btn-sm btn-outline-dark">
+            <i class="fas fa-chevron-right"></i>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <span class="text-muted mx-2" id="paginationInfo"></span>
       </div>
     </div>
 

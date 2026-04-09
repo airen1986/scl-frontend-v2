@@ -4,7 +4,12 @@ import '../../../scss/styles.scss'; // Bootstrap + SCSS theme
 import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // table-specific styles
 import api from '@/common/js/api';
-import { getTableHeaders, fetchTableData, initRefreshDataBtn } from './tables';
+import {
+  getTableHeaders,
+  fetchTableData,
+  initRefreshDataBtn,
+  initPaginationControls,
+} from './tables';
 import { bsToastError } from '../../../common/js/bsToast';
 import { $, ready } from '@/common/js/dom';
 
@@ -52,6 +57,8 @@ const appState = {
   displayName: '',
 
   currentPage: 1,
+
+  currentRowCount: 0,
 
   pageSize: 1000,
 
@@ -139,4 +146,5 @@ ready(async () => {
   });
 
   initRefreshDataBtn(appState);
+  initPaginationControls(appState);
 });

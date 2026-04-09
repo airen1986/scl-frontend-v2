@@ -6,6 +6,26 @@
  */
  /* Results table */
 
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(var(--bs-body-bg-rgb), 0.75);
+  backdrop-filter: blur(2px);
+}
+
+.page-loader__content {
+  min-width: 180px;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-body-bg);
+  box-shadow: var(--bs-box-shadow);
+}
+
  #sclTableDiv {
       border-bottom: 1px solid var(--bs-heading-color);
     }
@@ -40,6 +60,19 @@ td .form-check-input {
   white-space: nowrap;
   background-color: var(--bs-tertiary-bg);
   box-shadow: inset 0 -2px 0 var(--bs-heading-color);
+}
+
+.scl-table .head2 th.dropdown-open {
+  z-index: 5;
+}
+
+.scl-table .head2 .dropdown-menu {
+  z-index: 1056;
+}
+
+.scl-table .lovValuesFieldset {
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .scl-table thead tr {
