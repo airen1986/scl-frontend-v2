@@ -483,20 +483,26 @@
       <!-- Pagination -->
       <div class="d-flex align-items-center gap-2">
         <div class="d-flex align-items-center gap-2" id="paginationControls">
-          <button class="btn btn-sm btn-outline-dark">
+          <button id="paginationFirstBtn" class="btn btn-sm btn-outline-dark">
             <i class="fas fa-chevron-left"></i>
             <i class="fas fa-chevron-left"></i>
           </button>
-          <button class="btn btn-sm btn-outline-dark">
+          <button id="paginationPrevBtn" class="btn btn-sm btn-outline-dark">
             <i class="fas fa-chevron-left"></i>
           </button>
           <span class="text-muted">Page</span>
-          <input type="text" class="form-control form-control-sm" value="1" style="width: 50px" />
-          <span class="text-muted">of 1</span>
-          <button class="btn btn-sm btn-outline-dark">
+          <input
+            id="paginationPageInput"
+            type="text"
+            class="form-control form-control-sm"
+            value="1"
+            style="width: 50px"
+          />
+          <span class="text-muted" id="paginationTotalPages">of 1</span>
+          <button id="paginationNextBtn" class="btn btn-sm btn-outline-dark">
             <i class="fas fa-chevron-right"></i>
           </button>
-          <button class="btn btn-sm btn-outline-dark">
+          <button id="paginationLastBtn" class="btn btn-sm btn-outline-dark">
             <i class="fas fa-chevron-right"></i>
             <i class="fas fa-chevron-right"></i>
           </button>

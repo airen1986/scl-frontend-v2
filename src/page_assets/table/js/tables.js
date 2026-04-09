@@ -56,7 +56,7 @@ async function getTableHeaders(appState) {
       btn.innerHTML = '<i class="fa-solid fa-chevron-down"></i>';
       btn.setAttribute('aria-label', `Select filter for ${colName}`);
       btn.setAttribute('data-bs-toggle', 'dropdown');
-      btn.setAttribute('data-bs-auto-close', 'false');
+      btn.setAttribute('data-bs-auto-close', 'outside');
       btn.setAttribute('aria-expanded', 'false');
 
       const dropdown = document.createElement('div');
@@ -97,30 +97,18 @@ async function getTableHeaders(appState) {
       } else {
         delete appState.textFilters[col];
       }
-
+      appState.currentPage = 1; // Reset to first page on filter change, since current page may become invalid
       fetchTableData(appState);
     });
 
     head2.addEventListener('show.bs.dropdown', (e) => {
       const currentButton = e.target;
 
-      for (const otherButton of head2.querySelectorAll('[data-bs-toggle="dropdown"]')) {
-        if (otherButton === currentButton) continue;
-
-        otherButton.closest('th')?.classList.remove('dropdown-open');
-        window.bootstrap.Dropdown.getOrCreateInstance(otherButton).hide();
-      }
-
-      currentButton.closest('th')?.classList.add('dropdown-open');
       populateFilterDropdown(
         currentButton.nextElementSibling,
         currentButton.previousElementSibling.dataset.col,
         appState
       );
-    });
-
-    head2.addEventListener('hide.bs.dropdown', (e) => {
-      e.target.closest('th')?.classList.remove('dropdown-open');
     });
 
     // Select-all checkbox: toggle all body checkboxes
@@ -227,6 +215,7 @@ function initRefreshDataBtn(appState) {
 
     appState.textFilters = {};
     appState.selectFilters = {};
+    appState.currentPage = 1; // Reset to first page on refresh, since filters may change total pages and current page may become invalid
 
     try {
       const head1 = document.getElementById('sclTableHead1');
@@ -347,6 +336,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     }
     updateFilterIcon(toggleButton, colName in (appState.selectFilters ?? {}));
     window.bootstrap.Dropdown.getOrCreateInstance(toggleButton).hide();
+    appState.currentPage = 1;
     fetchTableData(appState);
   });
 
@@ -359,6 +349,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     newSelectAll.indeterminate = false;
     updateFilterIcon(toggleButton, false);
     window.bootstrap.Dropdown.getOrCreateInstance(toggleButton).hide();
+    appState.currentPage = 1;
     fetchTableData(appState);
   });
 }
@@ -386,17 +377,19 @@ async function populatePaginationInfo(appState) {
 
   if (appState.currentRowCount < appState.pageSize) {
     // Fewer rows than page size — we're on the last (or only) page
-    paginationControls.classList.remove('d-flex');
-    paginationControls.classList.add('d-none');
 
     const totalRowCount = (appState.currentPage - 1) * appState.pageSize + appState.currentRowCount;
     appState.totalRowCount = totalRowCount;
 
     if (appState.currentPage === 1) {
       paginationInfo.textContent = `${totalRowCount} Row${totalRowCount !== 1 ? 's' : ''}`;
+      paginationControls.classList.remove('d-flex');
+      paginationControls.classList.add('d-none');
     } else {
       const start = (appState.currentPage - 1) * appState.pageSize + 1;
       paginationInfo.textContent = `${start}-${totalRowCount} of ${totalRowCount} Rows`;
+      const pageInput = document.getElementById('paginationPageInput');
+      if (pageInput) pageInput.value = appState.currentPage;
     }
     return;
   }
@@ -404,29 +397,30 @@ async function populatePaginationInfo(appState) {
   // currentRowCount === pageSize — there may be more rows, fetch total
   paginationInfo.textContent = 'Fetching row count…';
   try {
-    const { row_count: totalRowCount } = await api.post('/tables/row-count', {
-      table_name: appState.tableName,
-      project_name: appState.projectName,
-      model_name: appState.modelName,
-      select_filters: appState.selectFilters,
-      text_filters: appState.textFilters,
-    });
+    if (appState.currentPage === 1) {
+      const { row_count: totalRowCount } = await api.post('/tables/row-count', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        select_filters: appState.selectFilters,
+        text_filters: appState.textFilters,
+      });
 
-    appState.totalRowCount = totalRowCount;
-    const totalPages = Math.ceil(totalRowCount / appState.pageSize);
+      appState.totalRowCount = totalRowCount;
+    }
+    const totalPages = Math.ceil(appState.totalRowCount / appState.pageSize);
     const start = (appState.currentPage - 1) * appState.pageSize + 1;
-    const end = Math.min(start + appState.pageSize - 1, totalRowCount);
+    const end = Math.min(start + appState.pageSize - 1, appState.totalRowCount);
 
-    paginationInfo.textContent = `${start}-${end} of ${totalRowCount} Rows`;
+    paginationInfo.textContent = `${start}-${end} of ${appState.totalRowCount} Rows`;
 
     // Show pagination controls and update page info
     paginationControls.classList.remove('d-none');
     paginationControls.classList.add('d-flex');
-
-    const pageInput = paginationControls.querySelector('input[type="text"]');
+    const pageInput = document.getElementById('paginationPageInput');
     if (pageInput) pageInput.value = appState.currentPage;
 
-    const totalPagesSpan = paginationControls.querySelector('span.text-muted:last-of-type');
+    const totalPagesSpan = document.getElementById('paginationTotalPages');
     if (totalPagesSpan) totalPagesSpan.textContent = `of ${totalPages}`;
   } catch {
     paginationInfo.textContent = '';
@@ -435,4 +429,44 @@ async function populatePaginationInfo(appState) {
   }
 }
 
-export { getTableHeaders, fetchTableData, initRefreshDataBtn };
+/**
+ * Wire pagination control buttons (first, prev, next, last) and the page
+ * input field so the user can navigate between pages.
+ * @param {Object} appState - Application state; uses and mutates `currentPage`
+ *   and reads `totalRowCount` and `pageSize` to compute bounds.
+ */
+function initPaginationControls(appState) {
+  const getTotalPages = () =>
+    Math.max(1, Math.ceil((appState.totalRowCount ?? 0) / appState.pageSize));
+
+  const goToPage = (page) => {
+    const totalPages = getTotalPages();
+    const target = Math.max(1, Math.min(page, totalPages));
+    if (target === appState.currentPage) return;
+    appState.currentPage = target;
+    fetchTableData(appState);
+  };
+
+  document.getElementById('paginationFirstBtn').addEventListener('click', () => goToPage(1));
+  document
+    .getElementById('paginationPrevBtn')
+    .addEventListener('click', () => goToPage(appState.currentPage - 1));
+  document
+    .getElementById('paginationNextBtn')
+    .addEventListener('click', () => goToPage(appState.currentPage + 1));
+  document
+    .getElementById('paginationLastBtn')
+    .addEventListener('click', () => goToPage(getTotalPages()));
+
+  document.getElementById('paginationPageInput').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const val = parseInt(e.target.value, 10);
+    if (!Number.isNaN(val)) {
+      goToPage(val);
+    } else {
+      e.target.value = appState.currentPage;
+    }
+  });
+}
+
+export { getTableHeaders, fetchTableData, initRefreshDataBtn, initPaginationControls };
