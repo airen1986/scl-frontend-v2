@@ -126,11 +126,24 @@ async function getTableHeaders(appState) {
     head2.addEventListener('show.bs.dropdown', (e) => {
       const currentButton = e.target;
 
+      for (const otherButton of head2.querySelectorAll('[data-bs-toggle="dropdown"]')) {
+        if (otherButton === currentButton) continue;
+
+        otherButton.closest('th')?.classList.remove('dropdown-open');
+        window.bootstrap.Dropdown.getOrCreateInstance(otherButton).hide();
+      }
+
+      currentButton.closest('th')?.classList.add('dropdown-open');
+
       populateFilterDropdown(
         currentButton.nextElementSibling,
         currentButton.previousElementSibling.dataset.col,
         appState
       );
+    });
+
+    head2.addEventListener('hide.bs.dropdown', (e) => {
+      e.target.closest('th')?.classList.remove('dropdown-open');
     });
 
     // Select-all checkbox: toggle all body checkboxes
@@ -269,6 +282,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
   const selectAllCb = dropdown.querySelector('.selectAll');
   const toggleButton = dropdown.previousElementSibling;
   const selectAllItem = selectAllCb.closest('.dropdown-item');
+  const rawValues = [];
 
   fieldset.innerHTML = '<div class="text-center py-2"><small>Loading…</small></div>';
 
@@ -301,7 +315,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     const cb = document.createElement('input');
     cb.className = 'form-check-input lov-cb';
     cb.type = 'checkbox';
-    cb.value = val;
+    cb.dataset.rawIndex = String(rawValues.push(val) - 1);
     if (activeSet.has(val)) cb.checked = true;
     const label = document.createElement('label');
     label.className = 'form-check-label';
@@ -334,7 +348,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     }
   });
 
-  fieldset.addEventListener('change', syncSelectAll);
+  fieldset.onchange = syncSelectAll;
 
   const OkBtn = document.createElement('button');
   OkBtn.type = 'button';
@@ -350,7 +364,9 @@ async function populateFilterDropdown(dropdown, colName, appState) {
   clearOKContainer.appendChild(OkBtn);
 
   OkBtn.addEventListener('click', () => {
-    const selected = [...fieldset.querySelectorAll('.lov-cb:checked')].map((cb) => cb.value);
+    const selected = [...fieldset.querySelectorAll('.lov-cb:checked')].map(
+      (cb) => rawValues[Number(cb.dataset.rawIndex)]
+    );
     if (!appState.selectFilters) appState.selectFilters = {};
     const previousSelected = appState.selectFilters[colName] ?? [];
     let filterChanged;
