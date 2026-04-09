@@ -329,18 +329,30 @@ async function populateFilterDropdown(dropdown, colName, appState) {
   OkBtn.addEventListener('click', () => {
     const selected = [...fieldset.querySelectorAll('.lov-cb:checked')].map((cb) => cb.value);
     if (!appState.selectFilters) appState.selectFilters = {};
+    const previousSelected = appState.selectFilters[colName] ?? [];
+    let filterChanged;
+
     if (selected.length) {
-      appState.selectFilters[colName] = selected;
+      filterChanged = !areArraysEqual(previousSelected, selected);
+      if (filterChanged) {
+        appState.selectFilters[colName] = selected;
+      }
     } else {
-      delete appState.selectFilters[colName];
+      filterChanged = previousSelected.length > 0;
+      if (filterChanged) {
+        delete appState.selectFilters[colName];
+      }
     }
     updateFilterIcon(toggleButton, colName in (appState.selectFilters ?? {}));
     window.bootstrap.Dropdown.getOrCreateInstance(toggleButton).hide();
-    appState.currentPage = 1;
-    fetchTableData(appState);
+    if (filterChanged) {
+      appState.currentPage = 1;
+      fetchTableData(appState);
+    }
   });
 
   ClearBtn.addEventListener('click', () => {
+    const filterChanged = (appState.selectFilters?.[colName] ?? []).length > 0;
     delete appState.selectFilters?.[colName];
     for (const cb of fieldset.querySelectorAll('.lov-cb')) {
       cb.checked = false;
@@ -349,9 +361,16 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     newSelectAll.indeterminate = false;
     updateFilterIcon(toggleButton, false);
     window.bootstrap.Dropdown.getOrCreateInstance(toggleButton).hide();
-    appState.currentPage = 1;
-    fetchTableData(appState);
+    if (filterChanged) {
+      appState.currentPage = 1;
+      fetchTableData(appState);
+    }
   });
+}
+
+function areArraysEqual(left, right) {
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
 }
 
 function updateFilterIcon(toggleButton, isFiltered) {
@@ -364,7 +383,12 @@ function bindDropdownItemToggle(dropdownItem, checkbox) {
     if (e.target.closest('input') === checkbox) return;
 
     e.preventDefault();
-    checkbox.checked = !checkbox.checked;
+
+    // If the checkbox is in an indeterminate state, clicking the row should behave like a user click:
+    // clear indeterminate and move to a determinate checked state.
+    const nextChecked = checkbox.indeterminate ? true : !checkbox.checked;
+    checkbox.indeterminate = false;
+    checkbox.checked = nextChecked;
     checkbox.dispatchEvent(new window.Event('change', { bubbles: true }));
   });
 }
