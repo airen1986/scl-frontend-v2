@@ -35,8 +35,13 @@ function hideTableLoader() {
 }
 
 /**
- * Request table column metadata, render the table header rows (including a leading select-all checkbox and per-column text filters), attach filter and checkbox handlers, and clear the table body.
- * @param {Object} appState - Application state object; must include `tableName`, `projectName`, and `modelName`. This function updates `appState.columnNames` with the returned headers and may initialize `appState.textFilters`.
+ * Request column metadata and render the table header rows with selection and per-column filter controls.
+ *
+ * Updates appState.columnNames with the returned headers and sets appState.selectedColumn = null.
+ * Attaches handlers for column selection, text-filter enter, filter dropdowns, and row selection checkboxes, and clears the table body.
+ * May initialize or modify appState.textFilters and will reset appState.currentPage to 1 when filters change.
+ *
+ * @param {Object} appState - Application state; must include `tableName`, `projectName`, and `modelName`. This function mutates `appState.columnNames`, `appState.selectedColumn`, and may create or modify `appState.textFilters` and `appState.currentPage`.
  */
 async function getTableHeaders(appState) {
   showTableLoader();
@@ -272,10 +277,10 @@ async function fetchTableData(appState) {
 }
 
 /**
- * Attach click behavior to the page's refresh button to clear table filters, reset related UI, and reload table rows.
+ * Initialize the page's refresh button so clicking it clears table filters, resets related UI, and reloads the table data.
  *
- * Clears in-memory filters and pagination state, resets header UI (header text inputs, the header select-all checkbox, and per-column dropdown icons), and triggers a fresh table data fetch.
- * @param {Object} appState - Table application state. This function mutates `appState.textFilters` (set to {}), `appState.selectFilters` (set to {}), and `appState.currentPage` (set to 1); other fields are read by the subsequent data fetch.
+ * The click handler clears in-memory filters and pagination/selection state, resets header UI (header text inputs, header select-all checkbox, and per-column filter icons), and triggers a fresh table data fetch.
+ * @param {Object} appState - Table application state. Mutated fields: `appState.textFilters` is set to `{}`, `appState.selectFilters` is set to `{}`, `appState.currentPage` is set to `1`, and `appState.selectedColumn` is set to `null`. Other fields are read by the subsequent data fetch.
  */
 function initRefreshDataBtn(appState) {
   const refreshButton = document.getElementById('refreshDataBtn');
@@ -470,26 +475,34 @@ const NUMERIC_TYPE_RE = /^(NUMERIC|NUMBER|FLOAT|DOUBLE|REAL|DECIMAL|MONEY|SMALLM
 const INTEGER_TYPE_RE = /^(INTEGER|INT|BIGINT|SMALLINT|TINYINT|MEDIUMINT)\b/i;
 
 /**
- * Return `true` if the given column data-type string represents a numeric type.
- * Handles type names with optional precision/scale suffixes (e.g. "NUMERIC(10,2)").
+ * Determine whether a SQL column data type represents a numeric type.
  *
+ * Recognizes type names with optional precision/scale suffixes (for example, "NUMERIC(10,2)").
  * @param {string} dataType - Column data type as returned by the headers endpoint.
- * @returns {boolean}
+ * @returns {boolean} `true` if `dataType` corresponds to a numeric SQL type, `false` otherwise.
  */
 function isNumericType(dataType) {
   return NUMERIC_TYPE_RE.test(dataType);
 }
 
+/**
+ * Determines whether a SQL data type name represents an integer type.
+ * @param {string} dataType - The SQL type name to test (e.g., "int", "bigint", "smallint").
+ * @returns {boolean} `true` if `dataType` matches integer-like SQL type names, `false` otherwise.
+ */
 function isIntegerType(dataType) {
   return INTEGER_TYPE_RE.test(dataType);
 }
 
 /**
- * Format a numeric value using the system locale with up to 2 decimal places.
- * Non-numeric or null/undefined values are returned as-is (stringified).
+ * Format numeric values according to the system locale with up to two decimal places.
  *
- * @param {*} val - The raw cell value.
- * @returns {string}
+ * If `val` is `null`, returns an empty string. If `val` is numeric or can be converted to a number,
+ * returns the locale-formatted string with up to two fraction digits. If conversion results in `NaN`,
+ * returns `String(val)`.
+ *
+ * @param {*} val - The raw cell value to format (number or value convertible to number).
+ * @returns {string} The formatted numeric string, `''` for `null`, or `String(val)` for non-numeric inputs.
  */
 function formatNumericValue(val) {
   if (val === null) return '';
@@ -498,6 +511,12 @@ function formatNumericValue(val) {
   return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+/**
+ * Check whether two arrays contain identical elements in the same order.
+ * @param {Array} left - The first array to compare.
+ * @param {Array} right - The second array to compare.
+ * @returns {boolean} `true` if both arrays have the same length and each element is strictly equal (`===`) to the corresponding element in the other array, `false` otherwise.
+ */
 function areArraysEqual(left, right) {
   if (left.length !== right.length) return false;
   return left.every((value, index) => value === right[index]);
@@ -552,14 +571,19 @@ function selectColumn(appState, colIndex) {
   applyColumnHighlight(colIndex);
 }
 
-/** Remove the column-selected highlight from every cell in the table. */
+/**
+ * Clears the column selection highlight from all table header and body cells.
+ */
 function clearColumnHighlight() {
   for (const cell of document.querySelectorAll(`.${COL_SELECTED_CLASS}`)) {
     cell.classList.remove(COL_SELECTED_CLASS);
   }
 }
 
-/** Apply the column-selected highlight to every cell at the given column index. */
+/**
+ * Add the column-selected CSS class to header and body cells at the specified column index.
+ * @param {number} colIndex - Zero-based column index matching the table's DOM columns (includes the leading checkbox column).
+ */
 function applyColumnHighlight(colIndex) {
   const head1 = document.getElementById('sclTableHead1');
   const head2 = document.getElementById('sclTableHead2');
@@ -573,10 +597,10 @@ function applyColumnHighlight(colIndex) {
 }
 
 /**
- * Re-apply column highlight after the table body is re-rendered (e.g. after
- * fetchTableData repopulates the tbody).
+ * Restore visual highlight for the currently selected column after the table body is re-rendered.
  *
- * @param {Object} appState - Application state; reads `selectedColumn` and `columnNames`.
+ * If the previously selected column no longer exists in `appState.columnNames`, clears `appState.selectedColumn`.
+ * @param {Object} appState - Application state; uses `selectedColumn` and `columnNames`.
  */
 function refreshColumnHighlight(appState) {
   if (!appState.selectedColumn) return;
@@ -588,6 +612,16 @@ function refreshColumnHighlight(appState) {
   applyColumnHighlight(idx + 1); // +1 for the leading checkbox column
 }
 
+/**
+ * Toggle a checkbox when its containing dropdown item is clicked, treating an indeterminate state as a transition to checked.
+ *
+ * Prevents clicks that directly target the checkbox input from duplicating behavior, stops the default link-like action,
+ * clears `indeterminate` and sets `checked` (toggling unless it was indeterminate, in which case it becomes checked),
+ * then dispatches a bubbling `change` event on the checkbox.
+ *
+ * @param {HTMLElement} dropdownItem - The clickable wrapper element representing a dropdown list item.
+ * @param {HTMLInputElement} checkbox - The checkbox input inside the dropdown item to toggle.
+ */
 function bindDropdownItemToggle(dropdownItem, checkbox) {
   dropdownItem.addEventListener('click', (e) => {
     if (e.target.closest('input') === checkbox) return;
