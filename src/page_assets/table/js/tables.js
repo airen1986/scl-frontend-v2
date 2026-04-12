@@ -48,6 +48,7 @@ async function getTableHeaders(appState) {
     });
 
     appState.columnNames = headers; // [[columnName, dataType], ...]
+    appState.selectedColumn = null;
 
     // Populate head1: checkbox column + one <th> per column name
     const head1 = document.getElementById('sclTableHead1');
@@ -66,6 +67,15 @@ async function getTableHeaders(appState) {
       th.appendChild(div);
       head1.appendChild(th);
     }
+
+    // Column selection: click a column header to select/deselect the column
+    head1.addEventListener('click', (e) => {
+      const th = e.target.closest('th');
+      if (!th || !head1.contains(th)) return;
+      const colIndex = [...head1.children].indexOf(th);
+      if (colIndex <= 0) return; // Skip checkbox column
+      selectColumn(appState, colIndex);
+    });
 
     // Populate head2: empty checkbox column + one filter <th> per column
     const head2 = document.getElementById('sclTableHead2');
@@ -232,14 +242,28 @@ async function fetchTableData(appState) {
       tr.appendChild(checkTd);
 
       // Data cells
-      for (const val of values) {
+      for (let i = 0; i < values.length; i++) {
         const td = document.createElement('td');
-        td.textContent = val ?? '';
+        const val = values[i];
+        if (isNumericType(appState.columnNames[i]?.[1])) {
+          td.style.textAlign = 'right';
+          td.title = val ?? '';
+          td.textContent = formatNumericValue(val);
+        } else if (isIntegerType(appState.columnNames[i]?.[1])) {
+          td.style.textAlign = 'right';
+          td.title = val ?? '';
+          td.textContent = val ?? '';
+        } else {
+          td.title = val ?? '';
+          td.textContent = val ?? '';
+        }
         tr.appendChild(td);
       }
 
       tbody.appendChild(tr);
     }
+
+    refreshColumnHighlight(appState);
 
     await populatePaginationInfo(appState);
   } finally {
@@ -264,8 +288,11 @@ function initRefreshDataBtn(appState) {
     appState.textFilters = {};
     appState.selectFilters = {};
     appState.currentPage = 1; // Reset to first page on refresh, since filters may change total pages and current page may become invalid
+    appState.selectedColumn = null;
 
     try {
+      clearColumnHighlight();
+
       const head1 = document.getElementById('sclTableHead1');
       const selectAllCb = head1.querySelector('input[type="checkbox"]');
       selectAllCb.checked = false;
@@ -329,6 +356,8 @@ async function populateFilterDropdown(dropdown, colName, appState) {
   }
 
   const activeSet = new Set(appState.selectFilters?.[colName] ?? []);
+  const colMeta = appState.columnNames.find(([name]) => name === colName);
+  const isNumeric = colMeta && isNumericType(colMeta[1]);
 
   fieldset.innerHTML = '';
   for (const val of values) {
@@ -343,7 +372,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     if (activeSet.has(val)) cb.checked = true;
     const label = document.createElement('label');
     label.className = 'form-check-label';
-    label.textContent = val ?? '(blank)';
+    label.textContent = val !== null ? (isNumeric ? formatNumericValue(val) : val) : '(blank)';
     wrapper.append(cb, label);
     bindDropdownItemToggle(a, cb);
     a.appendChild(wrapper);
@@ -437,6 +466,38 @@ async function populateFilterDropdown(dropdown, colName, appState) {
  * @param {Array} right - The second array to compare.
  * @returns {boolean} `true` if both arrays have the same length and each element is strictly equal to the corresponding element, `false` otherwise.
  */
+const NUMERIC_TYPE_RE = /^(NUMERIC|NUMBER|FLOAT|DOUBLE|REAL|DECIMAL|MONEY|SMALLMONEY)\b/i;
+const INTEGER_TYPE_RE = /^(INTEGER|INT|BIGINT|SMALLINT|TINYINT|MEDIUMINT)\b/i;
+
+/**
+ * Return `true` if the given column data-type string represents a numeric type.
+ * Handles type names with optional precision/scale suffixes (e.g. "NUMERIC(10,2)").
+ *
+ * @param {string} dataType - Column data type as returned by the headers endpoint.
+ * @returns {boolean}
+ */
+function isNumericType(dataType) {
+  return NUMERIC_TYPE_RE.test(dataType);
+}
+
+function isIntegerType(dataType) {
+  return INTEGER_TYPE_RE.test(dataType);
+}
+
+/**
+ * Format a numeric value using the system locale with up to 2 decimal places.
+ * Non-numeric or null/undefined values are returned as-is (stringified).
+ *
+ * @param {*} val - The raw cell value.
+ * @returns {string}
+ */
+function formatNumericValue(val) {
+  if (val === null) return '';
+  const num = typeof val === 'number' ? val : Number(val);
+  if (Number.isNaN(num)) return String(val);
+  return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
 function areArraysEqual(left, right) {
   if (left.length !== right.length) return false;
   return left.every((value, index) => value === right[index]);
@@ -463,6 +524,70 @@ function updateFilterIcon(toggleButton, isFiltered) {
  * @param {HTMLElement} dropdownItem - The clickable container element representing a selectable dropdown row.
  * @param {HTMLInputElement} checkbox - The checkbox input associated with the dropdown row.
  */
+const COL_SELECTED_CLASS = 'scl-col-selected';
+
+/**
+ * Select or deselect a table column by its 1-based index (accounting for the
+ * leading checkbox column). Highlights the column across both header rows and
+ * all body rows, and updates `appState.selectedColumn`.
+ *
+ * Clicking the already-selected column deselects it.
+ *
+ * @param {Object} appState - Application state; reads `columnNames`, sets `selectedColumn`.
+ * @param {number} colIndex - 1-based column index in the table (0 is the checkbox column).
+ */
+function selectColumn(appState, colIndex) {
+  const colName = appState.columnNames[colIndex - 1]?.[0];
+  if (!colName) return;
+
+  const isDeselect = appState.selectedColumn === colName;
+  clearColumnHighlight();
+
+  if (isDeselect) {
+    appState.selectedColumn = null;
+    return;
+  }
+
+  appState.selectedColumn = colName;
+  applyColumnHighlight(colIndex);
+}
+
+/** Remove the column-selected highlight from every cell in the table. */
+function clearColumnHighlight() {
+  for (const cell of document.querySelectorAll(`.${COL_SELECTED_CLASS}`)) {
+    cell.classList.remove(COL_SELECTED_CLASS);
+  }
+}
+
+/** Apply the column-selected highlight to every cell at the given column index. */
+function applyColumnHighlight(colIndex) {
+  const head1 = document.getElementById('sclTableHead1');
+  const head2 = document.getElementById('sclTableHead2');
+  const tbody = document.getElementById('sclTableBody');
+
+  head1.children[colIndex]?.classList.add(COL_SELECTED_CLASS);
+  head2.children[colIndex]?.classList.add(COL_SELECTED_CLASS);
+  for (const row of tbody.rows) {
+    row.cells[colIndex]?.classList.add(COL_SELECTED_CLASS);
+  }
+}
+
+/**
+ * Re-apply column highlight after the table body is re-rendered (e.g. after
+ * fetchTableData repopulates the tbody).
+ *
+ * @param {Object} appState - Application state; reads `selectedColumn` and `columnNames`.
+ */
+function refreshColumnHighlight(appState) {
+  if (!appState.selectedColumn) return;
+  const idx = appState.columnNames.findIndex(([name]) => name === appState.selectedColumn);
+  if (idx === -1) {
+    appState.selectedColumn = null;
+    return;
+  }
+  applyColumnHighlight(idx + 1); // +1 for the leading checkbox column
+}
+
 function bindDropdownItemToggle(dropdownItem, checkbox) {
   dropdownItem.addEventListener('click', (e) => {
     if (e.target.closest('input') === checkbox) return;
@@ -593,4 +718,10 @@ function initPaginationControls(appState) {
   });
 }
 
-export { getTableHeaders, fetchTableData, initRefreshDataBtn, initPaginationControls };
+export {
+  getTableHeaders,
+  fetchTableData,
+  initRefreshDataBtn,
+  initPaginationControls,
+  selectColumn,
+};
