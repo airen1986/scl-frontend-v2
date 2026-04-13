@@ -9,6 +9,7 @@ import {
   fetchTableData,
   initRefreshDataBtn,
   initPaginationControls,
+  initSelectColumnsModal,
 } from './tables';
 import { bsToastError } from '../../../common/js/bsToast';
 import { $, ready } from '@/common/js/dom';
@@ -72,6 +73,9 @@ const appState = {
 
   /** Array of tuples: [columnName, dataType] */
   columnNames: [],
+
+  /** All columns from the API (superset of columnNames) */
+  allColumns: [],
 };
 
 ready(async () => {
@@ -142,6 +146,11 @@ ready(async () => {
 
   autosizeSclTable();
   setStickyHead2();
+  const modalEl = document.getElementById('selectColumnsModal');
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    autosizeSclTable();
+    setStickyHead2();
+  });
   window.addEventListener('resize', () => {
     autosizeSclTable();
     setStickyHead2();
@@ -149,4 +158,5 @@ ready(async () => {
 
   initRefreshDataBtn(appState);
   initPaginationControls(appState);
+  initSelectColumnsModal(appState);
 });

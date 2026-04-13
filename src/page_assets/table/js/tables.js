@@ -56,7 +56,11 @@ async function getTableHeaders(appState) {
     appState.selectedColumn = null;
 
     // Populate head1: checkbox column + one <th> per column name
-    const head1 = document.getElementById('sclTableHead1');
+    const oldhead1 = document.getElementById('sclTableHead1');
+    const head1 = oldhead1.cloneNode(true);
+    oldhead1.replaceWith(head1);
+    head1.id = 'sclTableHead1';
+
     head1.innerHTML =
       '<th style="width: 40px"><input type="checkbox" class="form-check-input" /></th>';
     for (const [colName] of headers) {
@@ -83,7 +87,10 @@ async function getTableHeaders(appState) {
     });
 
     // Populate head2: empty checkbox column + one filter <th> per column
-    const head2 = document.getElementById('sclTableHead2');
+    const oldhead2 = document.getElementById('sclTableHead2');
+    const head2 = oldhead2.cloneNode(true);
+    oldhead2.replaceWith(head2);
+    head2.id = 'sclTableHead2';
     head2.innerHTML = '<th></th>';
     for (const [colName] of headers) {
       const th = document.createElement('th');
@@ -182,10 +189,14 @@ async function getTableHeaders(appState) {
       }
     });
 
+    const oldtbody = document.getElementById('sclTableBody');
+    const tbody = oldtbody.cloneNode(true);
+    oldtbody.replaceWith(tbody);
+    tbody.id = 'sclTableBody';
+
     // Body checkbox: sync select-all when individual rows change
-    document.getElementById('sclTableBody').addEventListener('change', (e) => {
+    tbody.addEventListener('change', (e) => {
       if (e.target.type !== 'checkbox') return;
-      const tbody = document.getElementById('sclTableBody');
       const all = tbody.querySelectorAll('input[type="checkbox"]');
       const checked = tbody.querySelectorAll('input[type="checkbox"]:checked');
       selectAllCb.checked = all.length > 0 && checked.length === all.length;
@@ -193,7 +204,7 @@ async function getTableHeaders(appState) {
     });
 
     // Clear body
-    document.getElementById('sclTableBody').innerHTML = '';
+    tbody.innerHTML = '';
   } finally {
     hideTableLoader();
   }
@@ -752,10 +763,221 @@ function initPaginationControls(appState) {
   });
 }
 
+/**
+ * Create a clickable list item element representing a column name.
+ * @param {string} colName - The column name to display.
+ * @returns {HTMLDivElement} The column item element.
+ */
+function createColumnItem(colName) {
+  const div = document.createElement('div');
+  div.className = 'col-select-item px-2 py-1 small';
+  div.dataset.colName = colName;
+  div.textContent = colName;
+  return div;
+}
+
+/**
+ * Move items from one list container to another.
+ * @param {HTMLElement} fromList - Source list container.
+ * @param {HTMLElement} toList - Destination list container.
+ * @param {boolean} selectedOnly - If true, move only `.active` items; otherwise move all.
+ */
+function moveItems(fromList, toList, selectedOnly) {
+  const selector = selectedOnly ? '.col-select-item.active' : '.col-select-item';
+  const makeDraggable = toList.id === 'selectedColumnsList';
+  for (const item of [...fromList.querySelectorAll(selector)]) {
+    item.classList.remove('active');
+    item.draggable = makeDraggable;
+    toList.appendChild(item);
+  }
+}
+
+/**
+ * Given a container and a vertical cursor position, return the element
+ * that the dragged item should be inserted before, or null to append.
+ * @param {HTMLElement} container - The list container.
+ * @param {number} y - The clientY position of the pointer.
+ * @returns {HTMLElement|null}
+ */
+function getDragAfterElement(container, y) {
+  const items = [...container.querySelectorAll('.col-select-item:not(.dragging)')];
+  return (
+    items.reduce(
+      (closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset, element: child };
+        }
+        return closest;
+      },
+      { offset: Number.NEGATIVE_INFINITY }
+    ).element ?? null
+  );
+}
+
+/**
+ * Initialize the Select Columns modal so users can move columns between
+ * "Available" and "Selected" lists, reorder selected columns via
+ * drag-and-drop, and persist the selection.
+ *
+ * @param {Object} appState - Application state.
+ */
+function initSelectColumnsModal(appState) {
+  const modalEl = document.getElementById('selectColumnsModal');
+  const availableList = document.getElementById('availableColumnsList');
+  const selectedList = document.getElementById('selectedColumnsList');
+
+  // Populate lists when modal opens (fetches all-headers each time)
+  modalEl.addEventListener('show.bs.modal', async () => {
+    availableList.innerHTML = '<div class="text-center py-3"><small>Loading…</small></div>';
+    selectedList.innerHTML = '';
+
+    // Selected columns in current display order (draggable)
+    for (const [colName] of appState.columnNames) {
+      const item = createColumnItem(colName);
+      item.draggable = true;
+      selectedList.appendChild(item);
+    }
+
+    try {
+      const { headers } = await api.post('/tables/all-headers', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+      });
+      appState.allColumns = headers;
+    } catch {
+      availableList.innerHTML =
+        '<div class="text-center py-3 text-danger"><small>Failed to load</small></div>';
+      return;
+    }
+
+    const selectedNames = new Set(appState.columnNames.map(([name]) => name));
+    availableList.innerHTML = '';
+    for (const colName of appState.allColumns) {
+      if (!selectedNames.has(colName)) {
+        availableList.appendChild(createColumnItem(colName));
+      }
+    }
+  });
+
+  // Click to select / deselect items
+  for (const list of [availableList, selectedList]) {
+    list.addEventListener('click', (e) => {
+      const item = e.target.closest('.col-select-item');
+      if (!item) return;
+      if (!e.ctrlKey && !e.metaKey) {
+        for (const sib of list.querySelectorAll('.col-select-item.active')) {
+          if (sib !== item) sib.classList.remove('active');
+        }
+      }
+      item.classList.toggle('active');
+    });
+  }
+
+  // Double-click to transfer single item
+  availableList.addEventListener('dblclick', (e) => {
+    const item = e.target.closest('.col-select-item');
+    if (item) {
+      item.classList.remove('active');
+      item.draggable = true;
+      selectedList.appendChild(item);
+    }
+  });
+  selectedList.addEventListener('dblclick', (e) => {
+    const item = e.target.closest('.col-select-item');
+    if (item) {
+      item.classList.remove('active');
+      item.draggable = false;
+      availableList.appendChild(item);
+    }
+  });
+
+  // Drag-and-drop reordering in the selected list
+  let dragItem = null;
+
+  selectedList.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.col-select-item');
+    if (!item) return;
+    dragItem = item;
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  selectedList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!dragItem) return;
+    const after = getDragAfterElement(selectedList, e.clientY);
+    if (after) {
+      selectedList.insertBefore(dragItem, after);
+    } else {
+      selectedList.appendChild(dragItem);
+    }
+  });
+
+  selectedList.addEventListener('dragend', () => {
+    if (dragItem) {
+      dragItem.classList.remove('dragging');
+      dragItem = null;
+    }
+  });
+
+  // Transfer buttons
+  document.getElementById('moveToSelectedBtn').addEventListener('click', () => {
+    moveItems(availableList, selectedList, true);
+  });
+  document.getElementById('moveAllToSelectedBtn').addEventListener('click', () => {
+    moveItems(availableList, selectedList, false);
+  });
+  document.getElementById('moveToAvailableBtn').addEventListener('click', () => {
+    moveItems(selectedList, availableList, true);
+  });
+  document.getElementById('moveAllToAvailableBtn').addEventListener('click', () => {
+    moveItems(selectedList, availableList, false);
+  });
+
+  // OK — persist column order and apply selection
+  document.getElementById('submitSelectColumnsBtn').addEventListener('click', async () => {
+    const allColMap = new Map(appState.allColumns.map((col) => [col, col]));
+    const selectedCols = [...selectedList.querySelectorAll('.col-select-item')]
+      .map((item) => allColMap.get(item.dataset.colName))
+      .filter(Boolean);
+
+    if (selectedCols.length === 0) return; // prevent empty selection
+
+    // Save column order to server
+    await api.post('/tables/set-columns-order', {
+      table_name: appState.tableName,
+      project_name: appState.projectName,
+      model_name: appState.modelName,
+      column_names: selectedCols.map((col) => col),
+    });
+
+    // Clean up filters for removed columns
+    for (const col of Object.keys(appState.selectFilters ?? {})) {
+      if (!selectedCols.includes(col)) delete appState.selectFilters[col];
+    }
+    for (const col of Object.keys(appState.textFilters ?? {})) {
+      if (!selectedCols.includes(col)) delete appState.textFilters[col];
+    }
+
+    appState.currentPage = 1;
+    appState.selectedColumn = null;
+
+    await getTableHeaders(appState, selectedCols);
+    await fetchTableData(appState);
+
+    window.bootstrap.Modal.getInstance(modalEl).hide();
+  });
+}
+
 export {
   getTableHeaders,
   fetchTableData,
   initRefreshDataBtn,
   initPaginationControls,
+  initSelectColumnsModal,
   selectColumn,
 };
