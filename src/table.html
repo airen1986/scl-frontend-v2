@@ -64,10 +64,10 @@
         <button class="btn btn-sm btn-outline-dark" title="Export">
           <i class="fa-solid fa-file-export"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Add">
+        <button class="btn btn-sm btn-outline-dark" id="addColumnBtn" title="Add New Column">
           <i class="fa-solid fa-plus-circle"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Remove">
+        <button class="btn btn-sm btn-outline-dark" id="removeColumnBtn" title="Remove Column">
           <i class="fa-solid fa-minus-circle"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Grid View">
@@ -190,6 +190,56 @@
               <button type="button" class="btn btn-dark ms-auto" id="submitSelectColumnsBtn">
                 OK
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Column Modal -->
+      <div
+        class="modal fade"
+        id="addColumnModal"
+        tabindex="-1"
+        aria-labelledby="addColumnLabel"
+        aria-hidden="true"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false"
+      >
+        <div class="modal-dialog modal-md modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addColumnLabel">Add Column</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="addColumnName" class="form-label">Column Name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="addColumnName"
+                  placeholder="Enter column name"
+                />
+              </div>
+              <div class="mb-0">
+                <label for="addColumnDataType" class="form-label">Data Type</label>
+                <select class="form-select" id="addColumnDataType">
+                  <option value="TEXT">TEXT</option>
+                  <option value="NUMERIC">NUMERIC</option>
+                  <option value="INTEGER">INTEGER</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button type="button" class="btn btn-dark ms-auto" id="submitAddColumnBtn">OK</button>
             </div>
           </div>
         </div>

@@ -4,13 +4,7 @@ import '../../../scss/styles.scss'; // Bootstrap + SCSS theme
 import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // table-specific styles
 import api from '@/common/js/api';
-import {
-  getTableHeaders,
-  fetchTableData,
-  initRefreshDataBtn,
-  initPaginationControls,
-  initSelectColumnsModal,
-} from './tables';
+import { getTableHeaders, fetchTableData, initTableControls } from './tables';
 import { bsToastError } from '../../../common/js/bsToast';
 import { $, ready } from '@/common/js/dom';
 
@@ -64,6 +58,8 @@ const appState = {
   pageSize: 1000,
 
   selectedColumn: null,
+
+  sortColumns: [],
 
   /** { [columnName]: string[] }  — column → filter values */
   selectFilters: {},
@@ -156,7 +152,5 @@ ready(async () => {
     setStickyHead2();
   });
 
-  initRefreshDataBtn(appState);
-  initPaginationControls(appState);
-  initSelectColumnsModal(appState);
+  initTableControls(appState);
 });
