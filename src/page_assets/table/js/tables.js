@@ -35,13 +35,18 @@ function hideTableLoader() {
 }
 
 /**
- * Request column metadata and render the table header rows with selection and per-column filter controls.
+ * Load column metadata and build the table header rows with filter controls and selection UI.
  *
- * Updates appState.columnNames with the returned headers and sets appState.selectedColumn = null.
- * Attaches handlers for column selection, text-filter enter, filter dropdowns, and row selection checkboxes, and clears the table body.
- * May initialize or modify appState.textFilters and will reset appState.currentPage to 1 when filters change.
+ * Fetches column headers from the server, updates appState.columnNames, clears appState.selectedColumn,
+ * replaces the header rows and table body, and attaches handlers for column selection, per-column
+ * text/value filters, and row-selection checkboxes. When filters are changed via the UI this function
+ * ensures appState.currentPage is reset to 1 and triggers a data refresh.
  *
- * @param {Object} appState - Application state; must include `tableName`, `projectName`, and `modelName`. This function mutates `appState.columnNames`, `appState.selectedColumn`, and may create or modify `appState.textFilters` and `appState.currentPage`.
+ * @param {Object} appState - Application state; must include `tableName`, `projectName`, and `modelName`.
+ *   Mutated properties:
+ *   - `columnNames`: set to the returned headers (array of [columnName, dataType] tuples).
+ *   - `selectedColumn`: set to `null`.
+ *   - may create or modify `textFilters` and will set `currentPage = 1` when filters change.
  */
 async function getTableHeaders(appState) {
   showTableLoader();
@@ -764,9 +769,9 @@ function initPaginationControls(appState) {
 }
 
 /**
- * Create a clickable list item element representing a column name.
- * @param {string} colName - The column name to display.
- * @returns {HTMLDivElement} The column item element.
+ * Create a column list item element for the Select Columns modal.
+ * @param {string} colName - Column name to display and store on the element.
+ * @returns {HTMLDivElement} A `div.col-select-item` with `data-col-name` set and text content set to `colName`.
  */
 function createColumnItem(colName) {
   const div = document.createElement('div');
@@ -793,11 +798,10 @@ function moveItems(fromList, toList, selectedOnly) {
 }
 
 /**
- * Given a container and a vertical cursor position, return the element
- * that the dragged item should be inserted before, or null to append.
- * @param {HTMLElement} container - The list container.
- * @param {number} y - The clientY position of the pointer.
- * @returns {HTMLElement|null}
+ * Find the non-dragging child element in container that a dragged item at vertical position `y` should be inserted before.
+ * @param {HTMLElement} container - The list container to inspect.
+ * @param {number} y - The pointer's clientY vertical coordinate.
+ * @returns {HTMLElement|null} The child element to insert before, or `null` to append at the end.
  */
 function getDragAfterElement(container, y) {
   const items = [...container.querySelectorAll('.col-select-item:not(.dragging)')];
