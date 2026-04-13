@@ -1,4 +1,5 @@
 import api from '@/common/js/api';
+import { bsToastWarning, bsToastSuccess } from '@/common/js/bsToast';
 
 let tableLoaderDepth = 0;
 
@@ -35,13 +36,18 @@ function hideTableLoader() {
 }
 
 /**
- * Request column metadata and render the table header rows with selection and per-column filter controls.
+ * Load column metadata and build the table header rows with filter controls and selection UI.
  *
- * Updates appState.columnNames with the returned headers and sets appState.selectedColumn = null.
- * Attaches handlers for column selection, text-filter enter, filter dropdowns, and row selection checkboxes, and clears the table body.
- * May initialize or modify appState.textFilters and will reset appState.currentPage to 1 when filters change.
+ * Fetches column headers from the server, updates appState.columnNames, clears appState.selectedColumn,
+ * replaces the header rows and table body, and attaches handlers for column selection, per-column
+ * text/value filters, and row-selection checkboxes. When filters are changed via the UI this function
+ * ensures appState.currentPage is reset to 1 and triggers a data refresh.
  *
- * @param {Object} appState - Application state; must include `tableName`, `projectName`, and `modelName`. This function mutates `appState.columnNames`, `appState.selectedColumn`, and may create or modify `appState.textFilters` and `appState.currentPage`.
+ * @param {Object} appState - Application state; must include `tableName`, `projectName`, and `modelName`.
+ *   Mutated properties:
+ *   - `columnNames`: set to the returned headers (array of [columnName, dataType] tuples).
+ *   - `selectedColumn`: set to `null`.
+ *   - may create or modify `textFilters` and will set `currentPage = 1` when filters change.
  */
 async function getTableHeaders(appState) {
   showTableLoader();
@@ -70,15 +76,31 @@ async function getTableHeaders(appState) {
       div.className = 'd-flex justify-content-between align-items-center';
       const span = document.createElement('span');
       span.textContent = colName;
+      const sortBtn = document.createElement('button');
+      sortBtn.type = 'button';
+      sortBtn.className = 'scl-sort-btn btn btn-link btn-sm p-0 text-dark';
+      sortBtn.setAttribute('aria-label', `Sort by ${colName}`);
       const icon = document.createElement('i');
       icon.className = 'fa-solid fa-sort';
-      div.append(span, icon);
+      sortBtn.appendChild(icon);
+      div.append(span, sortBtn);
       th.appendChild(div);
       head1.appendChild(th);
     }
 
-    // Column selection: click a column header to select/deselect the column
+    // Sort: click the <i> icon to cycle sort direction (none → ASC → DESC → none)
     head1.addEventListener('click', (e) => {
+      const sortBtn = e.target.closest('.scl-sort-btn');
+      if (sortBtn) {
+        const th = sortBtn.closest('th');
+        if (!th || !head1.contains(th)) return;
+        const colIndex = [...head1.children].indexOf(th);
+        if (colIndex <= 0) return;
+        toggleColumnSort(appState, colIndex);
+        return;
+      }
+
+      // Column selection: click a column header to select/deselect the column
       const th = e.target.closest('th');
       if (!th || !head1.contains(th)) return;
       const colIndex = [...head1.children].indexOf(th);
@@ -104,6 +126,7 @@ async function getTableHeaders(appState) {
       input.type = 'text';
       input.className = 'form-control';
       input.dataset.col = colName; // Safe: dataset escapes automatically
+      input.value = appState.textFilters?.[colName] ?? '';
       input.style.minWidth = '0';
 
       const btn = document.createElement('button');
@@ -114,6 +137,7 @@ async function getTableHeaders(appState) {
       btn.setAttribute('data-bs-toggle', 'dropdown');
       btn.setAttribute('data-bs-auto-close', 'outside');
       btn.setAttribute('aria-expanded', 'false');
+      updateFilterIcon(btn, colName in (appState.selectFilters ?? {}));
 
       const dropdown = document.createElement('div');
       dropdown.className = 'dropdown-menu dropdown-menu-start';
@@ -154,6 +178,7 @@ async function getTableHeaders(appState) {
         delete appState.textFilters[col];
       }
       appState.currentPage = 1; // Reset to first page on filter change, since current page may become invalid
+      appState.totalRowCount = null;
       fetchTableData(appState);
     });
 
@@ -205,8 +230,74 @@ async function getTableHeaders(appState) {
 
     // Clear body
     tbody.innerHTML = '';
+
+    // Restore sort icons from appState
+    refreshSortIcons(appState);
   } finally {
     hideTableLoader();
+  }
+}
+
+/**
+ * Cycle sort direction for a column: none → ASC → DESC → none.
+ *
+ * Supports multi-column sort. Each click cycles the column through
+ * ASC → DESC → removed. Columns not yet in the sort list are appended;
+ * removing a column preserves the order of the remaining sorts.
+ *
+ * @param {Object} appState - Application state; reads `columnNames`, mutates `sortColumns` and `currentPage`.
+ * @param {number} colIndex - 1-based column index in the table (0 is the checkbox column).
+ */
+function toggleColumnSort(appState, colIndex) {
+  const colName = appState.columnNames[colIndex - 1]?.[0];
+  if (!colName) return;
+
+  if (!appState.sortColumns) appState.sortColumns = [];
+
+  const idx = appState.sortColumns.findIndex(([name]) => name === colName);
+
+  if (idx === -1) {
+    // Not sorted yet — add as ASC
+    appState.sortColumns.push([colName, 'ASC']);
+  } else if (appState.sortColumns[idx][1] === 'ASC') {
+    // ASC → DESC
+    appState.sortColumns[idx] = [colName, 'DESC'];
+  } else {
+    // DESC → remove from sort list
+    appState.sortColumns.splice(idx, 1);
+  }
+
+  appState.currentPage = 1;
+  refreshSortIcons(appState);
+  fetchTableData(appState);
+}
+
+const SORT_ICON_MAP = {
+  ASC: 'fa-solid fa-sort-up',
+  DESC: 'fa-solid fa-sort-down',
+};
+const SORT_ICON_DEFAULT = 'fa-solid fa-sort';
+
+/**
+ * Update all sort icons in head1 to reflect the current `appState.sortColumns`.
+ *
+ * @param {Object} appState - Application state; reads `sortColumns` and `columnNames`.
+ */
+function refreshSortIcons(appState) {
+  const head1 = document.getElementById('sclTableHead1');
+  if (!head1) return;
+
+  const sortMap = new Map(appState.sortColumns ?? []);
+
+  // Skip the first child (checkbox column)
+  for (let i = 0; i < appState.columnNames.length; i++) {
+    const th = head1.children[i + 1];
+    if (!th) continue;
+    const icon = th.querySelector('i');
+    if (!icon) continue;
+    const colName = appState.columnNames[i][0];
+    const dir = sortMap.get(colName);
+    icon.className = dir ? SORT_ICON_MAP[dir] : SORT_ICON_DEFAULT;
   }
 }
 
@@ -237,6 +328,7 @@ async function fetchTableData(appState) {
       page_size: appState.pageSize,
       select_filters: appState.selectFilters,
       text_filters: appState.textFilters,
+      sort_columns: appState.sortColumns,
       column_names,
     });
 
@@ -303,11 +395,14 @@ function initRefreshDataBtn(appState) {
 
     appState.textFilters = {};
     appState.selectFilters = {};
+    appState.sortColumns = [];
     appState.currentPage = 1; // Reset to first page on refresh, since filters may change total pages and current page may become invalid
     appState.selectedColumn = null;
+    appState.totalRowCount = null;
 
     try {
       clearColumnHighlight();
+      refreshSortIcons(appState);
 
       const head1 = document.getElementById('sclTableHead1');
       const selectAllCb = head1.querySelector('input[type="checkbox"]');
@@ -455,6 +550,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     window.bootstrap.Dropdown.getOrCreateInstance(toggleButton).hide();
     if (filterChanged) {
       appState.currentPage = 1;
+      appState.totalRowCount = null;
       fetchTableData(appState);
     }
   });
@@ -471,17 +567,12 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     window.bootstrap.Dropdown.getOrCreateInstance(toggleButton).hide();
     if (filterChanged) {
       appState.currentPage = 1;
+      appState.totalRowCount = null;
       fetchTableData(appState);
     }
   });
 }
 
-/**
- * Check whether two arrays have the same length and identical elements in the same order using strict equality.
- * @param {Array} left - The first array to compare.
- * @param {Array} right - The second array to compare.
- * @returns {boolean} `true` if both arrays have the same length and each element is strictly equal to the corresponding element, `false` otherwise.
- */
 const NUMERIC_TYPE_RE = /^(NUMERIC|NUMBER|FLOAT|DOUBLE|REAL|DECIMAL|MONEY|SMALLMONEY)\b/i;
 const INTEGER_TYPE_RE = /^(INTEGER|INT|BIGINT|SMALLINT|TINYINT|MEDIUMINT)\b/i;
 
@@ -692,7 +783,7 @@ async function populatePaginationInfo(appState) {
   // currentRowCount === pageSize — there may be more rows, fetch total
   paginationInfo.textContent = 'Fetching row count…';
   try {
-    if (appState.currentPage === 1) {
+    if (appState.currentPage === 1 && appState.totalRowCount === null) {
       const { row_count: totalRowCount } = await api.post('/tables/row-count', {
         table_name: appState.tableName,
         project_name: appState.projectName,
@@ -764,9 +855,9 @@ function initPaginationControls(appState) {
 }
 
 /**
- * Create a clickable list item element representing a column name.
- * @param {string} colName - The column name to display.
- * @returns {HTMLDivElement} The column item element.
+ * Create a column list item element for the Select Columns modal.
+ * @param {string} colName - Column name to display and store on the element.
+ * @returns {HTMLDivElement} A `div.col-select-item` with `data-col-name` set and text content set to `colName`.
  */
 function createColumnItem(colName) {
   const div = document.createElement('div');
@@ -793,11 +884,10 @@ function moveItems(fromList, toList, selectedOnly) {
 }
 
 /**
- * Given a container and a vertical cursor position, return the element
- * that the dragged item should be inserted before, or null to append.
- * @param {HTMLElement} container - The list container.
- * @param {number} y - The clientY position of the pointer.
- * @returns {HTMLElement|null}
+ * Find the non-dragging child element in container that a dragged item at vertical position `y` should be inserted before.
+ * @param {HTMLElement} container - The list container to inspect.
+ * @param {number} y - The pointer's clientY vertical coordinate.
+ * @returns {HTMLElement|null} The child element to insert before, or `null` to append at the end.
  */
 function getDragAfterElement(container, y) {
   const items = [...container.querySelectorAll('.col-select-item:not(.dragging)')];
@@ -963,8 +1053,13 @@ function initSelectColumnsModal(appState) {
       if (!selectedCols.includes(col)) delete appState.textFilters[col];
     }
 
+    appState.sortColumns = (appState.sortColumns ?? []).filter(([name]) =>
+      selectedCols.includes(name)
+    );
+
     appState.currentPage = 1;
     appState.selectedColumn = null;
+    appState.totalRowCount = null;
 
     await getTableHeaders(appState);
     await fetchTableData(appState);
@@ -973,11 +1068,143 @@ function initSelectColumnsModal(appState) {
   });
 }
 
-export {
-  getTableHeaders,
-  fetchTableData,
-  initRefreshDataBtn,
-  initPaginationControls,
-  initSelectColumnsModal,
-  selectColumn,
-};
+/**
+ * Initialize the Remove Column button
+ *
+ * If no column is selected (`appState.selectedColumn` is null), a warning toast is shown.
+ * Otherwise the selected column is removed from the visible column list, the updated order
+ * is persisted via the server, related filters are cleaned up, and the table is refreshed.
+ *
+ * @param {Object} appState - Application state.
+ */
+function initRemoveColumnBtn(appState) {
+  const removeBtn = document.getElementById('removeColumnBtn');
+
+  removeBtn.addEventListener('click', async () => {
+    if (!appState.selectedColumn) {
+      bsToastWarning('Please select a column first');
+      return;
+    }
+
+    const colToRemove = appState.selectedColumn;
+    const remainingCols = appState.columnNames
+      .map(([name]) => name)
+      .filter((name) => name !== colToRemove);
+
+    if (remainingCols.length === 0) {
+      bsToastWarning('Cannot remove the last column');
+      return;
+    }
+
+    // Persist updated column order
+    await api.post('/tables/set-columns-order', {
+      table_name: appState.tableName,
+      project_name: appState.projectName,
+      model_name: appState.modelName,
+      column_names: remainingCols,
+    });
+
+    // Clean up filters for the removed column
+    delete appState.selectFilters?.[colToRemove];
+    delete appState.textFilters?.[colToRemove];
+    appState.sortColumns = (appState.sortColumns ?? []).filter(([name]) => name !== colToRemove);
+
+    appState.currentPage = 1;
+    appState.selectedColumn = null;
+    appState.totalRowCount = null;
+
+    await getTableHeaders(appState);
+    await fetchTableData(appState);
+  });
+}
+
+/**
+ * Initialize the Add Column button
+ *
+ * Clicking `#addColumnBtn` opens the `#addColumnModal`. On OK the entered column name
+ * and selected data type are validated, sent to `/tables/add-column`, and the table is
+ * refreshed to reflect the new column.
+ *
+ * @param {Object} appState - Application state.
+ */
+function initAddColumnBtn(appState) {
+  const addBtn = document.getElementById('addColumnBtn');
+  const modalEl = document.getElementById('addColumnModal');
+  const nameInput = document.getElementById('addColumnName');
+  const dataTypeSelect = document.getElementById('addColumnDataType');
+  const submitBtn = document.getElementById('submitAddColumnBtn');
+  const modal = new window.bootstrap.Modal(modalEl);
+
+  addBtn.addEventListener('click', () => {
+    nameInput.value = '';
+    dataTypeSelect.value = 'TEXT';
+    modal.show();
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    const columnName = nameInput.value.trim();
+    if (!columnName) {
+      bsToastWarning('Please enter a column name');
+      return;
+    }
+
+    // validate if the column name already exists in the current table
+    if (appState.columnNames.some(([name]) => name === columnName)) {
+      bsToastWarning(`Column "${columnName}" already exists`);
+      return;
+    }
+
+    const dataType = dataTypeSelect.value;
+
+    submitBtn.disabled = true;
+    try {
+      await api.post('/tables/add-column', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        column_name: columnName,
+        column_type: dataType,
+      });
+
+      // update column order to include the new column at the end
+      const newColumnOrder = [...appState.columnNames.map(([name]) => name), columnName];
+      await api.post('/tables/set-columns-order', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        column_names: newColumnOrder,
+      });
+
+      bsToastSuccess(`Column "${columnName}" added`);
+
+      appState.currentPage = 1;
+      appState.selectedColumn = null;
+      appState.totalRowCount = null;
+
+      await getTableHeaders(appState);
+      await fetchTableData(appState);
+
+      modal.hide();
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+}
+
+/**
+ * Initialize all table toolbar controls and pagination.
+ *
+ * Wires up the refresh button, pagination controls, Select Columns modal,
+ * Remove Column button, and Add Column button.
+ *
+ * @param {Object} appState - Application state.
+ */
+function initTableControls(appState) {
+  initRefreshDataBtn(appState);
+  initPaginationControls(appState);
+  initSelectColumnsModal(appState);
+  initRemoveColumnBtn(appState);
+  initAddColumnBtn(appState);
+}
+
+export { getTableHeaders, fetchTableData, initTableControls, selectColumn };
