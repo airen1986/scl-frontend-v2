@@ -1159,8 +1159,6 @@ function initAddColumnBtn(appState) {
         column_type: dataType,
       });
 
-      bsToastSuccess(`Column "${columnName}" added`);
-
       // update column order to include the new column at the end
       const newColumnOrder = [...appState.columnNames.map(([name]) => name), columnName];
       await api.post('/tables/set-columns-order', {
@@ -1169,6 +1167,8 @@ function initAddColumnBtn(appState) {
         model_name: appState.modelName,
         column_names: newColumnOrder,
       });
+
+      bsToastSuccess(`Column "${columnName}" added`);
 
       appState.currentPage = 1;
       appState.selectedColumn = null;
