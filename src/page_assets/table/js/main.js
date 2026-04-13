@@ -62,6 +62,8 @@ const appState = {
 
   pageSize: 1000,
 
+  selectedColumn: null,
+
   /** { [columnName]: string[] }  — column → filter values */
   selectFilters: {},
 

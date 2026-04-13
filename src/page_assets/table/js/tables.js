@@ -35,8 +35,13 @@ function hideTableLoader() {
 }
 
 /**
- * Request table column metadata, render the table header rows (including a leading select-all checkbox and per-column text filters), attach filter and checkbox handlers, and clear the table body.
- * @param {Object} appState - Application state object; must include `tableName`, `projectName`, and `modelName`. This function updates `appState.columnNames` with the returned headers and may initialize `appState.textFilters`.
+ * Request column metadata and render the table header rows with selection and per-column filter controls.
+ *
+ * Updates appState.columnNames with the returned headers and sets appState.selectedColumn = null.
+ * Attaches handlers for column selection, text-filter enter, filter dropdowns, and row selection checkboxes, and clears the table body.
+ * May initialize or modify appState.textFilters and will reset appState.currentPage to 1 when filters change.
+ *
+ * @param {Object} appState - Application state; must include `tableName`, `projectName`, and `modelName`. This function mutates `appState.columnNames`, `appState.selectedColumn`, and may create or modify `appState.textFilters` and `appState.currentPage`.
  */
 async function getTableHeaders(appState) {
   showTableLoader();
@@ -48,6 +53,7 @@ async function getTableHeaders(appState) {
     });
 
     appState.columnNames = headers; // [[columnName, dataType], ...]
+    appState.selectedColumn = null;
 
     // Populate head1: checkbox column + one <th> per column name
     const head1 = document.getElementById('sclTableHead1');
@@ -66,6 +72,15 @@ async function getTableHeaders(appState) {
       th.appendChild(div);
       head1.appendChild(th);
     }
+
+    // Column selection: click a column header to select/deselect the column
+    head1.addEventListener('click', (e) => {
+      const th = e.target.closest('th');
+      if (!th || !head1.contains(th)) return;
+      const colIndex = [...head1.children].indexOf(th);
+      if (colIndex <= 0) return; // Skip checkbox column
+      selectColumn(appState, colIndex);
+    });
 
     // Populate head2: empty checkbox column + one filter <th> per column
     const head2 = document.getElementById('sclTableHead2');
@@ -232,14 +247,28 @@ async function fetchTableData(appState) {
       tr.appendChild(checkTd);
 
       // Data cells
-      for (const val of values) {
+      for (let i = 0; i < values.length; i++) {
         const td = document.createElement('td');
-        td.textContent = val ?? '';
+        const val = values[i];
+        if (isNumericType(appState.columnNames[i]?.[1])) {
+          td.style.textAlign = 'right';
+          td.title = val ?? '';
+          td.textContent = formatNumericValue(val);
+        } else if (isIntegerType(appState.columnNames[i]?.[1])) {
+          td.style.textAlign = 'right';
+          td.title = val ?? '';
+          td.textContent = val ?? '';
+        } else {
+          td.title = val ?? '';
+          td.textContent = val ?? '';
+        }
         tr.appendChild(td);
       }
 
       tbody.appendChild(tr);
     }
+
+    refreshColumnHighlight(appState);
 
     await populatePaginationInfo(appState);
   } finally {
@@ -248,10 +277,10 @@ async function fetchTableData(appState) {
 }
 
 /**
- * Attach click behavior to the page's refresh button to clear table filters, reset related UI, and reload table rows.
+ * Initialize the page's refresh button so clicking it clears table filters, resets related UI, and reloads the table data.
  *
- * Clears in-memory filters and pagination state, resets header UI (header text inputs, the header select-all checkbox, and per-column dropdown icons), and triggers a fresh table data fetch.
- * @param {Object} appState - Table application state. This function mutates `appState.textFilters` (set to {}), `appState.selectFilters` (set to {}), and `appState.currentPage` (set to 1); other fields are read by the subsequent data fetch.
+ * The click handler clears in-memory filters and pagination/selection state, resets header UI (header text inputs, header select-all checkbox, and per-column filter icons), and triggers a fresh table data fetch.
+ * @param {Object} appState - Table application state. Mutated fields: `appState.textFilters` is set to `{}`, `appState.selectFilters` is set to `{}`, `appState.currentPage` is set to `1`, and `appState.selectedColumn` is set to `null`. Other fields are read by the subsequent data fetch.
  */
 function initRefreshDataBtn(appState) {
   const refreshButton = document.getElementById('refreshDataBtn');
@@ -264,8 +293,11 @@ function initRefreshDataBtn(appState) {
     appState.textFilters = {};
     appState.selectFilters = {};
     appState.currentPage = 1; // Reset to first page on refresh, since filters may change total pages and current page may become invalid
+    appState.selectedColumn = null;
 
     try {
+      clearColumnHighlight();
+
       const head1 = document.getElementById('sclTableHead1');
       const selectAllCb = head1.querySelector('input[type="checkbox"]');
       selectAllCb.checked = false;
@@ -329,6 +361,8 @@ async function populateFilterDropdown(dropdown, colName, appState) {
   }
 
   const activeSet = new Set(appState.selectFilters?.[colName] ?? []);
+  const colMeta = appState.columnNames.find(([name]) => name === colName);
+  const isNumeric = colMeta && isNumericType(colMeta[1]);
 
   fieldset.innerHTML = '';
   for (const val of values) {
@@ -343,7 +377,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     if (activeSet.has(val)) cb.checked = true;
     const label = document.createElement('label');
     label.className = 'form-check-label';
-    label.textContent = val ?? '(blank)';
+    label.textContent = val !== null ? (isNumeric ? formatNumericValue(val) : val) : '(blank)';
     wrapper.append(cb, label);
     bindDropdownItemToggle(a, cb);
     a.appendChild(wrapper);
@@ -437,6 +471,52 @@ async function populateFilterDropdown(dropdown, colName, appState) {
  * @param {Array} right - The second array to compare.
  * @returns {boolean} `true` if both arrays have the same length and each element is strictly equal to the corresponding element, `false` otherwise.
  */
+const NUMERIC_TYPE_RE = /^(NUMERIC|NUMBER|FLOAT|DOUBLE|REAL|DECIMAL|MONEY|SMALLMONEY)\b/i;
+const INTEGER_TYPE_RE = /^(INTEGER|INT|BIGINT|SMALLINT|TINYINT|MEDIUMINT)\b/i;
+
+/**
+ * Determine whether a SQL column data type represents a numeric type.
+ *
+ * Recognizes type names with optional precision/scale suffixes (for example, "NUMERIC(10,2)").
+ * @param {string} dataType - Column data type as returned by the headers endpoint.
+ * @returns {boolean} `true` if `dataType` corresponds to a numeric SQL type, `false` otherwise.
+ */
+function isNumericType(dataType) {
+  return NUMERIC_TYPE_RE.test(dataType);
+}
+
+/**
+ * Determines whether a SQL data type name represents an integer type.
+ * @param {string} dataType - The SQL type name to test (e.g., "int", "bigint", "smallint").
+ * @returns {boolean} `true` if `dataType` matches integer-like SQL type names, `false` otherwise.
+ */
+function isIntegerType(dataType) {
+  return INTEGER_TYPE_RE.test(dataType);
+}
+
+/**
+ * Format numeric values according to the system locale with up to two decimal places.
+ *
+ * If `val` is `null`, returns an empty string. If `val` is numeric or can be converted to a number,
+ * returns the locale-formatted string with up to two fraction digits. If conversion results in `NaN`,
+ * returns `String(val)`.
+ *
+ * @param {*} val - The raw cell value to format (number or value convertible to number).
+ * @returns {string} The formatted numeric string, `''` for `null`, or `String(val)` for non-numeric inputs.
+ */
+function formatNumericValue(val) {
+  if (val === null) return '';
+  const num = typeof val === 'number' ? val : Number(val);
+  if (Number.isNaN(num)) return String(val);
+  return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+/**
+ * Check whether two arrays contain identical elements in the same order.
+ * @param {Array} left - The first array to compare.
+ * @param {Array} right - The second array to compare.
+ * @returns {boolean} `true` if both arrays have the same length and each element is strictly equal (`===`) to the corresponding element in the other array, `false` otherwise.
+ */
 function areArraysEqual(left, right) {
   if (left.length !== right.length) return false;
   return left.every((value, index) => value === right[index]);
@@ -462,6 +542,85 @@ function updateFilterIcon(toggleButton, isFiltered) {
  *
  * @param {HTMLElement} dropdownItem - The clickable container element representing a selectable dropdown row.
  * @param {HTMLInputElement} checkbox - The checkbox input associated with the dropdown row.
+ */
+const COL_SELECTED_CLASS = 'scl-col-selected';
+
+/**
+ * Select or deselect a table column by its 1-based index (accounting for the
+ * leading checkbox column). Highlights the column across both header rows and
+ * all body rows, and updates `appState.selectedColumn`.
+ *
+ * Clicking the already-selected column deselects it.
+ *
+ * @param {Object} appState - Application state; reads `columnNames`, sets `selectedColumn`.
+ * @param {number} colIndex - 1-based column index in the table (0 is the checkbox column).
+ */
+function selectColumn(appState, colIndex) {
+  const colName = appState.columnNames[colIndex - 1]?.[0];
+  if (!colName) return;
+
+  const isDeselect = appState.selectedColumn === colName;
+  clearColumnHighlight();
+
+  if (isDeselect) {
+    appState.selectedColumn = null;
+    return;
+  }
+
+  appState.selectedColumn = colName;
+  applyColumnHighlight(colIndex);
+}
+
+/**
+ * Clears the column selection highlight from all table header and body cells.
+ */
+function clearColumnHighlight() {
+  for (const cell of document.querySelectorAll(`.${COL_SELECTED_CLASS}`)) {
+    cell.classList.remove(COL_SELECTED_CLASS);
+  }
+}
+
+/**
+ * Add the column-selected CSS class to header and body cells at the specified column index.
+ * @param {number} colIndex - Zero-based column index matching the table's DOM columns (includes the leading checkbox column).
+ */
+function applyColumnHighlight(colIndex) {
+  const head1 = document.getElementById('sclTableHead1');
+  const head2 = document.getElementById('sclTableHead2');
+  const tbody = document.getElementById('sclTableBody');
+
+  head1.children[colIndex]?.classList.add(COL_SELECTED_CLASS);
+  head2.children[colIndex]?.classList.add(COL_SELECTED_CLASS);
+  for (const row of tbody.rows) {
+    row.cells[colIndex]?.classList.add(COL_SELECTED_CLASS);
+  }
+}
+
+/**
+ * Restore visual highlight for the currently selected column after the table body is re-rendered.
+ *
+ * If the previously selected column no longer exists in `appState.columnNames`, clears `appState.selectedColumn`.
+ * @param {Object} appState - Application state; uses `selectedColumn` and `columnNames`.
+ */
+function refreshColumnHighlight(appState) {
+  if (!appState.selectedColumn) return;
+  const idx = appState.columnNames.findIndex(([name]) => name === appState.selectedColumn);
+  if (idx === -1) {
+    appState.selectedColumn = null;
+    return;
+  }
+  applyColumnHighlight(idx + 1); // +1 for the leading checkbox column
+}
+
+/**
+ * Toggle a checkbox when its containing dropdown item is clicked, treating an indeterminate state as a transition to checked.
+ *
+ * Prevents clicks that directly target the checkbox input from duplicating behavior, stops the default link-like action,
+ * clears `indeterminate` and sets `checked` (toggling unless it was indeterminate, in which case it becomes checked),
+ * then dispatches a bubbling `change` event on the checkbox.
+ *
+ * @param {HTMLElement} dropdownItem - The clickable wrapper element representing a dropdown list item.
+ * @param {HTMLInputElement} checkbox - The checkbox input inside the dropdown item to toggle.
  */
 function bindDropdownItemToggle(dropdownItem, checkbox) {
   dropdownItem.addEventListener('click', (e) => {
@@ -593,4 +752,10 @@ function initPaginationControls(appState) {
   });
 }
 
-export { getTableHeaders, fetchTableData, initRefreshDataBtn, initPaginationControls };
+export {
+  getTableHeaders,
+  fetchTableData,
+  initRefreshDataBtn,
+  initPaginationControls,
+  selectColumn,
+};
