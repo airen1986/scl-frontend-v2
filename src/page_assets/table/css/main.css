@@ -114,3 +114,36 @@ td .form-check-input {
   border-top-right-radius: var(--bs-border-radius) !important;
   border-bottom-right-radius: var(--bs-border-radius) !important;
 }
+
+/* Column selector modal */
+.col-select-list {
+  height: 320px;
+  /* width: 200px; */
+  overflow-y: auto;
+}
+
+.col-select-item {
+  cursor: pointer;
+  user-select: none;
+}
+
+.col-select-item:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.col-select-item.active {
+  background-color: var(--bs-heading-color);
+  color: var(--bs-body-bg);
+}
+
+.col-select-item.dragging {
+  opacity: 0.4;
+}
+
+.col-select-item[draggable="true"] {
+  cursor: grab;
+}
+
+.col-select-item[draggable="true"]:active {
+  cursor: grabbing;
+}

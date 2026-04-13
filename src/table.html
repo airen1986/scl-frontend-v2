@@ -53,53 +53,146 @@
       <!-- Action Buttons -->
       <div class="btn-group">
         <button class="btn btn-sm btn-outline-dark" title="Delete">
-          <i class="fas fa-trash-alt"></i>
+          <i class="fa-solid fa-trash-alt"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Download">
-          <i class="fas fa-download"></i>
+          <i class="fa-solid fa-download"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Upload">
-          <i class="fas fa-upload"></i>
+          <i class="fa-solid fa-upload"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Export">
-          <i class="fas fa-file-export"></i>
+          <i class="fa-solid fa-file-export"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Add">
-          <i class="fas fa-plus-circle"></i>
+          <i class="fa-solid fa-plus-circle"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Remove">
-          <i class="fas fa-minus-circle"></i>
+          <i class="fa-solid fa-minus-circle"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Grid View">
-          <i class="fas fa-th"></i>
+          <i class="fa-solid fa-th"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Previous">
-          <i class="fas fa-chevron-left"></i>
+          <i class="fa-solid fa-chevron-left"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Next">
-          <i class="fas fa-chevron-right"></i>
+          <i class="fa-solid fa-chevron-right"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Edit">
-          <i class="fas fa-pencil-alt"></i>
+          <i class="fa-solid fa-pencil-alt"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Undo">
-          <i class="fas fa-undo"></i>
+          <i class="fa-solid fa-undo"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Columns">
-          <i class="fas fa-columns"></i>
+        <button
+          class="btn btn-sm btn-outline-dark"
+          title="Columns"
+          id="selectTableColumns"
+          data-bs-toggle="modal"
+          data-bs-target="#selectColumnsModal"
+        >
+          <i class="fa-solid fa-columns"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Filter">
-          <i class="fas fa-filter"></i>
+          <i class="fa-solid fa-filter"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Copy">
-          <i class="fas fa-copy"></i>
+          <i class="fa-solid fa-copy"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Save">
-          <i class="fas fa-save"></i>
+          <i class="fa-solid fa-save"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Table View">
-          <i class="fas fa-table"></i>
+          <i class="fa-solid fa-table"></i>
         </button>
+      </div>
+
+      <!-- Select Columns Modal -->
+      <div
+        class="modal fade"
+        id="selectColumnsModal"
+        tabindex="-1"
+        aria-labelledby="selectColumnsLabel"
+        aria-hidden="true"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false"
+      >
+        <div class="modal-dialog modal-md modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="selectColumnsLabel">Select Columns</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body p-2">
+              <div class="row flex-fill">
+                <!-- Available Columns -->
+                <div class="col-5 flex-fill d-flex flex-column" style="min-width: 0">
+                  <label class="form-label fw-semibold small mb-1 text-center">
+                    Available Columns
+                  </label>
+                  <div class="border rounded col-select-list" id="availableColumnsList"></div>
+                </div>
+                <!-- Transfer Buttons -->
+                <div class="col-2 d-flex flex-column justify-content-center gap-1">
+                  <button
+                    class="btn btn-sm btn-outline-dark"
+                    id="moveToSelectedBtn"
+                    title="Move to selected"
+                  >
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-dark"
+                    id="moveAllToSelectedBtn"
+                    title="Move all to selected"
+                  >
+                    <i class="fa-solid fa-angle-double-right"></i>
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-dark"
+                    id="moveToAvailableBtn"
+                    title="Move to available"
+                  >
+                    <i class="fa-solid fa-chevron-left"></i>
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-dark"
+                    id="moveAllToAvailableBtn"
+                    title="Move all to available"
+                  >
+                    <i class="fa-solid fa-angle-double-left"></i>
+                  </button>
+                </div>
+                <!-- Selected Columns -->
+                <div class="col-5 flex-fill d-flex flex-column" style="min-width: 0">
+                  <label class="form-label fw-semibold small mb-1 text-center">
+                    Selected Columns
+                  </label>
+                  <div class="border rounded col-select-list" id="selectedColumnsList"></div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+                id="CancelSelectColumnsBtn"
+              >
+                Cancel
+              </button>
+              <button type="button" class="btn btn-dark ms-auto" id="submitSelectColumnsBtn">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Pagination -->
