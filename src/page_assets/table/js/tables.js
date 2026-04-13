@@ -76,17 +76,23 @@ async function getTableHeaders(appState) {
       div.className = 'd-flex justify-content-between align-items-center';
       const span = document.createElement('span');
       span.textContent = colName;
+      const sortBtn = document.createElement('button');
+      sortBtn.type = 'button';
+      sortBtn.className = 'scl-sort-btn btn btn-link btn-sm p-0 text-dark';
+      sortBtn.setAttribute('aria-label', `Sort by ${colName}`);
       const icon = document.createElement('i');
       icon.className = 'fa-solid fa-sort';
-      div.append(span, icon);
+      sortBtn.appendChild(icon);
+      div.append(span, sortBtn);
       th.appendChild(div);
       head1.appendChild(th);
     }
 
     // Sort: click the <i> icon to cycle sort direction (none → ASC → DESC → none)
     head1.addEventListener('click', (e) => {
-      if (e.target.tagName === 'I') {
-        const th = e.target.closest('th');
+      const sortBtn = e.target.closest('.scl-sort-btn');
+      if (sortBtn) {
+        const th = sortBtn.closest('th');
         if (!th || !head1.contains(th)) return;
         const colIndex = [...head1.children].indexOf(th);
         if (colIndex <= 0) return;
@@ -120,6 +126,7 @@ async function getTableHeaders(appState) {
       input.type = 'text';
       input.className = 'form-control';
       input.dataset.col = colName; // Safe: dataset escapes automatically
+      input.value = appState.textFilters?.[colName] ?? '';
       input.style.minWidth = '0';
 
       const btn = document.createElement('button');
@@ -130,6 +137,7 @@ async function getTableHeaders(appState) {
       btn.setAttribute('data-bs-toggle', 'dropdown');
       btn.setAttribute('data-bs-auto-close', 'outside');
       btn.setAttribute('aria-expanded', 'false');
+      updateFilterIcon(btn, colName in (appState.selectFilters ?? {}));
 
       const dropdown = document.createElement('div');
       dropdown.className = 'dropdown-menu dropdown-menu-start';
@@ -1051,6 +1059,10 @@ function initSelectColumnsModal(appState) {
       if (!selectedCols.includes(col)) delete appState.textFilters[col];
     }
 
+    appState.sortColumns = (appState.sortColumns ?? []).filter(([name]) =>
+      selectedCols.includes(name)
+    );
+
     appState.currentPage = 1;
     appState.selectedColumn = null;
     appState.totalRowCount = null;
@@ -1101,6 +1113,7 @@ function initRemoveColumnBtn(appState) {
     // Clean up filters for the removed column
     delete appState.selectFilters?.[colToRemove];
     delete appState.textFilters?.[colToRemove];
+    appState.sortColumns = (appState.sortColumns ?? []).filter(([name]) => name !== colToRemove);
 
     appState.currentPage = 1;
     appState.selectedColumn = null;

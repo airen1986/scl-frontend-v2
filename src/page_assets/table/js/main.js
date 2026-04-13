@@ -55,6 +55,8 @@ const appState = {
 
   currentRowCount: 0,
 
+  totalRowCount: null,
+
   pageSize: 1000,
 
   selectedColumn: null,
