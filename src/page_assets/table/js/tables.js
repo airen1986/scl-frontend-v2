@@ -573,12 +573,6 @@ async function populateFilterDropdown(dropdown, colName, appState) {
   });
 }
 
-/**
- * Check whether two arrays have the same length
- * @param {Array} left - The first array to compare.
- * @param {Array} right - The second array to compare.
- * @returns {boolean} `true` if both arrays have the same length and each element is strictly equal to the corresponding element, `false` otherwise.
- */
 const NUMERIC_TYPE_RE = /^(NUMERIC|NUMBER|FLOAT|DOUBLE|REAL|DECIMAL|MONEY|SMALLMONEY)\b/i;
 const INTEGER_TYPE_RE = /^(INTEGER|INT|BIGINT|SMALLINT|TINYINT|MEDIUMINT)\b/i;
 
