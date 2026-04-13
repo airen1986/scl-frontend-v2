@@ -966,7 +966,7 @@ function initSelectColumnsModal(appState) {
     appState.currentPage = 1;
     appState.selectedColumn = null;
 
-    await getTableHeaders(appState, selectedCols);
+    await getTableHeaders(appState);
     await fetchTableData(appState);
 
     window.bootstrap.Modal.getInstance(modalEl).hide();

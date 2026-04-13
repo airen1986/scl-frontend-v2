@@ -133,7 +133,7 @@ td .form-check-input {
 
 .col-select-item.active {
   background-color: var(--bs-heading-color);
-  color: #fff;
+  color: var(--bs-body-bg);
 }
 
 .col-select-item.dragging {
