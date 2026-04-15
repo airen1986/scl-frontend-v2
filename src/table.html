@@ -70,13 +70,21 @@
         <button class="btn btn-sm btn-outline-dark" id="removeColumnBtn" title="Remove Column">
           <i class="fa-solid fa-circle-minus"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Grid View">
-          <i class="fa-solid fa-th"></i>
+        <button class="btn btn-sm btn-outline-dark" id="formatColumnBtn" title="Format Columns">
+          <i class="fa-solid fa-brush"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Previous">
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="increaseDecimalBtn"
+          title="Increase Decimal"
+        >
           <i class="fa-solid fa-chevron-left"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Next">
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="decreaseDecimalBtn"
+          title="Decrease Decimal"
+        >
           <i class="fa-solid fa-chevron-right"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Edit">
@@ -240,6 +248,112 @@
                 Cancel
               </button>
               <button type="button" class="btn btn-dark ms-auto" id="submitAddColumnBtn">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Format Column Modal -->
+      <div
+        class="modal fade"
+        id="formatColumnModal"
+        tabindex="-1"
+        aria-labelledby="formatColumnLabel"
+        aria-hidden="true"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false"
+      >
+        <div class="modal-dialog modal-md modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="formatColumnLabel">
+                <span>Format Column:</span>
+                <span id="formatColumnTitleName"></span>
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="formatColumnType" class="form-label">Column Type</label>
+                <select class="form-select" id="formatColumnType">
+                  <option value="REAL">REAL</option>
+                  <option value="INTEGER">INTEGER</option>
+                  <option value="TEXT">TEXT</option>
+                  <option value="LOV">LOV</option>
+                  <option value="DATE">DATE</option>
+                  <option value="DATETIME">DATETIME</option>
+                </select>
+              </div>
+              <!-- Numeric aggregation (REAL / INTEGER) -->
+              <div id="formatAggregationOptions">
+                <div class="mb-3">
+                  <label for="formatAggregation" class="form-label">Aggregation</label>
+                  <select class="form-select" id="formatAggregation">
+                    <option value="">None</option>
+                    <option value="SUM">SUM</option>
+                    <option value="AVG">AVG</option>
+                    <option value="MIN">MIN</option>
+                    <option value="MAX">MAX</option>
+                    <option value="COUNT">COUNT</option>
+                    <option value="MEDIAN">MEDIAN</option>
+                  </select>
+                </div>
+              </div>
+              <!-- REAL options -->
+              <div id="formatRealOptions">
+                <div class="mb-3">
+                  <label for="formatRealPrefix" class="form-label">Currency</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="formatRealPrefix"
+                    placeholder="e.g. USD, INR, €, ¥"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="formatRealSeparator" class="form-label">Thousand Separator</label>
+                  <select class="form-select" id="formatRealSeparator">
+                    <option value="YES">YES</option>
+                    <option value="NO">NO</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="formatRealDecimals" class="form-label">Decimal Places</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="formatRealDecimals"
+                    min="0"
+                    max="10"
+                    value="2"
+                  />
+                </div>
+              </div>
+              <!-- LOV options -->
+              <div id="formatLovOptions" class="d-none">
+                <div class="mb-3">
+                  <label for="formatLovValues" class="form-label">Options (one per line)</label>
+                  <textarea
+                    class="form-control"
+                    id="formatLovValues"
+                    rows="5"
+                    placeholder="Option 1&#10;Option 2&#10;Option 3"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button type="button" class="btn btn-dark ms-auto" id="submitFormatColumnBtn">
+                OK
+              </button>
             </div>
           </div>
         </div>

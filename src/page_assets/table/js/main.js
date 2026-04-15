@@ -4,7 +4,7 @@ import '../../../scss/styles.scss'; // Bootstrap + SCSS theme
 import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // table-specific styles
 import api from '@/common/js/api';
-import { getTableHeaders, fetchTableData, initTableControls } from './tables';
+import { getTableHeaders, fetchTableData, fetchColumnFormats, initTableControls } from './tables';
 import { bsToastError } from '../../../common/js/bsToast';
 import { $, ready } from '@/common/js/dom';
 
@@ -62,6 +62,8 @@ const appState = {
   selectedColumn: null,
 
   sortColumns: [],
+
+  columnFormats: {},
 
   /** { [columnName]: string[] }  — column → filter values */
   selectFilters: {},
@@ -139,7 +141,7 @@ ready(async () => {
     return;
   }
 
-  await getTableHeaders(appState);
+  await Promise.all([getTableHeaders(appState), fetchColumnFormats(appState)]);
   await fetchTableData(appState);
 
   autosizeSclTable();
