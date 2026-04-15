@@ -302,19 +302,11 @@ function refreshSortIcons(appState) {
 }
 
 /**
- * Fetches paginated, filtered rows for the current table state and renders them into the table body.
+ * Load table rows using the current application state and render them into the table body.
  *
- * Renders each returned row as a <tr> appended to #sclTableBody where the first row value is used as the row's checkbox value and remaining values populate subsequent cells. Null or undefined cell values are rendered as an empty string.
+ * Updates appState.currentRowCount, clears and repopulates the DOM element #sclTableBody with the fetched rows (the first value of each row is used as the row checkbox value; remaining values populate subsequent cells). Cell text is produced by formatCellValue and the raw value is stored on td.title. After rendering, reapplies column highlighting and updates pagination UI/state. The page loader is shown while the request and rendering occur.
  *
- * @param {Object} appState - Application state used to build the request and rendering.
- * @param {string} appState.tableName - Name of the table to request.
- * @param {string} appState.projectName - Project identifier sent with the request.
- * @param {string} appState.modelName - Model identifier sent with the request.
- * @param {number} appState.currentPage - Page number for pagination.
- * @param {number} appState.pageSize - Number of rows per page.
- * @param {Object} appState.selectFilters - Selection filters included in the request body.
- * @param {Object} appState.textFilters - Text filters included in the request body.
- * @param {Array<[string,string]>} appState.columnNames - Array of [columnName, dataType] tuples; column names are sent as `column_names`.
+ * @param {Object} appState - Application state used to build the request and control rendering. Must include tableName, projectName, modelName, currentPage, pageSize, selectFilters, textFilters, columnNames, and sortColumns; may include columnFormats for per-column formatting.
  */
 async function fetchTableData(appState) {
   showTableLoader();
@@ -608,13 +600,13 @@ function isIntegerType(dataType) {
 }
 
 /**
- * Format numeric values according to the system locale with up to two decimal places.
+ * Format a value as a locale-aware number with up to two decimal places.
  *
- * If `val` is `null`, returns an empty string. If `val` is numeric or can be converted to a number,
- * returns the locale-formatted string with up to two fraction digits. If conversion results in `NaN`,
- * returns `String(val)`.
+ * For `null` returns an empty string. If the value can be converted to a finite number,
+ * returns the locale-formatted representation with 0–2 fraction digits. If conversion
+ * yields `NaN`, returns `String(val)`.
  *
- * @param {*} val - The raw cell value to format (number or value convertible to number).
+ * @param {*} val - Value to format (number or value convertible to number).
  * @returns {string} The formatted numeric string, `''` for `null`, or `String(val)` for non-numeric inputs.
  */
 function formatNumericValue(val) {
@@ -631,19 +623,19 @@ const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
 const MS_PER_DAY = 86_400_000;
 
 /**
- * Pad a number to at least `len` digits with leading zeros.
- * @param {number} n
- * @param {number} len
- * @returns {string}
+ * Return a string representation of a number left-padded with zeros to a minimum width.
+ * @param {number} n - The number to format.
+ * @param {number} len - Minimum length of the returned string; pads with leading zeros if shorter.
+ * @returns {string} The number as a string left-padded with '0' to at least `len` characters.
  */
 function pad(n, len) {
   return String(n).padStart(len, '0');
 }
 
 /**
- * Convert an Excel serial date number to a `YYYY-MM-DD` string.
- * @param {number} serial - Excel serial date.
- * @returns {string}
+ * Convert an Excel serial day number to a UTC date string in YYYY-MM-DD format.
+ * @param {number} serial - Excel serial day count (days since 1899-12-30).
+ * @returns {string} Date in `YYYY-MM-DD` (UTC).
  */
 function excelSerialToDate(serial) {
   const d = new Date(EXCEL_EPOCH_MS + serial * MS_PER_DAY);
@@ -651,9 +643,9 @@ function excelSerialToDate(serial) {
 }
 
 /**
- * Convert an Excel serial date/time number to a `YYYY-MM-DD HH:MM:SS` string.
- * @param {number} serial - Excel serial date (may include fractional time).
- * @returns {string}
+ * Convert an Excel serial date/time to a UTC timestamp string in "YYYY-MM-DD HH:MM:SS" format.
+ * @param {number} serial - Excel serial number (days since 1899-12-30); fractional part represents time-of-day.
+ * @returns {string} A UTC timestamp string formatted as "YYYY-MM-DD HH:MM:SS".
  */
 function excelSerialToDatetime(serial) {
   const totalMs = EXCEL_EPOCH_MS + serial * MS_PER_DAY;
@@ -728,30 +720,24 @@ function resolveCurrencySymbol(prefix) {
 const TEXT_TYPE_RE = /^(TEXT|VARCHAR|STRING|CHAR|NVARCHAR|NCHAR|CLOB|NCLOB)\b/i;
 
 /**
- * Test whether a SQL data type is a text/string type.
- * @param {string} dataType
- * @returns {boolean}
+ * Determines whether a SQL type string represents a text/string type.
+ * @param {string} dataType - SQL type string (e.g., "VARCHAR(255)", "TEXT"); matching is case-insensitive.
+ * @returns {boolean} `true` if the SQL type is a text/string type, `false` otherwise.
  */
 function isTextType(dataType) {
   return TEXT_TYPE_RE.test(dataType);
 }
 
 /**
- * Format a single cell value using the column's saved format and SQL data type.
+ * Format a table cell value according to the column's saved format and SQL data type.
  *
- * Applies the rules:
- * - REAL/NUMERIC format: prefix + thousand-separator + decimal places (falls back to default numeric formatting).
- * - INTEGER/TEXT/LOV format: no special formatting; falls back to default.
- * - DATE format + text SQL type: first 10 chars.
- * - DATE format + numeric SQL type: Excel serial → YYYY-MM-DD.
- * - DATETIME format + text SQL type: first 19 chars.
- * - DATETIME format + numeric SQL type: Excel serial → YYYY-MM-DD HH:MM:SS.
- * - null values: fall through to the default data-type-based formatting.
+ * Applies explicit format overrides (DATE, DATETIME, REAL/NUMERIC, INTEGER, TEXT, LOV) when present,
+ * and otherwise falls back to defaults derived from the SQL data type; numeric results are right-aligned.
  *
  * @param {*} val - Raw cell value.
- * @param {string} dataType - SQL column data type.
- * @param {Object|undefined} fmt - Saved format from `appState.columnFormats[colName]`.
- * @returns {{ text: string, align: string }} Formatted text and CSS text-align value.
+ * @param {string} dataType - SQL column data type (used to choose defaults and detect numeric/text types).
+ * @param {Object|undefined} fmt - Optional saved column format from `appState.columnFormats[colName]`.
+ * @returns {{ text: string, align: string }} Formatted display text and CSS `text-align` value (`'right'` for numeric alignment, `''` otherwise).
  */
 function formatCellValue(val, dataType, fmt) {
   const formatType = fmt?.column_type;
@@ -1354,13 +1340,9 @@ function initRemoveColumnBtn(appState) {
 }
 
 /**
- * Initialize the Add Column button
+ * Wire the Add Column UI: opens the modal, validate the entered name/type, persist the new column and updated column order, and refresh table headers and data.
  *
- * Clicking `#addColumnBtn` opens the `#addColumnModal`. On OK the entered column name
- * and selected data type are validated, sent to `/tables/add-column`, and the table is
- * refreshed to reflect the new column.
- *
- * @param {Object} appState - Application state.
+ * @param {Object} appState - Application state (reads tableName/projectName/modelName/columnNames and updates pagination and selection state).
  */
 function initAddColumnBtn(appState) {
   const addBtn = document.getElementById('addColumnBtn');
@@ -1427,14 +1409,18 @@ function initAddColumnBtn(appState) {
 }
 
 /**
- * Initialize the Format Column button and its modal.
+ * Open and manage the Format Column modal for viewing, editing, and saving a column's display formatting.
  *
- * Clicking `#formatColumnBtn` checks that a column is selected (toast warning if not),
- * then opens `#formatColumnModal` pre-populated from `appState.columnFormats`.
- * Conditional sections for REAL and LOV are shown/hidden based on the Column Type select.
- * On OK the format is saved via `/tables/set-format` and written back to `appState.columnFormats`.
+ * Pre-populates controls from appState.columnFormats (or derives a default from SQL type), shows/hides
+ * sections based on the chosen column type (REAL, INTEGER, LOV, etc.), validates inputs (e.g., decimal range),
+ * persists changes to /tables/set-column-formatting, updates appState.columnFormats, and applies the new
+ * formatting in-place to visible cells for the selected column.
  *
- * @param {Object} appState - Application state.
+ * @param {Object} appState - Application state object; used properties include:
+ *   - {string|null} selectedColumn: currently selected column name (required to open the modal)
+ *   - {Object} columnFormats: per-column formatting overrides
+ *   - {Array<[string,string]>} columnNames: list of [columnName, sqlType] pairs used to derive defaults
+ *   - {string} tableName, projectName, modelName: identifiers sent to the server when saving formatting
  */
 function initFormatColumnBtn(appState) {
   const formatBtn = document.getElementById('formatColumnBtn');
@@ -1452,6 +1438,11 @@ function initFormatColumnBtn(appState) {
   const submitBtn = document.getElementById('submitFormatColumnBtn');
   const modal = new window.bootstrap.Modal(modalEl);
 
+  /**
+   * Update which formatting modal sections are visible based on the selected column type.
+   *
+   * Shows the aggregation section when the selected type is `REAL` or `INTEGER`, shows the REAL-specific options when the type is `REAL`, and shows the LOV options when the type is `LOV`; hides sections that do not apply.
+   */
   function toggleSections() {
     const type = columnTypeSelect.value;
     const isNumeric = type === 'REAL' || type === 'INTEGER';
@@ -1572,6 +1563,15 @@ function initDecimalBtns(appState) {
   const increaseBtn = document.getElementById('increaseDecimalBtn');
   const decreaseBtn = document.getElementById('decreaseDecimalBtn');
 
+  /**
+   * Change the selected column's decimal precision by the given delta and persist the new formatting.
+   *
+   * Validates that a column is selected and that its effective format is numeric (`REAL`), computes
+   * a new decimal_places value clamped to [0, 10], persists the updated format, updates
+   * appState.columnFormats, and re-applies the formatting to visible table cells for that column.
+   *
+   * @param {number} delta - Number of decimal places to add (positive) or remove (negative).
+   */
   async function adjustDecimals(delta) {
     const colName = appState.selectedColumn;
     if (!colName) {
