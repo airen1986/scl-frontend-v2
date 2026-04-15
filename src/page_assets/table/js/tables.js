@@ -821,6 +821,18 @@ function formatCellValue(val, dataType, fmt) {
     }
     return { text: formatted, align: 'right' };
   }
+  if (formatType === 'INTEGER') {
+    const num = typeof val === 'number' ? val : Number(val);
+    if (Number.isNaN(num)) return { text: String(val), align: 'right' };
+    return {
+      text: new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        useGrouping: (fmt?.thousand_separator ?? 'YES') === 'YES',
+      }).format(num),
+      align: 'right',
+    };
+  }
 
   if (formatType === 'TEXT' || formatType === 'LOV') {
     return { text: String(val), align: '' };
@@ -1491,9 +1503,14 @@ function initFormatColumnBtn(appState) {
     }
 
     if (columnType === 'REAL') {
+      const parsedDecimals = Number.parseInt(decimalsInput.value, 10);
+      if (!Number.isInteger(parsedDecimals) || parsedDecimals < 0 || parsedDecimals > 10) {
+        bsToastWarning('Decimal places must be between 0 and 10');
+        return;
+      }
       format.prefix = prefixInput.value.trim();
       format.thousand_separator = separatorSelect.value;
-      format.decimal_places = parseInt(decimalsInput.value, 10) || 0;
+      format.decimal_places = parsedDecimals;
     }
 
     if (columnType === 'LOV') {
@@ -1572,7 +1589,7 @@ function initDecimalBtns(appState) {
     }
 
     const currentDecimals = fmt?.decimal_places ?? 2;
-    const newDecimals = Math.max(0, currentDecimals + delta);
+    const newDecimals = Math.max(0, Math.min(10, currentDecimals + delta));
     if (newDecimals === currentDecimals) return;
 
     const format = {
