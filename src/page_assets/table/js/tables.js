@@ -757,7 +757,7 @@ function formatCellValue(val, dataType, fmt) {
   const formatType = fmt?.column_type;
 
   // ── null / undefined: always fall through to default ──────────────
-  if (val === null) {
+  if (val === null || val === undefined) {
     if (isNumericType(dataType) || isIntegerType(dataType)) {
       return { text: '', align: 'right' };
     }
