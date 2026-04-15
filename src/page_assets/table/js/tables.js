@@ -302,19 +302,11 @@ function refreshSortIcons(appState) {
 }
 
 /**
- * Fetches paginated, filtered rows for the current table state and renders them into the table body.
+ * Load table rows using the current application state and render them into the table body.
  *
- * Renders each returned row as a <tr> appended to #sclTableBody where the first row value is used as the row's checkbox value and remaining values populate subsequent cells. Null or undefined cell values are rendered as an empty string.
+ * Updates appState.currentRowCount, clears and repopulates the DOM element #sclTableBody with the fetched rows (the first value of each row is used as the row checkbox value; remaining values populate subsequent cells). Cell text is produced by formatCellValue and the raw value is stored on td.title. After rendering, reapplies column highlighting and updates pagination UI/state. The page loader is shown while the request and rendering occur.
  *
- * @param {Object} appState - Application state used to build the request and rendering.
- * @param {string} appState.tableName - Name of the table to request.
- * @param {string} appState.projectName - Project identifier sent with the request.
- * @param {string} appState.modelName - Model identifier sent with the request.
- * @param {number} appState.currentPage - Page number for pagination.
- * @param {number} appState.pageSize - Number of rows per page.
- * @param {Object} appState.selectFilters - Selection filters included in the request body.
- * @param {Object} appState.textFilters - Text filters included in the request body.
- * @param {Array<[string,string]>} appState.columnNames - Array of [columnName, dataType] tuples; column names are sent as `column_names`.
+ * @param {Object} appState - Application state used to build the request and control rendering. Must include tableName, projectName, modelName, currentPage, pageSize, selectFilters, textFilters, columnNames, and sortColumns; may include columnFormats for per-column formatting.
  */
 async function fetchTableData(appState) {
   showTableLoader();
@@ -353,18 +345,12 @@ async function fetchTableData(appState) {
       for (let i = 0; i < values.length; i++) {
         const td = document.createElement('td');
         const val = values[i];
-        if (isNumericType(appState.columnNames[i]?.[1])) {
-          td.style.textAlign = 'right';
-          td.title = val ?? '';
-          td.textContent = formatNumericValue(val);
-        } else if (isIntegerType(appState.columnNames[i]?.[1])) {
-          td.style.textAlign = 'right';
-          td.title = val ?? '';
-          td.textContent = val ?? '';
-        } else {
-          td.title = val ?? '';
-          td.textContent = val ?? '';
-        }
+        const [colName, dataType] = appState.columnNames[i] ?? [];
+        const fmt = appState.columnFormats?.[colName];
+        const { text, align } = formatCellValue(val, dataType, fmt);
+        td.title = val ?? '';
+        td.textContent = text;
+        if (align) td.style.textAlign = align;
         tr.appendChild(td);
       }
 
@@ -575,6 +561,23 @@ async function populateFilterDropdown(dropdown, colName, appState) {
 
 const NUMERIC_TYPE_RE = /^(NUMERIC|NUMBER|FLOAT|DOUBLE|REAL|DECIMAL|MONEY|SMALLMONEY)\b/i;
 const INTEGER_TYPE_RE = /^(INTEGER|INT|BIGINT|SMALLINT|TINYINT|MEDIUMINT)\b/i;
+const DATE_TYPE_RE = /^(DATE)\b/i;
+const DATETIME_TYPE_RE =
+  /^(DATETIME|TIMESTAMP|TIMESTAMPTZ|TIMESTAMP_TZ|TIMESTAMP_NTZ|TIMESTAMP_LTZ)\b/i;
+
+/**
+ * Map a SQL column data type to a default format column type.
+ *
+ * @param {string} dataType - SQL type as returned by the headers endpoint.
+ * @returns {string} One of 'REAL', 'INTEGER', 'DATE', 'DATETIME', or 'TEXT'.
+ */
+function defaultFormatType(dataType) {
+  if (NUMERIC_TYPE_RE.test(dataType)) return 'REAL';
+  if (INTEGER_TYPE_RE.test(dataType)) return 'INTEGER';
+  if (DATETIME_TYPE_RE.test(dataType)) return 'DATETIME';
+  if (DATE_TYPE_RE.test(dataType)) return 'DATE';
+  return 'TEXT';
+}
 
 /**
  * Determine whether a SQL column data type represents a numeric type.
@@ -597,13 +600,13 @@ function isIntegerType(dataType) {
 }
 
 /**
- * Format numeric values according to the system locale with up to two decimal places.
+ * Format a value as a locale-aware number with up to two decimal places.
  *
- * If `val` is `null`, returns an empty string. If `val` is numeric or can be converted to a number,
- * returns the locale-formatted string with up to two fraction digits. If conversion results in `NaN`,
- * returns `String(val)`.
+ * For `null` returns an empty string. If the value can be converted to a finite number,
+ * returns the locale-formatted representation with 0–2 fraction digits. If conversion
+ * yields `NaN`, returns `String(val)`.
  *
- * @param {*} val - The raw cell value to format (number or value convertible to number).
+ * @param {*} val - Value to format (number or value convertible to number).
  * @returns {string} The formatted numeric string, `''` for `null`, or `String(val)` for non-numeric inputs.
  */
 function formatNumericValue(val) {
@@ -611,6 +614,224 @@ function formatNumericValue(val) {
   const num = typeof val === 'number' ? val : Number(val);
   if (Number.isNaN(num)) return String(val);
   return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+// ── Excel serial-date helpers ────────────────────────────────────────────────
+
+/** Excel epoch: 1899-12-30 (accounting for the Lotus 1-2-3 leap-year bug). */
+const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * Return a string representation of a number left-padded with zeros to a minimum width.
+ * @param {number} n - The number to format.
+ * @param {number} len - Minimum length of the returned string; pads with leading zeros if shorter.
+ * @returns {string} The number as a string left-padded with '0' to at least `len` characters.
+ */
+function pad(n, len) {
+  return String(n).padStart(len, '0');
+}
+
+/**
+ * Convert an Excel serial day number to a UTC date string in YYYY-MM-DD format.
+ * @param {number} serial - Excel serial day count (days since 1899-12-30).
+ * @returns {string} Date in `YYYY-MM-DD` (UTC).
+ */
+function excelSerialToDate(serial) {
+  const d = new Date(EXCEL_EPOCH_MS + serial * MS_PER_DAY);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)}`;
+}
+
+/**
+ * Convert an Excel serial date/time to a UTC timestamp string in "YYYY-MM-DD HH:MM:SS" format.
+ * @param {number} serial - Excel serial number (days since 1899-12-30); fractional part represents time-of-day.
+ * @returns {string} A UTC timestamp string formatted as "YYYY-MM-DD HH:MM:SS".
+ */
+function excelSerialToDatetime(serial) {
+  const totalMs = EXCEL_EPOCH_MS + serial * MS_PER_DAY;
+  const d = new Date(totalMs);
+  return (
+    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)} ` +
+    `${pad(d.getUTCHours(), 2)}:${pad(d.getUTCMinutes(), 2)}:${pad(d.getUTCSeconds(), 2)}`
+  );
+}
+
+// ── Currency symbol map ────────────────────────────────────────────────────
+
+const CURRENCY_SYMBOLS = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  INR: '₹',
+  JPY: '¥',
+  CNY: '¥',
+  CHF: 'CHF',
+  CAD: 'CA$',
+  AUD: 'A$',
+  NZD: 'NZ$',
+  KRW: '₩',
+  BRL: 'R$',
+  ZAR: 'R',
+  RUB: '₽',
+  TRY: '₺',
+  MXN: 'MX$',
+  SGD: 'S$',
+  HKD: 'HK$',
+  SEK: 'kr',
+  NOK: 'kr',
+  DKK: 'kr',
+  PLN: 'zł',
+  THB: '฿',
+  IDR: 'Rp',
+  MYR: 'RM',
+  PHP: '₱',
+  TWD: 'NT$',
+  AED: 'AED',
+  SAR: 'SAR',
+  EGP: 'E£',
+  ILS: '₪',
+  CLP: 'CL$',
+  ARS: 'AR$',
+  COP: 'COL$',
+  PEN: 'S/.',
+  VND: '₫',
+  NGN: '₦',
+  KES: 'KSh',
+  PKR: '₨',
+  BDT: '৳',
+  LKR: 'Rs',
+};
+
+/**
+ * Resolve a prefix/currency code to its symbol. If the uppercase value exists
+ * in the currency map the symbol is returned; otherwise the original string
+ * is returned unchanged (allows users to type arbitrary prefixes like "%" or "€").
+ *
+ * @param {string} prefix - User-entered prefix or ISO currency code.
+ * @returns {string} Resolved symbol or the original prefix.
+ */
+function resolveCurrencySymbol(prefix) {
+  if (!prefix) return '';
+  return CURRENCY_SYMBOLS[prefix.toUpperCase()] ?? prefix;
+}
+
+// ── Unified cell formatter ───────────────────────────────────────────────────
+
+const TEXT_TYPE_RE = /^(TEXT|VARCHAR|STRING|CHAR|NVARCHAR|NCHAR|CLOB|NCLOB)\b/i;
+
+/**
+ * Determines whether a SQL type string represents a text/string type.
+ * @param {string} dataType - SQL type string (e.g., "VARCHAR(255)", "TEXT"); matching is case-insensitive.
+ * @returns {boolean} `true` if the SQL type is a text/string type, `false` otherwise.
+ */
+function isTextType(dataType) {
+  return TEXT_TYPE_RE.test(dataType);
+}
+
+/**
+ * Format a table cell value according to the column's saved format and SQL data type.
+ *
+ * Applies explicit format overrides (DATE, DATETIME, REAL/NUMERIC, INTEGER, TEXT, LOV) when present,
+ * and otherwise falls back to defaults derived from the SQL data type; numeric results are right-aligned.
+ *
+ * @param {*} val - Raw cell value.
+ * @param {string} dataType - SQL column data type (used to choose defaults and detect numeric/text types).
+ * @param {Object|undefined} fmt - Optional saved column format from `appState.columnFormats[colName]`.
+ * @returns {{ text: string, align: string }} Formatted display text and CSS `text-align` value (`'right'` for numeric alignment, `''` otherwise).
+ */
+function formatCellValue(val, dataType, fmt) {
+  const formatType = fmt?.column_type;
+
+  // ── null / undefined: always fall through to default ──────────────
+  if (val === null || val === undefined) {
+    if (isNumericType(dataType) || isIntegerType(dataType)) {
+      return { text: '', align: 'right' };
+    }
+    return { text: '', align: '' };
+  }
+
+  // ── DATE format ───────────────────────────────────────────────────
+  if (formatType === 'DATE') {
+    if (isTextType(dataType)) {
+      return { text: String(val).substring(0, 10), align: '' };
+    }
+    // Numeric SQL type → Excel serial
+    const num = Number(val);
+    if (!Number.isNaN(num)) {
+      return { text: excelSerialToDate(num), align: '' };
+    }
+    return { text: String(val), align: '' };
+  }
+
+  // ── DATETIME format ──────────────────────────────────────────────
+  if (formatType === 'DATETIME') {
+    if (isTextType(dataType)) {
+      return { text: String(val).substring(0, 19), align: '' };
+    }
+    const num = Number(val);
+    if (!Number.isNaN(num)) {
+      return { text: excelSerialToDatetime(num), align: '' };
+    }
+    return { text: String(val), align: '' };
+  }
+
+  // ── REAL / NUMERIC format ────────────────────────────────────────
+  if (formatType === 'REAL' || formatType === 'NUMERIC') {
+    const num = typeof val === 'number' ? val : Number(val);
+    if (Number.isNaN(num)) return { text: String(val), align: 'right' };
+
+    const decimals = fmt.decimal_places ?? 2;
+    const useSeparator = (fmt.thousand_separator ?? 'YES') === 'YES';
+    const rawPrefix = fmt.prefix?.toUpperCase() ?? '';
+    const isCurrencyCode = rawPrefix in CURRENCY_SYMBOLS;
+
+    let formatted;
+    if (isCurrencyCode) {
+      formatted = new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: rawPrefix,
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+        useGrouping: useSeparator,
+      }).format(num);
+    } else {
+      const prefix = fmt.prefix ? resolveCurrencySymbol(fmt.prefix) : '';
+      formatted =
+        prefix +
+        new Intl.NumberFormat(undefined, {
+          style: 'decimal',
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+          useGrouping: useSeparator,
+        }).format(num);
+    }
+    return { text: formatted, align: 'right' };
+  }
+  if (formatType === 'INTEGER') {
+    const num = typeof val === 'number' ? val : Number(val);
+    if (Number.isNaN(num)) return { text: String(val), align: 'right' };
+    return {
+      text: new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        useGrouping: (fmt?.thousand_separator ?? 'YES') === 'YES',
+      }).format(num),
+      align: 'right',
+    };
+  }
+
+  if (formatType === 'TEXT' || formatType === 'LOV') {
+    return { text: String(val), align: '' };
+  }
+
+  // ── No format override → default data-type-based formatting ──────
+  if (isNumericType(dataType)) {
+    return { text: formatNumericValue(val), align: 'right' };
+  }
+  if (isIntegerType(dataType)) {
+    return { text: String(val), align: 'right' };
+  }
+  return { text: String(val), align: '' };
 }
 
 /**
@@ -1119,13 +1340,9 @@ function initRemoveColumnBtn(appState) {
 }
 
 /**
- * Initialize the Add Column button
+ * Wire the Add Column UI: opens the modal, validate the entered name/type, persist the new column and updated column order, and refresh table headers and data.
  *
- * Clicking `#addColumnBtn` opens the `#addColumnModal`. On OK the entered column name
- * and selected data type are validated, sent to `/tables/add-column`, and the table is
- * refreshed to reflect the new column.
- *
- * @param {Object} appState - Application state.
+ * @param {Object} appState - Application state (reads tableName/projectName/modelName/columnNames and updates pagination and selection state).
  */
 function initAddColumnBtn(appState) {
   const addBtn = document.getElementById('addColumnBtn');
@@ -1192,10 +1409,243 @@ function initAddColumnBtn(appState) {
 }
 
 /**
+ * Open and manage the Format Column modal for viewing, editing, and saving a column's display formatting.
+ *
+ * Pre-populates controls from appState.columnFormats (or derives a default from SQL type), shows/hides
+ * sections based on the chosen column type (REAL, INTEGER, LOV, etc.), validates inputs (e.g., decimal range),
+ * persists changes to /tables/set-column-formatting, updates appState.columnFormats, and applies the new
+ * formatting in-place to visible cells for the selected column.
+ *
+ * @param {Object} appState - Application state object; used properties include:
+ *   - {string|null} selectedColumn: currently selected column name (required to open the modal)
+ *   - {Object} columnFormats: per-column formatting overrides
+ *   - {Array<[string,string]>} columnNames: list of [columnName, sqlType] pairs used to derive defaults
+ *   - {string} tableName, projectName, modelName: identifiers sent to the server when saving formatting
+ */
+function initFormatColumnBtn(appState) {
+  const formatBtn = document.getElementById('formatColumnBtn');
+  const modalEl = document.getElementById('formatColumnModal');
+  const titleName = document.getElementById('formatColumnTitleName');
+  const columnTypeSelect = document.getElementById('formatColumnType');
+  const aggregationOptions = document.getElementById('formatAggregationOptions');
+  const aggregationSelect = document.getElementById('formatAggregation');
+  const realOptions = document.getElementById('formatRealOptions');
+  const lovOptions = document.getElementById('formatLovOptions');
+  const prefixInput = document.getElementById('formatRealPrefix');
+  const separatorSelect = document.getElementById('formatRealSeparator');
+  const decimalsInput = document.getElementById('formatRealDecimals');
+  const lovTextarea = document.getElementById('formatLovValues');
+  const submitBtn = document.getElementById('submitFormatColumnBtn');
+  const modal = new window.bootstrap.Modal(modalEl);
+
+  /**
+   * Update which formatting modal sections are visible based on the selected column type.
+   *
+   * Shows the aggregation section when the selected type is `REAL` or `INTEGER`, shows the REAL-specific options when the type is `REAL`, and shows the LOV options when the type is `LOV`; hides sections that do not apply.
+   */
+  function toggleSections() {
+    const type = columnTypeSelect.value;
+    const isNumeric = type === 'REAL' || type === 'INTEGER';
+    aggregationOptions.classList.toggle('d-none', !isNumeric);
+    realOptions.classList.toggle('d-none', type !== 'REAL');
+    lovOptions.classList.toggle('d-none', type !== 'LOV');
+  }
+
+  columnTypeSelect.addEventListener('change', toggleSections);
+
+  formatBtn.addEventListener('click', () => {
+    if (!appState.selectedColumn) {
+      bsToastWarning('Please select a column first');
+      return;
+    }
+
+    const colName = appState.selectedColumn;
+    titleName.textContent = `${colName}`;
+
+    // Load existing format, or derive default type from the SQL data type
+    const fmt = appState.columnFormats?.[colName] ?? {};
+    const colMeta = appState.columnNames.find(([name]) => name === colName);
+    const defaultType = colMeta ? defaultFormatType(colMeta[1]) : 'TEXT';
+    columnTypeSelect.value = fmt.column_type ?? defaultType;
+    aggregationSelect.value = fmt.aggregation ?? '';
+    prefixInput.value = fmt.prefix ?? '';
+    separatorSelect.value = fmt.thousand_separator ?? 'YES';
+    decimalsInput.value = fmt.decimal_places ?? 2;
+    lovTextarea.value = (fmt.lov_options ?? []).join('\n');
+
+    toggleSections();
+    modal.show();
+  });
+
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    titleName.textContent = '';
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    const colName = appState.selectedColumn;
+    if (!colName) return;
+
+    const columnType = columnTypeSelect.value;
+    const format = {};
+
+    if (columnType === 'REAL' || columnType === 'INTEGER') {
+      const agg = aggregationSelect.value;
+      if (agg) format.aggregation = agg;
+    }
+
+    if (columnType === 'REAL') {
+      const parsedDecimals = Number.parseInt(decimalsInput.value, 10);
+      if (!Number.isInteger(parsedDecimals) || parsedDecimals < 0 || parsedDecimals > 10) {
+        bsToastWarning('Decimal places must be between 0 and 10');
+        return;
+      }
+      format.prefix = prefixInput.value.trim();
+      format.thousand_separator = separatorSelect.value;
+      format.decimal_places = parsedDecimals;
+    }
+
+    if (columnType === 'LOV') {
+      format.lov_options = lovTextarea.value
+        .split('\n')
+        .map((v) => v.trim())
+        .filter(Boolean);
+    }
+
+    submitBtn.disabled = true;
+    try {
+      await api.post('/tables/set-column-formatting', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        column_name: colName,
+        column_type: columnType,
+        format,
+      });
+
+      format.column_type = columnType;
+      if (!appState.columnFormats) appState.columnFormats = {};
+      appState.columnFormats[colName] = format;
+
+      // Apply formatting to visible cells without re-rendering the table
+      const colIndex = appState.columnNames.findIndex(([name]) => name === colName);
+      if (colIndex !== -1) {
+        const [, dataType] = appState.columnNames[colIndex];
+        const tbody = document.getElementById('sclTableBody');
+        for (const row of tbody.rows) {
+          const td = row.cells[colIndex + 1]; // +1 for leading checkbox column
+          if (!td) continue;
+          // Skip cells that were originally null (empty title + empty text)
+          if (td.title === '' && td.textContent === '') continue;
+          const { text, align } = formatCellValue(td.title, dataType, format);
+          td.textContent = text;
+          td.style.textAlign = align || '';
+        }
+      }
+
+      bsToastSuccess(`Format updated for "${colName}"`);
+      modal.hide();
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+}
+
+/**
+ * Initialize the Increase / Decrease Decimal toolbar buttons.
+ *
+ * Each click adjusts `decimal_places` by ±1 for the selected column (must
+ * resolve to a REAL format type), persists the change to the server, and
+ * re-formats visible cells in-place without a full table re-render.
+ *
+ * @param {Object} appState - Application state.
+ */
+function initDecimalBtns(appState) {
+  const increaseBtn = document.getElementById('increaseDecimalBtn');
+  const decreaseBtn = document.getElementById('decreaseDecimalBtn');
+
+  /**
+   * Change the selected column's decimal precision by the given delta and persist the new formatting.
+   *
+   * Validates that a column is selected and that its effective format is numeric (`REAL`), computes
+   * a new decimal_places value clamped to [0, 10], persists the updated format, updates
+   * appState.columnFormats, and re-applies the formatting to visible table cells for that column.
+   *
+   * @param {number} delta - Number of decimal places to add (positive) or remove (negative).
+   */
+  async function adjustDecimals(delta) {
+    const colName = appState.selectedColumn;
+    if (!colName) {
+      bsToastWarning('Please select a column first');
+      return;
+    }
+
+    const colMeta = appState.columnNames.find(([name]) => name === colName);
+    const fmt = appState.columnFormats?.[colName];
+    const columnType = fmt?.column_type ?? (colMeta ? defaultFormatType(colMeta[1]) : 'TEXT');
+
+    if (columnType !== 'REAL') {
+      bsToastWarning('Decimal formatting is only available for numeric columns');
+      return;
+    }
+
+    const currentDecimals = fmt?.decimal_places ?? 2;
+    const newDecimals = Math.max(0, Math.min(10, currentDecimals + delta));
+    if (newDecimals === currentDecimals) return;
+
+    const format = {
+      prefix: fmt?.prefix ?? '',
+      thousand_separator: fmt?.thousand_separator ?? 'YES',
+      decimal_places: newDecimals,
+    };
+    if (fmt?.aggregation) format.aggregation = fmt.aggregation;
+
+    increaseBtn.disabled = true;
+    decreaseBtn.disabled = true;
+    try {
+      await api.post('/tables/set-column-formatting', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        column_name: colName,
+        column_type: columnType,
+        format,
+      });
+
+      format.column_type = columnType;
+      if (!appState.columnFormats) appState.columnFormats = {};
+      appState.columnFormats[colName] = format;
+
+      // Apply formatting to visible cells without re-rendering
+      const colIndex = appState.columnNames.findIndex(([name]) => name === colName);
+      if (colIndex !== -1) {
+        const [, dataType] = appState.columnNames[colIndex];
+        const tbody = document.getElementById('sclTableBody');
+        for (const row of tbody.rows) {
+          const td = row.cells[colIndex + 1]; // +1 for leading checkbox column
+          if (!td) continue;
+          if (td.title === '' && td.textContent === '') continue;
+          const { text, align } = formatCellValue(td.title, dataType, format);
+          td.textContent = text;
+          td.style.textAlign = align || '';
+        }
+      }
+    } catch {
+      bsToastWarning('Failed to update decimal formatting');
+    } finally {
+      increaseBtn.disabled = false;
+      decreaseBtn.disabled = false;
+    }
+  }
+
+  increaseBtn.addEventListener('click', () => adjustDecimals(1));
+  decreaseBtn.addEventListener('click', () => adjustDecimals(-1));
+}
+
+/**
  * Initialize all table toolbar controls and pagination.
  *
  * Wires up the refresh button, pagination controls, Select Columns modal,
- * Remove Column button, and Add Column button.
+ * Remove Column button, Add Column button, and Format Column button.
  *
  * @param {Object} appState - Application state.
  */
@@ -1205,6 +1655,27 @@ function initTableControls(appState) {
   initSelectColumnsModal(appState);
   initRemoveColumnBtn(appState);
   initAddColumnBtn(appState);
+  initFormatColumnBtn(appState);
+  initDecimalBtns(appState);
 }
 
-export { getTableHeaders, fetchTableData, initTableControls, selectColumn };
+/**
+ * Fetch saved column formats from the server and store them in `appState.columnFormats`.
+ *
+ * @param {Object} appState - Application state; reads `tableName`, `projectName`, `modelName`.
+ *   Sets `columnFormats` to the returned format map (keyed by column name).
+ */
+async function fetchColumnFormats(appState) {
+  try {
+    const { column_formatting } = await api.post('/tables/get-column-formatting', {
+      table_name: appState.tableName,
+      project_name: appState.projectName,
+      model_name: appState.modelName,
+    });
+    appState.columnFormats = column_formatting ?? {};
+  } catch {
+    appState.columnFormats = {};
+  }
+}
+
+export { getTableHeaders, fetchTableData, fetchColumnFormats, initTableControls, selectColumn };
