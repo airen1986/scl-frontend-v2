@@ -45,7 +45,7 @@ npm install
 Copy the example environment file and adjust as needed:
 
 ```bash
-cp .env.example src/.env
+cp .env.example .env
 ```
 
 ### Development
@@ -207,7 +207,7 @@ $danger:    #d1503b;
 
 ### Environment Variables
 
-All `VITE_`-prefixed variables in `src/.env` are available in JS via `import.meta.env`:
+All `VITE_`-prefixed variables in `.env` are available in JS via `import.meta.env`:
 
 ```js
 const apiUrl = import.meta.env.VITE_API_BASE_URL;

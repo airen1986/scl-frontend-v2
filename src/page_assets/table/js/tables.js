@@ -382,8 +382,12 @@ async function fetchTableData(appState) {
         } else if (e.key === 'Tab') {
           const inputs = [...tr.querySelectorAll('.scl-inline-edit')];
           const idx = inputs.indexOf(input);
-          if (e.shiftKey && idx === 0) e.preventDefault();
-          else if (!e.shiftKey && idx === inputs.length - 1) e.preventDefault();
+          const leavingRow =
+            (e.shiftKey && idx === 0) || (!e.shiftKey && idx === inputs.length - 1);
+          if (!leavingRow) {
+            e.preventDefault();
+            inputs[e.shiftKey ? idx - 1 : idx + 1].focus();
+          }
         }
       });
 
@@ -513,7 +517,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
 
   if (values.length >= appState.pageSize) {
     const note = document.createElement('div');
-    note.className = 'text-left text-muted py-1 px-2 lov-truncated-note';
+    note.className = 'text-start text-muted py-1 px-2 lov-truncated-note';
     note.innerHTML = `<small>Showing first ${values.length} values `;
     fieldset.insertAdjacentElement('afterend', note);
   }
@@ -1520,6 +1524,14 @@ function initFormatColumnBtn(appState) {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'F3') {
+      const ae = document.activeElement;
+      const inEditable =
+        ae &&
+        (ae.matches('input, textarea, select') ||
+          ae.isContentEditable ||
+          ae.closest('dialog, [role="dialog"]') ||
+          ae.closest('.modal.show'));
+      if (inEditable) return;
       e.preventDefault();
       formatBtn.click();
     }
@@ -1820,6 +1832,14 @@ function initUpdateColumnBtn(appState) {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'F2') {
+      const ae = document.activeElement;
+      const inEditable =
+        ae &&
+        (ae.matches('input, textarea, select') ||
+          ae.isContentEditable ||
+          ae.closest('dialog, [role="dialog"]') ||
+          ae.closest('.modal.show'));
+      if (inEditable) return;
       e.preventDefault();
       updateBtn.click();
     }
