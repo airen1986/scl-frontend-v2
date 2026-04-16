@@ -308,11 +308,11 @@ function refreshSortIcons(appState) {
 }
 
 /**
- * Load table rows using the current application state and render them into the table body.
+ * Fetches the current page of table rows and renders them into the table body.
  *
- * Updates appState.currentRowCount, clears and repopulates the DOM element #sclTableBody with the fetched rows (the first value of each row is used as the row checkbox value; remaining values populate subsequent cells). Cell text is produced by formatCellValue and the raw value is stored on td.title. After rendering, reapplies column highlighting and updates pagination UI/state. The page loader is shown while the request and rendering occur.
+ * Updates appState.currentRowCount, cancels any active inline edit, replaces the contents of #sclTableBody with the fetched rows (the first value of each row becomes the row checkbox value; remaining values populate subsequent cells with display text from formatCellValue and raw values stored on td.title), reapplies column highlighting, and updates pagination state/UI.
  *
- * @param {Object} appState - Application state used to build the request and control rendering. Must include tableName, projectName, modelName, currentPage, pageSize, selectFilters, textFilters, columnNames, and sortColumns; may include columnFormats for per-column formatting.
+ * @param {Object} appState - Application state used to build the request and control rendering. Required properties: `tableName`, `projectName`, `modelName`, `currentPage`, `pageSize`, `selectFilters`, `textFilters`, `columnNames`, and `sortColumns`. May include `columnFormats`.
  */
 async function fetchTableData(appState) {
   showTableLoader();
@@ -685,9 +685,9 @@ function excelSerialToDate(serial) {
 }
 
 /**
- * Convert an Excel serial date/time to a UTC timestamp string in "YYYY-MM-DD HH:MM:SS" format.
+ * Converts an Excel serial date/time to a UTC timestamp string in the format YYYY-MM-DD HH:MM:SS.
  * @param {number} serial - Excel serial number (days since 1899-12-30); fractional part represents time-of-day.
- * @returns {string} A UTC timestamp string formatted as "YYYY-MM-DD HH:MM:SS".
+ * @returns {string} UTC timestamp string formatted as `YYYY-MM-DD HH:MM:SS`.
  */
 function excelSerialToDatetime(serial) {
   const totalMs = EXCEL_EPOCH_MS + serial * MS_PER_DAY;
@@ -699,9 +699,9 @@ function excelSerialToDatetime(serial) {
 }
 
 /**
- * Convert a date string (YYYY-MM-DD) to an Excel serial day number.
+ * Convert a date string (YYYY-MM-DD) to an Excel serial day number, interpreting the date as UTC midnight.
  * @param {string} dateStr - Date in `YYYY-MM-DD` format.
- * @returns {number} Excel serial day count.
+ * @returns {number} Excel serial day count (integer).
  */
 function dateToExcelSerial(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -1475,18 +1475,17 @@ function initAddColumnBtn(appState) {
 }
 
 /**
- * Open and manage the Format Column modal for viewing, editing, and saving a column's display formatting.
+ * Open and manage the Format Column modal, allowing the user to view, edit, validate, persist, and apply display formatting for the selected column.
  *
- * Pre-populates controls from appState.columnFormats (or derives a default from SQL type), shows/hides
- * sections based on the chosen column type (REAL, INTEGER, LOV, etc.), validates inputs (e.g., decimal range),
- * persists changes to /tables/set-column-formatting, updates appState.columnFormats, and applies the new
- * formatting in-place to visible cells for the selected column.
+ * Reads initial values from appState.columnFormats (or derives defaults from appState.columnNames), shows/hides modal sections based on the chosen column type, validates inputs (e.g., decimal places range), persists changes to the server, updates appState.columnFormats, and applies the new formatting in-place to visible cells for the selected column.
  *
- * @param {Object} appState - Application state object; used properties include:
- *   - {string|null} selectedColumn: currently selected column name (required to open the modal)
- *   - {Object} columnFormats: per-column formatting overrides
- *   - {Array<[string,string]>} columnNames: list of [columnName, sqlType] pairs used to derive defaults
- *   - {string} tableName, projectName, modelName: identifiers sent to the server when saving formatting
+ * @param {Object} appState - Application state object. Used properties:
+ *   - {string|null} selectedColumn - Currently selected column name; required to open the modal.
+ *   - {Object<string, Object>} columnFormats - Per-column formatting overrides; updated on successful save.
+ *   - {Array<[string,string]>} columnNames - Array of [columnName, sqlType] pairs used to derive default formatting.
+ *   - {string} tableName - Table identifier sent to the server when saving formatting.
+ *   - {string} projectName - Project identifier sent to the server when saving formatting.
+ *   - {string} modelName - Model identifier sent to the server when saving formatting.
  */
 function initFormatColumnBtn(appState) {
   const formatBtn = document.getElementById('formatColumnBtn');
@@ -1717,14 +1716,15 @@ function initDecimalBtns(appState) {
 // ── Bulk column update ───────────────────────────────────────────────────
 
 /**
- * Build the appropriate input element for a column based on its data type and format.
+ * Create an input or select element appropriate for editing values in the given column.
  *
- * Reuses the same type-detection logic as startEditing but creates a standalone
- * input/select element (not bound to a specific row).
+ * The returned element is configured according to the column's SQL type and any saved
+ * per-column formatting in `appState.columnFormats`. For DATE/DATETIME columns that are
+ * stored as Excel serial numbers the element will include `dataset.excelSerial = 'true'`.
  *
- * @param {Object} appState - Application state.
- * @param {string} colName - The column to build the input for.
- * @returns {HTMLElement} The input or select element.
+ * @param {Object} appState - Application state containing `columnNames` and `columnFormats`.
+ * @param {string} colName - The name of the column to build the input for.
+ * @returns {HTMLElement} An input (text/date/datetime-local) or select element configured for the column.
  */
 function buildColumnInput(appState, colName) {
   const colMeta = appState.columnNames.find(([name]) => name === colName);
@@ -1786,13 +1786,16 @@ function readInputValue(input) {
 }
 
 /**
- * Initialize the Update Column button.
+ * Wire the "Update Column" control to open a modal for bulk-updating a column and apply the change.
  *
- * Opens a modal with an input matching the selected column's type. On submit,
- * sends a bulk update for all rows (when none or all are checked) or only
- * the checked rows. On success the table data is refreshed.
+ * Opens a modal containing an input appropriate for the currently selected column, focuses the input,
+ * and submits a bulk update when the user confirms. If no rows are checked (or all rows are checked),
+ * the update is applied to all rows; otherwise it is applied only to the checked rows. The submit
+ * button is disabled while the request is in flight. If no column is selected, a warning is shown
+ * and the modal is not opened. On success the modal is closed, a success toast is shown, and the
+ * table data is refreshed.
  *
- * @param {Object} appState - Application state.
+ * @param {Object} appState - Application state containing table identifiers and current selection state.
  */
 function initUpdateColumnBtn(appState) {
   const updateBtn = document.getElementById('updateColumnBtn');
@@ -1877,13 +1880,12 @@ function initUpdateColumnBtn(appState) {
 // ── Inline editing ───────────────────────────────────────────────────────
 
 /**
- * Begin inline editing for a table row.
+ * Enter inline-edit mode for the specified table row, replacing each data cell with an appropriate inline editor.
  *
- * Replaces each data cell's text with an <input> pre-filled with the raw
- * value (stored in td.title). The checkbox column (index 0) is skipped.
+ * Records each cell's original raw value, displayed text, and alignment, skips the leading checkbox column, sets the module-level `activeEdit` state, and focuses the first inline editor.
  *
- * @param {HTMLTableRowElement} tr - The row to edit.
- * @param {Object} appState - Application state (reads columnNames).
+ * @param {HTMLTableRowElement} tr - Table row to edit.
+ * @param {Object} appState - Application state; used to resolve column names and per-column formatting via `appState.columnNames` and `appState.columnFormats`.
  */
 function startEditing(tr, appState) {
   if (activeEdit) cancelEditing();
@@ -1978,7 +1980,9 @@ function startEditing(tr, appState) {
 }
 
 /**
- * Cancel the current inline edit and restore original cell content.
+ * Restore the table row previously in inline-edit mode to its original cell contents and exit edit state.
+ *
+ * If no row is currently being edited, this function does nothing.
  */
 function cancelEditing() {
   if (!activeEdit) return;
@@ -2098,12 +2102,13 @@ async function saveEditing(appState) {
 }
 
 /**
- * Initialize all table toolbar controls and pagination.
+ * Initialize table toolbar controls and pagination behavior.
  *
- * Wires up the refresh button, pagination controls, Select Columns modal,
- * Remove Column button, Add Column button, and Format Column button.
+ * Wires event handlers for refresh, pagination, select/remove/add/format-column flows,
+ * decimal adjustment buttons, and the bulk-update control, and registers a global
+ * mousedown handler that cancels any active inline row edit when clicking outside it.
  *
- * @param {Object} appState - Application state.
+ * @param {Object} appState - Application state object holding table configuration and runtime values.
  */
 function initTableControls(appState) {
   initRefreshDataBtn(appState);
