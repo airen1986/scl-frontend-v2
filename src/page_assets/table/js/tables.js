@@ -3,6 +3,12 @@ import { bsToastWarning, bsToastSuccess } from '@/common/js/bsToast';
 
 let tableLoaderDepth = 0;
 
+/** CSS class applied to the row currently being edited. */
+const EDITING_CLASS = 'scl-row-editing';
+
+/** Stores the state of the row being edited (null when idle). */
+let activeEdit = null;
+
 /**
  * Makes the global page loader visible and increments the internal reference counter.
  *
@@ -325,6 +331,7 @@ async function fetchTableData(appState) {
     });
 
     appState.currentRowCount = data.length;
+    cancelEditing();
     const tbody = document.getElementById('sclTableBody');
     tbody.innerHTML = '';
 
@@ -353,6 +360,32 @@ async function fetchTableData(appState) {
         if (align) td.style.textAlign = align;
         tr.appendChild(td);
       }
+
+      // Inline edit: dblclick → edit mode; keydown → save / cancel / tab
+      tr.addEventListener('dblclick', (e) => {
+        if (e.target.closest('input[type="checkbox"]')) return;
+        if (activeEdit?.tr === tr) return;
+        startEditing(tr, appState);
+      });
+
+      tr.addEventListener('keydown', (e) => {
+        if (!activeEdit || activeEdit.tr !== tr) return;
+        const input = e.target.closest('.scl-inline-edit');
+        if (!input) return;
+
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveEditing(appState);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelEditing();
+        } else if (e.key === 'Tab') {
+          const inputs = [...tr.querySelectorAll('.scl-inline-edit')];
+          const idx = inputs.indexOf(input);
+          if (e.shiftKey && idx === 0) e.preventDefault();
+          else if (!e.shiftKey && idx === inputs.length - 1) e.preventDefault();
+        }
+      });
 
       tbody.appendChild(tr);
     }
@@ -454,9 +487,11 @@ async function populateFilterDropdown(dropdown, colName, appState) {
 
   const activeSet = new Set(appState.selectFilters?.[colName] ?? []);
   const colMeta = appState.columnNames.find(([name]) => name === colName);
-  const isNumeric = colMeta && isNumericType(colMeta[1]);
+  const dataType = colMeta ? colMeta[1] : '';
+  const fmt = appState.columnFormats?.[colName];
 
   fieldset.innerHTML = '';
+  dropdown.querySelector('.lov-truncated-note')?.remove();
   for (const val of values) {
     const a = document.createElement('a');
     a.className = 'dropdown-item px-2 py-0';
@@ -469,11 +504,18 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     if (activeSet.has(val)) cb.checked = true;
     const label = document.createElement('label');
     label.className = 'form-check-label';
-    label.textContent = val !== null ? (isNumeric ? formatNumericValue(val) : val) : '(blank)';
+    label.textContent = val !== null ? formatCellValue(val, dataType, fmt).text : '(blank)';
     wrapper.append(cb, label);
     bindDropdownItemToggle(a, cb);
     a.appendChild(wrapper);
     fieldset.appendChild(a);
+  }
+
+  if (values.length >= appState.pageSize) {
+    const note = document.createElement('div');
+    note.className = 'text-left text-muted py-1 px-2 lov-truncated-note';
+    note.innerHTML = `<small>Showing first ${values.length} values `;
+    fieldset.insertAdjacentElement('afterend', note);
   }
 
   // Clone & replace the entire dropdown-item wrapper to remove stale listeners
@@ -1453,6 +1495,13 @@ function initFormatColumnBtn(appState) {
 
   columnTypeSelect.addEventListener('change', toggleSections);
 
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F3') {
+      e.preventDefault();
+      formatBtn.click();
+    }
+  });
+
   formatBtn.addEventListener('click', () => {
     if (!appState.selectedColumn) {
       bsToastWarning('Please select a column first');
@@ -1641,6 +1690,171 @@ function initDecimalBtns(appState) {
   decreaseBtn.addEventListener('click', () => adjustDecimals(-1));
 }
 
+// ── Inline editing ───────────────────────────────────────────────────────
+
+/**
+ * Begin inline editing for a table row.
+ *
+ * Replaces each data cell's text with an <input> pre-filled with the raw
+ * value (stored in td.title). The checkbox column (index 0) is skipped.
+ *
+ * @param {HTMLTableRowElement} tr - The row to edit.
+ * @param {Object} appState - Application state (reads columnNames).
+ */
+function startEditing(tr, appState) {
+  if (activeEdit) cancelEditing();
+
+  const cells = [...tr.cells];
+  const originals = [];
+
+  for (let i = 1; i < cells.length; i++) {
+    const td = cells[i];
+    originals.push({
+      cellIndex: i,
+      rawValue: td.title,
+      displayText: td.textContent,
+      align: td.style.textAlign,
+    });
+
+    const colName = appState.columnNames[i - 1]?.[0];
+    const fmt = appState.columnFormats?.[colName];
+    const isLov = fmt?.column_type === 'LOV' && Array.isArray(fmt.lov_options);
+
+    let el;
+    if (isLov) {
+      el = document.createElement('select');
+      el.className = 'form-select form-select-sm scl-inline-edit';
+
+      for (const opt of fmt.lov_options) {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        el.appendChild(option);
+      }
+
+      if (td.title && !fmt.lov_options.includes(td.title)) {
+        const option = document.createElement('option');
+        option.value = td.title;
+        option.textContent = td.title;
+        el.appendChild(option);
+      }
+
+      el.value = td.title;
+    } else {
+      el = document.createElement('input');
+      el.type = 'text';
+      el.className = 'form-control form-control-sm scl-inline-edit';
+      el.value = td.title;
+      if (td.style.textAlign) el.style.textAlign = td.style.textAlign;
+    }
+
+    td.textContent = '';
+    td.appendChild(el);
+  }
+
+  tr.classList.add(EDITING_CLASS);
+  activeEdit = { tr, originals };
+
+  const firstInput = tr.querySelector('.scl-inline-edit');
+  if (firstInput) firstInput.focus();
+}
+
+/**
+ * Cancel the current inline edit and restore original cell content.
+ */
+function cancelEditing() {
+  if (!activeEdit) return;
+
+  const { tr, originals } = activeEdit;
+
+  for (const { cellIndex, displayText, align } of originals) {
+    const td = tr.cells[cellIndex];
+    if (!td) continue;
+    td.textContent = displayText;
+    td.style.textAlign = align || '';
+  }
+
+  tr.classList.remove(EDITING_CLASS);
+  activeEdit = null;
+}
+
+/**
+ * Collect changed values from the active edit row and persist via the API.
+ *
+ * Only columns whose value actually changed are sent. After a successful save
+ * the row reverts to display mode with updated raw values and formatting
+ * via formatCellValue.
+ *
+ * @param {Object} appState - Application state.
+ */
+async function saveEditing(appState) {
+  if (!activeEdit) return;
+
+  const { tr, originals } = activeEdit;
+
+  const checkbox = tr.cells[0]?.querySelector('input[type="checkbox"]');
+  if (!checkbox) {
+    bsToastWarning('Unable to identify the row');
+    cancelEditing();
+    return;
+  }
+  const rowid = checkbox.value;
+
+  const changes = {};
+  for (const { cellIndex, rawValue } of originals) {
+    const input = tr.cells[cellIndex]?.querySelector('.scl-inline-edit');
+    if (!input) continue;
+    const newValue = input.value;
+    if (newValue !== rawValue) {
+      const colName = appState.columnNames[cellIndex - 1]?.[0];
+      if (colName) changes[colName] = newValue === '' ? null : newValue;
+    }
+  }
+
+  if (Object.keys(changes).length === 0) {
+    cancelEditing();
+    return;
+  }
+
+  for (const input of tr.querySelectorAll('.scl-inline-edit')) {
+    input.disabled = true;
+  }
+
+  try {
+    await api.post('/tables/update-row', {
+      table_name: appState.tableName,
+      project_name: appState.projectName,
+      model_name: appState.modelName,
+      row_id: rowid,
+      updates: changes,
+    });
+
+    for (const { cellIndex, rawValue } of originals) {
+      const td = tr.cells[cellIndex];
+      if (!td) continue;
+
+      const input = td.querySelector('.scl-inline-edit');
+      const newValue = input ? input.value : rawValue;
+      const colIndex = cellIndex - 1;
+      const [colName, dataType] = appState.columnNames[colIndex] ?? [];
+      const fmt = appState.columnFormats?.[colName];
+
+      td.title = newValue ?? '';
+      const { text, align } = formatCellValue(newValue, dataType, fmt);
+      td.textContent = text;
+      td.style.textAlign = align || '';
+    }
+
+    tr.classList.remove(EDITING_CLASS);
+    activeEdit = null;
+    bsToastSuccess('Row updated');
+  } catch {
+    for (const input of tr.querySelectorAll('.scl-inline-edit')) {
+      input.disabled = false;
+    }
+  }
+}
+
 /**
  * Initialize all table toolbar controls and pagination.
  *
@@ -1657,6 +1871,13 @@ function initTableControls(appState) {
   initAddColumnBtn(appState);
   initFormatColumnBtn(appState);
   initDecimalBtns(appState);
+
+  // Click outside an editing row → cancel inline edit
+  document.addEventListener('mousedown', (e) => {
+    if (!activeEdit) return;
+    if (activeEdit.tr.contains(e.target)) return;
+    cancelEditing();
+  });
 }
 
 /**
