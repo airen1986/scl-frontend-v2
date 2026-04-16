@@ -104,7 +104,12 @@
         >
           <i class="fa-solid fa-chevron-right"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Edit">
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="updateColumnBtn"
+          title="Update Column"
+          aria-label="Update Column"
+        >
           <i class="fa-solid fa-pencil-alt"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Undo">
@@ -370,6 +375,45 @@
               </button>
               <button type="button" class="btn btn-dark ms-auto" id="submitFormatColumnBtn">
                 OK
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Update Column Modal -->
+      <div
+        class="modal fade"
+        id="updateColumnModal"
+        tabindex="-1"
+        aria-labelledby="updateColumnLabel"
+        aria-hidden="true"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false"
+      >
+        <div class="modal-dialog modal-md modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="updateColumnLabel">
+                <span>Update Column:</span>
+                <span id="updateColumnTitleName"></span>
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-0" id="updateColumnInputContainer"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button type="button" class="btn btn-dark ms-auto" id="submitUpdateColumnBtn">
+                Update
               </button>
             </div>
           </div>

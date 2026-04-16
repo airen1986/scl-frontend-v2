@@ -45,7 +45,7 @@ npm install
 Copy the example environment file and adjust as needed:
 
 ```bash
-cp .env.example src/.env
+cp .env.example .env
 ```
 
 ### Development
@@ -74,34 +74,98 @@ npm run preview
 
 ```
 ├── src/
+│   ├── activate-account.html
+│   ├── forgot-password.html
+│   ├── home-page.html
+│   ├── index.html
+│   ├── login.html
+│   ├── reset-password.html
+│   ├── signup.html
+│   ├── table.html
 │   ├── common/
+│   │   ├── css/
+│   │   │   └── custom.css           # Shared custom CSS
 │   │   └── js/
-│   │       ├── api.js           # Fetch-based API client
-│   │       ├── bsToast.js       # Bootstrap toast helpers
-│   │       └── dom.js           # DOM utility helpers
+│   │       ├── api.js               # Fetch-based API client
+│   │       ├── bsToast.js           # Bootstrap toast helpers
+│   │       └── dom.js               # DOM utility helpers
 │   ├── page_assets/
-│   │   └── index/
-│   │       ├── js/main.js       # Entry point for index page
-│   │       └── css/main.css     # Page specific CSS
-│   ├── public/                  # Static assets (copied as-is)
-│   ├── scss/
-│   │   ├── components/          # Bootstrap component overrides
-│   │   ├── layouts/             # Page layout styles
-│   │   ├── mixins/              # SCSS mixins
-│   │   ├── _variables.scss      # Bootstrap + theme variables
-│   │   ├── _brutopia.scss       # Component import manifest
-│   │   ├── _fonts.scss          # Self-hosted font declarations
-│   │   ├── _utilities.scss      # Custom utility classes
-│   │   └── styles.scss          # Main SCSS entry point
-│   ├── .env                     # Environment variables (not committed)
-│   └── index.html               # Landing page
+│   │   ├── activate-account/
+│   │   │   ├── css/main.css
+│   │   │   └── js/main.js
+│   │   ├── forgot-password/
+│   │   │   ├── css/main.css
+│   │   │   └── js/main.js
+│   │   ├── home-page/
+│   │   │   ├── css/main.css
+│   │   │   └── js/
+│   │   │       ├── main.js
+│   │   │       ├── models.js
+│   │   │       ├── notifications.js
+│   │   │       └── projects.js
+│   │   ├── index/
+│   │   │   ├── css/main.css
+│   │   │   └── js/main.js
+│   │   ├── login/
+│   │   │   ├── css/main.css
+│   │   │   └── js/main.js
+│   │   ├── reset-password/
+│   │   │   ├── css/main.css
+│   │   │   └── js/main.js
+│   │   ├── signup/
+│   │   │   ├── css/main.css
+│   │   │   └── js/main.js
+│   │   └── table/
+│   │       ├── css/main.css
+│   │       └── js/
+│   │           ├── commons.js
+│   │           ├── main.js
+│   │           └── tables.js
+│   ├── public/                      # Static assets (copied as-is)
+│   │   ├── scc.svg
+│   │   └── summence_bw.png
+│   └── scss/
+│       ├── components/              # Bootstrap component overrides
+│       │   ├── _alert.scss
+│       │   ├── _avatar.scss
+│       │   ├── _badge.scss
+│       │   ├── _breadcrumb.scss
+│       │   ├── _buttons.scss
+│       │   ├── _card.scss
+│       │   ├── _carousel.scss
+│       │   ├── _divider.scss
+│       │   ├── _dropdowns.scss
+│       │   ├── _forms.scss
+│       │   ├── _icons.scss
+│       │   ├── _modal.scss
+│       │   ├── _navbar.scss
+│       │   ├── _navs.scss
+│       │   ├── _pagination.scss
+│       │   ├── _progress.scss
+│       │   ├── _sidebar.scss
+│       │   └── _table.scss
+│       ├── layouts/
+│       │   └── main.scss            # Page layout styles
+│       ├── mixins/
+│       │   └── _navbar.scss         # SCSS mixins
+│       ├── _brutopia.scss           # Component import manifest
+│       ├── _fonts.scss              # Self-hosted font declarations
+│       ├── _utilities.scss          # Custom utility classes
+│       ├── _variables.scss          # Bootstrap + theme variables
+│       └── styles.scss              # Main SCSS entry point
 ├── .editorconfig
-├── .env.example                 # Environment variable template
-├── .github/workflows/ci.yml    # CI pipeline
-├── .nvmrc                       # Node version
-├── .prettierrc                  # Prettier config
-├── .stylelintrc.json            # Stylelint config
-├── eslint.config.js             # ESLint flat config
+├── .env                             # Environment variables (not committed)
+├── .env.example                     # Environment variable template
+├── .gitignore
+├── .nvmrc                           # Node version
+├── .prettierignore
+├── .prettierrc                      # Prettier config
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                   # CI pipeline
+│       └── deploy.yml               # Deployment pipeline
+├── AGENTS.md
+├── eslint.config.js                 # ESLint flat config
 ├── LICENSE
 ├── package.json
 ├── vite.config.js
@@ -143,7 +207,7 @@ $danger:    #d1503b;
 
 ### Environment Variables
 
-All `VITE_`-prefixed variables in `src/.env` are available in JS via `import.meta.env`:
+All `VITE_`-prefixed variables in `.env` are available in JS via `import.meta.env`:
 
 ```js
 const apiUrl = import.meta.env.VITE_API_BASE_URL;

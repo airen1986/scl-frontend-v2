@@ -3,6 +3,12 @@ import { bsToastWarning, bsToastSuccess } from '@/common/js/bsToast';
 
 let tableLoaderDepth = 0;
 
+/** CSS class applied to the row currently being edited. */
+const EDITING_CLASS = 'scl-row-editing';
+
+/** Stores the state of the row being edited (null when idle). */
+let activeEdit = null;
+
 /**
  * Makes the global page loader visible and increments the internal reference counter.
  *
@@ -302,11 +308,11 @@ function refreshSortIcons(appState) {
 }
 
 /**
- * Load table rows using the current application state and render them into the table body.
+ * Fetches the current page of table rows and renders them into the table body.
  *
- * Updates appState.currentRowCount, clears and repopulates the DOM element #sclTableBody with the fetched rows (the first value of each row is used as the row checkbox value; remaining values populate subsequent cells). Cell text is produced by formatCellValue and the raw value is stored on td.title. After rendering, reapplies column highlighting and updates pagination UI/state. The page loader is shown while the request and rendering occur.
+ * Updates appState.currentRowCount, cancels any active inline edit, replaces the contents of #sclTableBody with the fetched rows (the first value of each row becomes the row checkbox value; remaining values populate subsequent cells with display text from formatCellValue and raw values stored on td.title), reapplies column highlighting, and updates pagination state/UI.
  *
- * @param {Object} appState - Application state used to build the request and control rendering. Must include tableName, projectName, modelName, currentPage, pageSize, selectFilters, textFilters, columnNames, and sortColumns; may include columnFormats for per-column formatting.
+ * @param {Object} appState - Application state used to build the request and control rendering. Required properties: `tableName`, `projectName`, `modelName`, `currentPage`, `pageSize`, `selectFilters`, `textFilters`, `columnNames`, and `sortColumns`. May include `columnFormats`.
  */
 async function fetchTableData(appState) {
   showTableLoader();
@@ -325,6 +331,7 @@ async function fetchTableData(appState) {
     });
 
     appState.currentRowCount = data.length;
+    cancelEditing();
     const tbody = document.getElementById('sclTableBody');
     tbody.innerHTML = '';
 
@@ -353,6 +360,36 @@ async function fetchTableData(appState) {
         if (align) td.style.textAlign = align;
         tr.appendChild(td);
       }
+
+      // Inline edit: dblclick → edit mode; keydown → save / cancel / tab
+      tr.addEventListener('dblclick', (e) => {
+        if (e.target.closest('input[type="checkbox"]')) return;
+        if (activeEdit?.tr === tr) return;
+        startEditing(tr, appState);
+      });
+
+      tr.addEventListener('keydown', (e) => {
+        if (!activeEdit || activeEdit.tr !== tr) return;
+        const input = e.target.closest('.scl-inline-edit');
+        if (!input) return;
+
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveEditing(appState);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelEditing();
+        } else if (e.key === 'Tab') {
+          const inputs = [...tr.querySelectorAll('.scl-inline-edit')];
+          const idx = inputs.indexOf(input);
+          const leavingRow =
+            (e.shiftKey && idx === 0) || (!e.shiftKey && idx === inputs.length - 1);
+          if (!leavingRow) {
+            e.preventDefault();
+            inputs[e.shiftKey ? idx - 1 : idx + 1].focus();
+          }
+        }
+      });
 
       tbody.appendChild(tr);
     }
@@ -454,9 +491,11 @@ async function populateFilterDropdown(dropdown, colName, appState) {
 
   const activeSet = new Set(appState.selectFilters?.[colName] ?? []);
   const colMeta = appState.columnNames.find(([name]) => name === colName);
-  const isNumeric = colMeta && isNumericType(colMeta[1]);
+  const dataType = colMeta ? colMeta[1] : '';
+  const fmt = appState.columnFormats?.[colName];
 
   fieldset.innerHTML = '';
+  dropdown.querySelector('.lov-truncated-note')?.remove();
   for (const val of values) {
     const a = document.createElement('a');
     a.className = 'dropdown-item px-2 py-0';
@@ -469,11 +508,18 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     if (activeSet.has(val)) cb.checked = true;
     const label = document.createElement('label');
     label.className = 'form-check-label';
-    label.textContent = val !== null ? (isNumeric ? formatNumericValue(val) : val) : '(blank)';
+    label.textContent = val !== null ? formatCellValue(val, dataType, fmt).text : '(blank)';
     wrapper.append(cb, label);
     bindDropdownItemToggle(a, cb);
     a.appendChild(wrapper);
     fieldset.appendChild(a);
+  }
+
+  if (values.length >= appState.pageSize) {
+    const note = document.createElement('div');
+    note.className = 'text-start text-muted py-1 px-2 lov-truncated-note';
+    note.innerHTML = `<small>Showing first ${values.length} values `;
+    fieldset.insertAdjacentElement('afterend', note);
   }
 
   // Clone & replace the entire dropdown-item wrapper to remove stale listeners
@@ -643,9 +689,9 @@ function excelSerialToDate(serial) {
 }
 
 /**
- * Convert an Excel serial date/time to a UTC timestamp string in "YYYY-MM-DD HH:MM:SS" format.
+ * Converts an Excel serial date/time to a UTC timestamp string in the format YYYY-MM-DD HH:MM:SS.
  * @param {number} serial - Excel serial number (days since 1899-12-30); fractional part represents time-of-day.
- * @returns {string} A UTC timestamp string formatted as "YYYY-MM-DD HH:MM:SS".
+ * @returns {string} UTC timestamp string formatted as `YYYY-MM-DD HH:MM:SS`.
  */
 function excelSerialToDatetime(serial) {
   const totalMs = EXCEL_EPOCH_MS + serial * MS_PER_DAY;
@@ -654,6 +700,30 @@ function excelSerialToDatetime(serial) {
     `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)} ` +
     `${pad(d.getUTCHours(), 2)}:${pad(d.getUTCMinutes(), 2)}:${pad(d.getUTCSeconds(), 2)}`
   );
+}
+
+/**
+ * Convert a date string (YYYY-MM-DD) to an Excel serial day number, interpreting the date as UTC midnight.
+ * @param {string} dateStr - Date in `YYYY-MM-DD` format.
+ * @returns {number} Excel serial day count (integer).
+ */
+function dateToExcelSerial(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const ms = Date.UTC(y, m - 1, d);
+  return Math.round((ms - EXCEL_EPOCH_MS) / MS_PER_DAY);
+}
+
+/**
+ * Convert a datetime-local string to an Excel serial number.
+ * @param {string} dtStr - Datetime in `YYYY-MM-DDTHH:MM` or `YYYY-MM-DDTHH:MM:SS` format.
+ * @returns {number} Excel serial number (fractional part represents time-of-day).
+ */
+function datetimeToExcelSerial(dtStr) {
+  const [datePart, timePart = '00:00:00'] = dtStr.split('T');
+  const [y, m, d] = datePart.split('-').map(Number);
+  const [h, min, sec = 0] = timePart.split(':').map(Number);
+  const ms = Date.UTC(y, m - 1, d, h, min, sec);
+  return (ms - EXCEL_EPOCH_MS) / MS_PER_DAY;
 }
 
 // ── Currency symbol map ────────────────────────────────────────────────────
@@ -1409,18 +1479,17 @@ function initAddColumnBtn(appState) {
 }
 
 /**
- * Open and manage the Format Column modal for viewing, editing, and saving a column's display formatting.
+ * Open and manage the Format Column modal, allowing the user to view, edit, validate, persist, and apply display formatting for the selected column.
  *
- * Pre-populates controls from appState.columnFormats (or derives a default from SQL type), shows/hides
- * sections based on the chosen column type (REAL, INTEGER, LOV, etc.), validates inputs (e.g., decimal range),
- * persists changes to /tables/set-column-formatting, updates appState.columnFormats, and applies the new
- * formatting in-place to visible cells for the selected column.
+ * Reads initial values from appState.columnFormats (or derives defaults from appState.columnNames), shows/hides modal sections based on the chosen column type, validates inputs (e.g., decimal places range), persists changes to the server, updates appState.columnFormats, and applies the new formatting in-place to visible cells for the selected column.
  *
- * @param {Object} appState - Application state object; used properties include:
- *   - {string|null} selectedColumn: currently selected column name (required to open the modal)
- *   - {Object} columnFormats: per-column formatting overrides
- *   - {Array<[string,string]>} columnNames: list of [columnName, sqlType] pairs used to derive defaults
- *   - {string} tableName, projectName, modelName: identifiers sent to the server when saving formatting
+ * @param {Object} appState - Application state object. Used properties:
+ *   - {string|null} selectedColumn - Currently selected column name; required to open the modal.
+ *   - {Object<string, Object>} columnFormats - Per-column formatting overrides; updated on successful save.
+ *   - {Array<[string,string]>} columnNames - Array of [columnName, sqlType] pairs used to derive default formatting.
+ *   - {string} tableName - Table identifier sent to the server when saving formatting.
+ *   - {string} projectName - Project identifier sent to the server when saving formatting.
+ *   - {string} modelName - Model identifier sent to the server when saving formatting.
  */
 function initFormatColumnBtn(appState) {
   const formatBtn = document.getElementById('formatColumnBtn');
@@ -1452,6 +1521,21 @@ function initFormatColumnBtn(appState) {
   }
 
   columnTypeSelect.addEventListener('change', toggleSections);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F3') {
+      const ae = document.activeElement;
+      const inEditable =
+        ae &&
+        (ae.matches('input, textarea, select') ||
+          ae.isContentEditable ||
+          ae.closest('dialog, [role="dialog"]') ||
+          ae.closest('.modal.show'));
+      if (inEditable) return;
+      e.preventDefault();
+      formatBtn.click();
+    }
+  });
 
   formatBtn.addEventListener('click', () => {
     if (!appState.selectedColumn) {
@@ -1641,13 +1725,410 @@ function initDecimalBtns(appState) {
   decreaseBtn.addEventListener('click', () => adjustDecimals(-1));
 }
 
+// ── Bulk column update ───────────────────────────────────────────────────
+
 /**
- * Initialize all table toolbar controls and pagination.
+ * Create an input or select element appropriate for editing values in the given column.
  *
- * Wires up the refresh button, pagination controls, Select Columns modal,
- * Remove Column button, Add Column button, and Format Column button.
+ * The returned element is configured according to the column's SQL type and any saved
+ * per-column formatting in `appState.columnFormats`. For DATE/DATETIME columns that are
+ * stored as Excel serial numbers the element will include `dataset.excelSerial = 'true'`.
+ *
+ * @param {Object} appState - Application state containing `columnNames` and `columnFormats`.
+ * @param {string} colName - The name of the column to build the input for.
+ * @returns {HTMLElement} An input (text/date/datetime-local) or select element configured for the column.
+ */
+function buildColumnInput(appState, colName) {
+  const colMeta = appState.columnNames.find(([name]) => name === colName);
+  const [, dataType] = colMeta ?? [];
+  const fmt = appState.columnFormats?.[colName];
+  const isLov = fmt?.column_type === 'LOV' && Array.isArray(fmt.lov_options);
+  const numericCol = isNumericType(dataType) || isIntegerType(dataType);
+  const textCol = isTextType(dataType);
+  const isDateOnNumeric = numericCol && fmt?.column_type === 'DATE';
+  const isDatetimeOnNumeric = numericCol && fmt?.column_type === 'DATETIME';
+  const isDateOnText = textCol && fmt?.column_type === 'DATE';
+  const isDatetimeOnText = textCol && fmt?.column_type === 'DATETIME';
+
+  let el;
+  if (isLov) {
+    el = document.createElement('select');
+    el.className = 'form-select scl-inline-edit';
+    for (const opt of fmt.lov_options) {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.textContent = opt;
+      el.appendChild(option);
+    }
+  } else if (isDateOnNumeric || isDateOnText) {
+    el = document.createElement('input');
+    el.type = 'date';
+    el.className = 'form-control scl-inline-edit';
+    if (isDateOnNumeric) el.dataset.excelSerial = 'true';
+  } else if (isDatetimeOnNumeric || isDatetimeOnText) {
+    el = document.createElement('input');
+    el.type = 'datetime-local';
+    el.step = '1';
+    el.className = 'form-control scl-inline-edit';
+    if (isDatetimeOnNumeric) el.dataset.excelSerial = 'true';
+  } else {
+    el = document.createElement('input');
+    el.type = 'text';
+    el.className = 'form-control scl-inline-edit';
+  }
+  return el;
+}
+
+/**
+ * Read the raw value from an update-column input, converting date/datetime
+ * pickers back to their storage format when necessary.
+ *
+ * @param {HTMLElement} input - The input element.
+ * @returns {*} The value to send to the server (string or null).
+ */
+function readInputValue(input) {
+  let val = input.value;
+  if (input.dataset.excelSerial) {
+    if (input.type === 'date' && val) val = String(dateToExcelSerial(val));
+    else if (input.type === 'datetime-local' && val) val = String(datetimeToExcelSerial(val));
+  } else if (input.type === 'datetime-local' && val) {
+    val = val.replace('T', ' ');
+  }
+  return val === '' ? null : val;
+}
+
+/**
+ * Wire the "Update Column" control to open a modal for bulk-updating a column and apply the change.
+ *
+ * Opens a modal containing an input appropriate for the currently selected column, focuses the input,
+ * and submits a bulk update when the user confirms. If no rows are checked (or all rows are checked),
+ * the update is applied to all rows; otherwise it is applied only to the checked rows. The submit
+ * button is disabled while the request is in flight. If no column is selected, a warning is shown
+ * and the modal is not opened. On success the modal is closed, a success toast is shown, and the
+ * table data is refreshed.
+ *
+ * @param {Object} appState - Application state containing table identifiers and current selection state.
+ */
+function initUpdateColumnBtn(appState) {
+  const updateBtn = document.getElementById('updateColumnBtn');
+  const modalEl = document.getElementById('updateColumnModal');
+  const titleName = document.getElementById('updateColumnTitleName');
+  const container = document.getElementById('updateColumnInputContainer');
+  const submitBtn = document.getElementById('submitUpdateColumnBtn');
+  const modal = new window.bootstrap.Modal(modalEl);
+
+  updateBtn.addEventListener('click', () => {
+    if (!appState.selectedColumn) {
+      bsToastWarning('Please select a column first');
+      return;
+    }
+
+    const colName = appState.selectedColumn;
+    titleName.textContent = colName;
+    container.innerHTML = '';
+    container.appendChild(buildColumnInput(appState, colName));
+    modal.show();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F2') {
+      const ae = document.activeElement;
+      const inEditable =
+        ae &&
+        (ae.matches('input, textarea, select') ||
+          ae.isContentEditable ||
+          ae.closest('dialog, [role="dialog"]') ||
+          ae.closest('.modal.show'));
+      if (inEditable) return;
+      e.preventDefault();
+      updateBtn.click();
+    }
+  });
+
+  modalEl.addEventListener('shown.bs.modal', () => {
+    const input = container.querySelector('.scl-inline-edit');
+    if (input) input.focus();
+  });
+
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    titleName.textContent = '';
+    container.innerHTML = '';
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    const colName = appState.selectedColumn;
+    if (!colName) return;
+
+    const input = container.querySelector('.scl-inline-edit');
+    if (!input) return;
+
+    const newValue = readInputValue(input);
+
+    // Determine which rows to update
+    const tbody = document.getElementById('sclTableBody');
+    const allCbs = [...tbody.querySelectorAll('input[type="checkbox"]')];
+    const checkedCbs = allCbs.filter((cb) => cb.checked);
+
+    // No selection or all selected → update all rows (send empty row_ids)
+    const rowIds =
+      checkedCbs.length === 0 || checkedCbs.length === allCbs.length
+        ? []
+        : checkedCbs.map((cb) => cb.value);
+
+    submitBtn.disabled = true;
+    try {
+      const { rows_updated } = await api.post('/tables/update-rows', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        column_name: colName,
+        column_value: newValue,
+        row_ids: rowIds,
+        select_filters: appState.selectFilters,
+        text_filters: appState.textFilters,
+      });
+
+      bsToastSuccess(`${rows_updated} row${rows_updated !== 1 ? 's' : ''} updated`);
+      modal.hide();
+      await fetchTableData(appState);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+}
+
+// ── Inline editing ───────────────────────────────────────────────────────
+
+/**
+ * Enter inline-edit mode for the specified table row, replacing each data cell with an appropriate inline editor.
+ *
+ * Records each cell's original raw value, displayed text, and alignment, skips the leading checkbox column, sets the module-level `activeEdit` state, and focuses the first inline editor.
+ *
+ * @param {HTMLTableRowElement} tr - Table row to edit.
+ * @param {Object} appState - Application state; used to resolve column names and per-column formatting via `appState.columnNames` and `appState.columnFormats`.
+ */
+function startEditing(tr, appState) {
+  if (activeEdit) cancelEditing();
+
+  const cells = [...tr.cells];
+  const originals = [];
+
+  for (let i = 1; i < cells.length; i++) {
+    const td = cells[i];
+    originals.push({
+      cellIndex: i,
+      rawValue: td.title,
+      displayText: td.textContent,
+      align: td.style.textAlign,
+    });
+
+    const colName = appState.columnNames[i - 1]?.[0];
+    const [, dataType] = appState.columnNames[i - 1] ?? [];
+    const fmt = appState.columnFormats?.[colName];
+    const isLov = fmt?.column_type === 'LOV' && Array.isArray(fmt.lov_options);
+    const numericCol = isNumericType(dataType) || isIntegerType(dataType);
+    const textCol = isTextType(dataType);
+    const isDateOnNumeric = numericCol && fmt?.column_type === 'DATE';
+    const isDatetimeOnNumeric = numericCol && fmt?.column_type === 'DATETIME';
+    const isDateOnText = textCol && fmt?.column_type === 'DATE';
+    const isDatetimeOnText = textCol && fmt?.column_type === 'DATETIME';
+
+    let el;
+    if (isLov) {
+      el = document.createElement('select');
+      el.className = 'form-select form-select-sm scl-inline-edit';
+
+      for (const opt of fmt.lov_options) {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        el.appendChild(option);
+      }
+
+      if (td.title && !fmt.lov_options.includes(td.title)) {
+        const option = document.createElement('option');
+        option.value = td.title;
+        option.textContent = td.title;
+        el.appendChild(option);
+      }
+
+      el.value = td.title;
+    } else if (isDateOnNumeric) {
+      el = document.createElement('input');
+      el.type = 'date';
+      el.className = 'form-control form-control-sm scl-inline-edit';
+      el.dataset.excelSerial = 'true';
+      const num = Number(td.title);
+      el.value = td.title !== '' && !Number.isNaN(num) ? excelSerialToDate(num) : '';
+    } else if (isDatetimeOnNumeric) {
+      el = document.createElement('input');
+      el.type = 'datetime-local';
+      el.step = '1';
+      el.className = 'form-control form-control-sm scl-inline-edit';
+      el.dataset.excelSerial = 'true';
+      const num = Number(td.title);
+      el.value =
+        td.title !== '' && !Number.isNaN(num) ? excelSerialToDatetime(num).replace(' ', 'T') : '';
+    } else if (isDateOnText) {
+      el = document.createElement('input');
+      el.type = 'date';
+      el.className = 'form-control form-control-sm scl-inline-edit';
+      el.value = td.title ? td.title.substring(0, 10) : '';
+    } else if (isDatetimeOnText) {
+      el = document.createElement('input');
+      el.type = 'datetime-local';
+      el.step = '1';
+      el.className = 'form-control form-control-sm scl-inline-edit';
+      el.value = td.title ? td.title.substring(0, 19).replace(' ', 'T') : '';
+    } else {
+      el = document.createElement('input');
+      el.type = 'text';
+      el.className = 'form-control form-control-sm scl-inline-edit';
+      el.value = td.title;
+      if (td.style.textAlign) el.style.textAlign = td.style.textAlign;
+    }
+
+    td.textContent = '';
+    td.appendChild(el);
+  }
+
+  tr.classList.add(EDITING_CLASS);
+  activeEdit = { tr, originals };
+
+  const firstInput = tr.querySelector('.scl-inline-edit');
+  if (firstInput) firstInput.focus();
+}
+
+/**
+ * Restore the table row previously in inline-edit mode to its original cell contents and exit edit state.
+ *
+ * If no row is currently being edited, this function does nothing.
+ */
+function cancelEditing() {
+  if (!activeEdit) return;
+
+  const { tr, originals } = activeEdit;
+
+  for (const { cellIndex, displayText, align } of originals) {
+    const td = tr.cells[cellIndex];
+    if (!td) continue;
+    td.textContent = displayText;
+    td.style.textAlign = align || '';
+  }
+
+  tr.classList.remove(EDITING_CLASS);
+  activeEdit = null;
+}
+
+/**
+ * Collect changed values from the active edit row and persist via the API.
+ *
+ * Only columns whose value actually changed are sent. After a successful save
+ * the row reverts to display mode with updated raw values and formatting
+ * via formatCellValue.
  *
  * @param {Object} appState - Application state.
+ */
+async function saveEditing(appState) {
+  if (!activeEdit) return;
+
+  const { tr, originals } = activeEdit;
+
+  const checkbox = tr.cells[0]?.querySelector('input[type="checkbox"]');
+  if (!checkbox) {
+    bsToastWarning('Unable to identify the row');
+    cancelEditing();
+    return;
+  }
+  const rowid = checkbox.value;
+
+  const changes = {};
+  for (const { cellIndex, rawValue } of originals) {
+    const input = tr.cells[cellIndex]?.querySelector('.scl-inline-edit');
+    if (!input) continue;
+    let newValue = input.value;
+
+    // Convert date/datetime picker values back to the raw storage format
+    if (input.dataset.excelSerial) {
+      if (input.type === 'date' && newValue) {
+        newValue = String(dateToExcelSerial(newValue));
+      } else if (input.type === 'datetime-local' && newValue) {
+        newValue = String(datetimeToExcelSerial(newValue));
+      }
+    } else if (input.type === 'datetime-local' && newValue) {
+      newValue = newValue.replace('T', ' ');
+    }
+
+    if (newValue !== rawValue) {
+      const colName = appState.columnNames[cellIndex - 1]?.[0];
+      if (colName) changes[colName] = newValue === '' ? null : newValue;
+    }
+  }
+
+  if (Object.keys(changes).length === 0) {
+    cancelEditing();
+    return;
+  }
+
+  for (const input of tr.querySelectorAll('.scl-inline-edit')) {
+    input.disabled = true;
+  }
+
+  try {
+    await api.post('/tables/update-row', {
+      table_name: appState.tableName,
+      project_name: appState.projectName,
+      model_name: appState.modelName,
+      row_id: rowid,
+      updates: changes,
+    });
+
+    for (const { cellIndex, rawValue } of originals) {
+      const td = tr.cells[cellIndex];
+      if (!td) continue;
+
+      const input = td.querySelector('.scl-inline-edit');
+      let newValue = input ? input.value : rawValue;
+
+      // Convert date/datetime picker values back to the raw storage format
+      if (input?.dataset.excelSerial) {
+        if (input.type === 'date' && newValue) {
+          newValue = String(dateToExcelSerial(newValue));
+        } else if (input.type === 'datetime-local' && newValue) {
+          newValue = String(datetimeToExcelSerial(newValue));
+        }
+      } else if (input?.type === 'datetime-local' && newValue) {
+        newValue = newValue.replace('T', ' ');
+      }
+
+      const colIndex = cellIndex - 1;
+      const [colName, dataType] = appState.columnNames[colIndex] ?? [];
+      const fmt = appState.columnFormats?.[colName];
+
+      td.title = newValue ?? '';
+      const { text, align } = formatCellValue(newValue, dataType, fmt);
+      td.textContent = text;
+      td.style.textAlign = align || '';
+    }
+
+    tr.classList.remove(EDITING_CLASS);
+    activeEdit = null;
+    bsToastSuccess('Row updated');
+  } catch {
+    for (const input of tr.querySelectorAll('.scl-inline-edit')) {
+      input.disabled = false;
+    }
+  }
+}
+
+/**
+ * Initialize table toolbar controls and pagination behavior.
+ *
+ * Wires event handlers for refresh, pagination, select/remove/add/format-column flows,
+ * decimal adjustment buttons, and the bulk-update control, and registers a global
+ * mousedown handler that cancels any active inline row edit when clicking outside it.
+ *
+ * @param {Object} appState - Application state object holding table configuration and runtime values.
  */
 function initTableControls(appState) {
   initRefreshDataBtn(appState);
@@ -1657,6 +2138,14 @@ function initTableControls(appState) {
   initAddColumnBtn(appState);
   initFormatColumnBtn(appState);
   initDecimalBtns(appState);
+  initUpdateColumnBtn(appState);
+
+  // Click outside an editing row → cancel inline edit
+  document.addEventListener('mousedown', (e) => {
+    if (!activeEdit) return;
+    if (activeEdit.tr.contains(e.target)) return;
+    cancelEditing();
+  });
 }
 
 /**
