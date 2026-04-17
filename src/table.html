@@ -23,14 +23,6 @@
 
     <div class="d-flex justify-content-between align-items-center my-2 mx-1">
       <h5 class="mb-0" id="tableDisplayName">ForecastOrders</h5>
-      <button
-        class="btn btn-sm btn-outline-dark rounded-2"
-        type="button"
-        id="refreshDataBtn"
-        aria-label="Refresh Data"
-      >
-        <i class="fa-solid fa-sync-alt"></i>
-      </button>
     </div>
 
     <!-- <div class="flex-fill d-flex">
@@ -121,8 +113,22 @@
         >
           <i class="fa-solid fa-pencil-alt"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Undo">
-          <i class="fa-solid fa-undo"></i>
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="addRowBtn"
+          title="Add New Row"
+          aria-label="Add New Row"
+          aria-pressed="false"
+        >
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="refreshDataBtn"
+          title="Refresh Data"
+          aria-label="Refresh Data"
+        >
+          <i class="fa-solid fa-refresh"></i>
         </button>
         <button
           class="btn btn-sm btn-outline-dark"

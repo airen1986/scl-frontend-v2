@@ -186,6 +186,7 @@ async function getTableHeaders(appState) {
       appState.currentPage = 1; // Reset to first page on filter change, since current page may become invalid
       appState.totalRowCount = null;
       hideSummaryRow();
+      closeAddRow();
       fetchTableData(appState);
     });
 
@@ -309,9 +310,48 @@ function refreshSortIcons(appState) {
 }
 
 /**
+ * Toolbar buttons that mutate table data or structure. These are disabled when
+ * the table is rendered in non-editable mode (no rowid column returned).
+ */
+const EDIT_CONTROL_IDS = ['deleteRowsBtn', 'updateColumnBtn', 'addRowBtn', 'addColumnBtn'];
+
+/**
+ * Enable or disable the row/column mutation toolbar controls
+ * (`deleteRowsBtn`, `updateColumnBtn`, `addRowBtn`, `addColumnBtn`).
+ *
+ * When disabled, the buttons are also given `aria-disabled="true"` and hidden
+ * via the Bootstrap `d-none` utility class so they neither react to clicks nor
+ * appear in the toolbar.
+ *
+ * @param {boolean} enabled - `true` to enable and show the controls; `false` to disable and hide them.
+ */
+function setEditControlsEnabled(enabled) {
+  for (const id of EDIT_CONTROL_IDS) {
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    btn.disabled = !enabled;
+    btn.setAttribute('aria-disabled', String(!enabled));
+    btn.classList.toggle('d-none', !enabled);
+  }
+  const head1 = document.getElementById('sclTableHead1');
+  const selectAllCb = head1.querySelector('input[type="checkbox"]');
+  selectAllCb.disabled = !enabled;
+}
+
+/**
  * Fetches the current page of table rows and renders them into the table body.
  *
- * Updates appState.currentRowCount, cancels any active inline edit, replaces the contents of #sclTableBody with the fetched rows (the first value of each row becomes the row checkbox value; remaining values populate subsequent cells with display text from formatCellValue and raw values stored on td.title), reapplies column highlighting, and updates pagination state/UI.
+ * Updates appState.currentRowCount, cancels any active inline edit, replaces the contents of #sclTableBody with the fetched rows, reapplies column highlighting, and updates pagination state/UI.
+ *
+ * The rendering mode is determined by inspecting the first row:
+ * - If the first row has `columnNames.length + 1` elements, the leading value is treated as the
+ *   rowid and the table is rendered as editable/selectable (existing behavior: each row gets a
+ *   checkbox carrying the rowid plus dblclick/keydown inline-edit handlers).
+ * - If the first row has exactly `columnNames.length` elements, there is no rowid; the table is
+ *   rendered with the same DOM structure (leading cell preserved) but without checkboxes or
+ *   inline-edit handlers, making it non-editable and non-selectable. The row/column mutation
+ *   toolbar buttons (delete rows, update column, add row, add column) are also hidden/disabled.
+ * - If the first row has fewer than `columnNames.length` elements, an error is thrown.
  *
  * @param {Object} appState - Application state used to build the request and control rendering. Required properties: `tableName`, `projectName`, `modelName`, `currentPage`, `pageSize`, `selectFilters`, `textFilters`, `columnNames`, and `sortColumns`. May include `columnFormats`.
  */
@@ -336,18 +376,54 @@ async function fetchTableData(appState) {
     const tbody = document.getElementById('sclTableBody');
     tbody.innerHTML = '';
 
-    for (const row of data) {
-      const [rowid, ...values] = row;
-      const tr = document.createElement('tr');
+    // Determine rendering mode from the first row's length:
+    //   n === columns + 1 → editable (first element is rowid)
+    //   n === columns     → non-editable, non-selectable (no rowid)
+    //   n <  columns      → malformed response, raise an error
+    const numColumns = appState.columnNames.length;
+    let hasRowId = true;
+    if (data.length > 0) {
+      const firstRowLength = data[0].length;
+      if (firstRowLength === numColumns + 1) {
+        hasRowId = true;
+      } else if (firstRowLength === numColumns) {
+        hasRowId = false;
+      } else if (firstRowLength < numColumns) {
+        throw new Error(
+          `fetchTableData: row has ${firstRowLength} element(s) but table has ${numColumns} column(s); expected ${numColumns} or ${numColumns + 1}.`
+        );
+      }
+    }
 
-      // Checkbox cell with rowid
-      const checkTd = document.createElement('td');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.className = 'form-check-input';
-      checkbox.value = rowid;
-      checkTd.appendChild(checkbox);
-      tr.appendChild(checkTd);
+    // Disable row/column mutation controls when the table is non-editable
+    // (i.e. rows carry no rowid and therefore cannot be targeted for updates).
+    setEditControlsEnabled(hasRowId);
+
+    for (const row of data) {
+      const tr = document.createElement('tr');
+      let values;
+
+      // Leading cell: preserves table structure in both modes.
+      const leadTd = document.createElement('td');
+      if (hasRowId) {
+        const [rowid, ...rest] = row;
+        values = rest;
+        // Checkbox cell with rowid
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'form-check-input';
+        checkbox.value = rowid;
+        leadTd.appendChild(checkbox);
+      } else {
+        // Non-editable, non-selectable: no rowid, no checkbox; keep empty cell.
+        values = row;
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'form-check-input';
+        checkbox.disabled = true;
+        leadTd.appendChild(checkbox);
+      }
+      tr.appendChild(leadTd);
 
       // Data cells
       for (let i = 0; i < values.length; i++) {
@@ -362,35 +438,37 @@ async function fetchTableData(appState) {
         tr.appendChild(td);
       }
 
-      // Inline edit: dblclick → edit mode; keydown → save / cancel / tab
-      tr.addEventListener('dblclick', (e) => {
-        if (e.target.closest('input[type="checkbox"]')) return;
-        if (activeEdit?.tr === tr) return;
-        startEditing(tr, appState);
-      });
+      if (hasRowId) {
+        // Inline edit: dblclick → edit mode; keydown → save / cancel / tab
+        tr.addEventListener('dblclick', (e) => {
+          if (e.target.closest('input[type="checkbox"]')) return;
+          if (activeEdit?.tr === tr) return;
+          startEditing(tr, appState);
+        });
 
-      tr.addEventListener('keydown', (e) => {
-        if (!activeEdit || activeEdit.tr !== tr) return;
-        const input = e.target.closest('.scl-inline-edit');
-        if (!input) return;
+        tr.addEventListener('keydown', (e) => {
+          if (!activeEdit || activeEdit.tr !== tr) return;
+          const input = e.target.closest('.scl-inline-edit');
+          if (!input) return;
 
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          saveEditing(appState);
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          cancelEditing();
-        } else if (e.key === 'Tab') {
-          const inputs = [...tr.querySelectorAll('.scl-inline-edit')];
-          const idx = inputs.indexOf(input);
-          const leavingRow =
-            (e.shiftKey && idx === 0) || (!e.shiftKey && idx === inputs.length - 1);
-          if (!leavingRow) {
+          if (e.key === 'Enter') {
             e.preventDefault();
-            inputs[e.shiftKey ? idx - 1 : idx + 1].focus();
+            saveEditing(appState);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelEditing();
+          } else if (e.key === 'Tab') {
+            const inputs = [...tr.querySelectorAll('.scl-inline-edit')];
+            const idx = inputs.indexOf(input);
+            const leavingRow =
+              (e.shiftKey && idx === 0) || (!e.shiftKey && idx === inputs.length - 1);
+            if (!leavingRow) {
+              e.preventDefault();
+              inputs[e.shiftKey ? idx - 1 : idx + 1].focus();
+            }
           }
-        }
-      });
+        });
+      }
 
       tbody.appendChild(tr);
     }
@@ -428,6 +506,7 @@ function initRefreshDataBtn(appState) {
       clearColumnHighlight();
       refreshSortIcons(appState);
       hideSummaryRow();
+      closeAddRow();
 
       const head1 = document.getElementById('sclTableHead1');
       const selectAllCb = head1.querySelector('input[type="checkbox"]');
@@ -586,6 +665,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
       appState.currentPage = 1;
       appState.totalRowCount = null;
       hideSummaryRow();
+      closeAddRow();
       fetchTableData(appState);
     }
   });
@@ -604,6 +684,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
       appState.currentPage = 1;
       appState.totalRowCount = null;
       hideSummaryRow();
+      closeAddRow();
       fetchTableData(appState);
     }
   });
@@ -2153,12 +2234,148 @@ function initTableControls(appState) {
   initUpdateColumnBtn(appState);
   initDeleteRowsBtn(appState);
   initShowSummaryBtn(appState);
+  initAddRowBtn(appState);
 
   // Click outside an editing row → cancel inline edit
   document.addEventListener('mousedown', (e) => {
     if (!activeEdit) return;
     if (activeEdit.tr.contains(e.target)) return;
     cancelEditing();
+  });
+}
+
+/**
+ * Wire the Add Row toolbar button (#addRowBtn) to show an editable row in the
+ * table footer for entering values for a new row.
+ *
+ * Clicking the button toggles a footer row (#sclTableAddRow) containing one
+ * input per visible column, built via `buildColumnInput` so the inputs match
+ * the formatting rules used for inline row editing and bulk column update
+ * (LOV select, date/datetime pickers, text inputs, Excel-serial handling).
+ * Enter saves the new row, Escape cancels. On save the values are sent to
+ * `/tables/add-row` and the table is refreshed.
+ *
+ * @param {Object} appState - Application state. Reads `tableName`,
+ *   `projectName`, `modelName`, `columnNames`, and `columnFormats`; resets
+ *   pagination/row-count state on success.
+ */
+function initAddRowBtn(appState) {
+  const addRowBtn = document.getElementById('addRowBtn');
+  if (!addRowBtn) return;
+
+  const tfoot = document.querySelector('.scl-tfoot');
+  if (!tfoot) return;
+
+  addRowBtn.addEventListener('click', () => {
+    // Toggle off if already open
+    hideSummaryRow();
+    if (document.getElementById('sclTableAddRow')) {
+      closeAddRow();
+      return;
+    }
+
+    if (!appState.columnNames?.length) {
+      bsToastWarning('No columns available');
+      return;
+    }
+
+    const addRow = document.createElement('tr');
+    addRow.id = 'sclTableAddRow';
+    addRow.className = 'scl-add-row';
+
+    // Leading cell mirrors the checkbox column and holds the Save button
+    const actionTd = document.createElement('td');
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'btn btn-sm btn-dark p-0 px-1 scl-add-row-save';
+    saveBtn.title = 'Save Row';
+    saveBtn.setAttribute('aria-label', 'Save Row');
+    saveBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+    actionTd.appendChild(saveBtn);
+    addRow.appendChild(actionTd);
+
+    // Data cells: one input per visible column, built using the same helper
+    // used by the Update Column modal / inline editing so formatting rules
+    // (LOV, date, datetime, Excel-serial, numeric) stay consistent.
+    for (const [colName] of appState.columnNames) {
+      const td = document.createElement('td');
+      const input = buildColumnInput(appState, colName);
+      if (input.tagName === 'SELECT') {
+        input.classList.add('form-select-sm');
+      } else {
+        input.classList.add('form-control-sm');
+      }
+      td.appendChild(input);
+      addRow.appendChild(td);
+    }
+
+    tfoot.appendChild(addRow);
+    addRowBtn.classList.add('active');
+    addRowBtn.setAttribute('aria-pressed', 'true');
+
+    // Enter = save, Escape = cancel, Tab navigates between inputs
+    addRow.addEventListener('keydown', (e) => {
+      const input = e.target.closest('.scl-inline-edit');
+      if (!input) return;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveBtn.click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeAddRow();
+      } else if (e.key === 'Tab') {
+        const inputs = [...addRow.querySelectorAll('.scl-inline-edit')];
+        const idx = inputs.indexOf(input);
+        const leavingRow = (e.shiftKey && idx === 0) || (!e.shiftKey && idx === inputs.length - 1);
+        if (!leavingRow) {
+          e.preventDefault();
+          inputs[e.shiftKey ? idx - 1 : idx + 1].focus();
+        }
+      }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      const inputs = [...addRow.querySelectorAll('.scl-inline-edit')];
+      const values = {};
+      let hasValue = false;
+      inputs.forEach((input, idx) => {
+        const colName = appState.columnNames[idx]?.[0];
+        if (!colName) return;
+        const v = readInputValue(input);
+        if (v !== null && v !== '') hasValue = true;
+        values[colName] = v;
+      });
+
+      if (!hasValue) {
+        bsToastWarning('Please enter a value for at least one column');
+        return;
+      }
+
+      saveBtn.disabled = true;
+      for (const input of inputs) input.disabled = true;
+      showTableLoader();
+      try {
+        await api.post('/tables/add-row', {
+          table_name: appState.tableName,
+          project_name: appState.projectName,
+          model_name: appState.modelName,
+          values,
+        });
+        bsToastSuccess('Row added');
+        closeAddRow();
+        appState.totalRowCount = null;
+        await fetchTableData(appState);
+      } catch {
+        saveBtn.disabled = false;
+        for (const input of inputs) input.disabled = false;
+      } finally {
+        hideTableLoader();
+      }
+    });
+
+    const firstInput = addRow.querySelector('.scl-inline-edit');
+    if (firstInput) firstInput.focus();
   });
 }
 
@@ -2310,6 +2527,7 @@ function initShowSummaryBtn(appState) {
  *   (e.g. 'SUM', 'AVG'); used to annotate the cell's tooltip.
  */
 function renderSummaryRow(appState, summary, aggregations) {
+  closeAddRow();
   const tfootRow = document.getElementById('sclTableFoot');
   if (!tfootRow) return;
   tfootRow.innerHTML = '';
@@ -2336,6 +2554,15 @@ function renderSummaryRow(appState, summary, aggregations) {
     }
     tfootRow.appendChild(td);
   }
+}
+
+/** Remove the add-row footer and reset the toolbar button state. */
+function closeAddRow() {
+  const existing = document.getElementById('sclTableAddRow');
+  if (existing) existing.remove();
+  const addRowBtn = document.getElementById('addRowBtn');
+  addRowBtn.classList.remove('active');
+  addRowBtn.setAttribute('aria-pressed', 'false');
 }
 
 /**
