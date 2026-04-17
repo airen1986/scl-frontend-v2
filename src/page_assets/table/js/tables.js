@@ -384,7 +384,7 @@ async function fetchTableData(appState) {
     // Determine rendering mode from the first row's length:
     //   n === columns + 1 → editable (first element is rowid)
     //   n === columns     → non-editable, non-selectable (no rowid)
-    //   n <  columns      → malformed response, raise an error
+    //   else      → malformed response, raise an error
     const numColumns = appState.columnNames.length;
     let hasRowId = false;
     if (data.length > 0) {
@@ -393,7 +393,7 @@ async function fetchTableData(appState) {
         hasRowId = true;
       } else if (firstRowLength === numColumns) {
         hasRowId = false;
-      } else if (firstRowLength < numColumns) {
+      } else {
         throw new Error(
           `fetchTableData: row has ${firstRowLength} element(s) but table has ${numColumns} column(s); expected ${numColumns} or ${numColumns + 1}.`
         );
