@@ -42,18 +42,23 @@ function hideTableLoader() {
 }
 
 /**
- * Load column metadata and build the table header rows with filter controls and selection UI.
+ * Load table column metadata and construct the header rows with filter controls, sort buttons,
+ * and row-selection UI.
  *
- * Fetches column headers from the server, updates appState.columnNames, clears appState.selectedColumn,
- * replaces the header rows and table body, and attaches handlers for column selection, per-column
- * text/value filters, and row-selection checkboxes. When filters are changed via the UI this function
- * ensures appState.currentPage is reset to 1 and triggers a data refresh.
+ * Fetches column headers from the server, updates appState.columnNames, clears any selected column,
+ * rebuilds the two header rows and the table body (clearing stale listeners), and wires handlers for:
+ * sorting, column selection, per-column text and LOV filters, filter dropdown population, and
+ * select-all / per-row checkboxes. When a text filter is applied this function resets pagination to
+ * the first page, clears the total row count, hides the summary and add-row footers, and triggers a
+ * data refresh.
  *
  * @param {Object} appState - Application state; must include `tableName`, `projectName`, and `modelName`.
  *   Mutated properties:
- *   - `columnNames`: set to the returned headers (array of [columnName, dataType] tuples).
- *   - `selectedColumn`: set to `null`.
- *   - may create or modify `textFilters` and will set `currentPage = 1` when filters change.
+ *   - `columnNames` — set to the returned headers (array of [columnName, dataType] tuples).
+ *   - `selectedColumn` — set to `null`.
+ *   - `textFilters` — may be created or updated when users enter text filters.
+ *   - `currentPage` — set to `1` when filters change.
+ *   - `totalRowCount` — cleared when filters change.
  */
 async function getTableHeaders(appState) {
   showTableLoader();
@@ -1495,9 +1500,9 @@ function initRemoveColumnBtn(appState) {
 }
 
 /**
- * Wire the Add Column UI: opens the modal, validate the entered name/type, persist the new column and updated column order, and refresh table headers and data.
+ * Initialize the Add Column button and its modal flow: open the modal, validate the entered name and type, persist the new column and updated column ordering on the server, refresh table headers and data, and update relevant application state and UI to reflect the change.
  *
- * @param {Object} appState - Application state (reads tableName/projectName/modelName/columnNames and updates pagination and selection state).
+ * @param {Object} appState - Application state object; this function reads table identifiers and existing column names and updates pagination/selection state (it sets `currentPage`, clears `selectedColumn`, and clears `totalRowCount`) and triggers header/data refreshes.
  */
 function initAddColumnBtn(appState) {
   const addBtn = document.getElementById('addColumnBtn');
@@ -1821,15 +1826,15 @@ function initDecimalBtns(appState) {
 // ── Bulk column update ───────────────────────────────────────────────────
 
 /**
- * Create an input or select element appropriate for editing values in the given column.
+ * Create and return an input or select element configured for editing values in the specified column.
  *
- * The returned element is configured according to the column's SQL type and any saved
- * per-column formatting in `appState.columnFormats`. For DATE/DATETIME columns that are
+ * The element type is chosen from LOV select, date, datetime-local, or text based on the column's SQL
+ * type and any saved per-column formatting in `appState.columnFormats`. For DATE/DATETIME columns
  * stored as Excel serial numbers the element will include `dataset.excelSerial = 'true'`.
  *
  * @param {Object} appState - Application state containing `columnNames` and `columnFormats`.
- * @param {string} colName - The name of the column to build the input for.
- * @returns {HTMLElement} An input (text/date/datetime-local) or select element configured for the column.
+ * @param {string} colName - Column name to build the editor for.
+ * @returns {HTMLElement} An input (`text`/`date`/`datetime-local`) or `select` element ready for inline editing.
  */
 function buildColumnInput(appState, colName) {
   const colMeta = appState.columnNames.find(([name]) => name === colName);
@@ -2252,19 +2257,16 @@ function initTableControls(appState) {
 }
 
 /**
- * Wire the Add Row toolbar button (#addRowBtn) to show an editable row in the
- * table footer for entering values for a new row.
+ * Toggle and manage an add-row footer that lets the user enter values for a new table row.
  *
- * Clicking the button toggles a footer row (#sclTableAddRow) containing one
- * input per visible column, built via `buildColumnInput` so the inputs match
- * the formatting rules used for inline row editing and bulk column update
- * (LOV select, date/datetime pickers, text inputs, Excel-serial handling).
- * Enter saves the new row, Escape cancels. On save the values are sent to
- * `/tables/add-row` and the table is refreshed.
+ * Shows or hides a footer row (#sclTableAddRow) containing one input per visible column (built via
+ * buildColumnInput). The footer confines Tab focus, supports Enter to submit and Escape to cancel,
+ * validates that at least one column has a value, posts the values to `/tables/add-row`, and refreshes
+ * table state on success.
  *
- * @param {Object} appState - Application state. Reads `tableName`,
- *   `projectName`, `modelName`, `columnNames`, and `columnFormats`; resets
- *   pagination/row-count state on success.
+ * @param {Object} appState - Application state. Uses `tableName`, `projectName`, `modelName`,
+ *   `columnNames`, and `columnFormats`; resets pagination/row-count state (`totalRowCount`) and
+ *   triggers a data refresh after a successful add.
  */
 function initAddRowBtn(appState) {
   const addRowBtn = document.getElementById('addRowBtn');
@@ -2386,6 +2388,16 @@ function initAddRowBtn(appState) {
   });
 }
 
+/**
+ * Wires the Delete Rows toolbar button to delete selected (or all filtered) table rows.
+ *
+ * When the delete button is clicked, prompts for confirmation showing how many rows will be deleted,
+ * then issues a server request to remove either the explicitly checked rows or all rows matching current filters
+ * when the header select-all checkbox is fully checked. On success updates pagination state, clears the header
+ * select-all checkbox, refreshes table data, and shows a toast indicating the result.
+ *
+ * @param {object} appState - Application state object for the table view. Used for table identifiers, current/total row counts, and active filters.
+ */
 function initDeleteRowsBtn(appState) {
   const deleteBtn = document.getElementById('deleteRowsBtn');
   if (!deleteBtn) return;
