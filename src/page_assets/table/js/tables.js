@@ -185,6 +185,7 @@ async function getTableHeaders(appState) {
       }
       appState.currentPage = 1; // Reset to first page on filter change, since current page may become invalid
       appState.totalRowCount = null;
+      hideSummaryRow();
       fetchTableData(appState);
     });
 
@@ -426,6 +427,7 @@ function initRefreshDataBtn(appState) {
     try {
       clearColumnHighlight();
       refreshSortIcons(appState);
+      hideSummaryRow();
 
       const head1 = document.getElementById('sclTableHead1');
       const selectAllCb = head1.querySelector('input[type="checkbox"]');
@@ -583,6 +585,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     if (filterChanged) {
       appState.currentPage = 1;
       appState.totalRowCount = null;
+      hideSummaryRow();
       fetchTableData(appState);
     }
   });
@@ -600,6 +603,7 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     if (filterChanged) {
       appState.currentPage = 1;
       appState.totalRowCount = null;
+      hideSummaryRow();
       fetchTableData(appState);
     }
   });
@@ -1435,6 +1439,14 @@ function initAddColumnBtn(appState) {
       return;
     }
 
+    // validate column name: only allow letters, numbers, and underscores, and must start with a letter or underscore
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(columnName)) {
+      bsToastWarning(
+        'Invalid column name. Use only letters, numbers, and underscores, and start with a letter or underscore.'
+      );
+      return;
+    }
+
     // validate if the column name already exists in the current table
     if (appState.columnNames.some(([name]) => name === columnName)) {
       bsToastWarning(`Column "${columnName}" already exists`);
@@ -2139,6 +2151,8 @@ function initTableControls(appState) {
   initFormatColumnBtn(appState);
   initDecimalBtns(appState);
   initUpdateColumnBtn(appState);
+  initDeleteRowsBtn(appState);
+  initShowSummaryBtn(appState);
 
   // Click outside an editing row → cancel inline edit
   document.addEventListener('mousedown', (e) => {
@@ -2146,6 +2160,199 @@ function initTableControls(appState) {
     if (activeEdit.tr.contains(e.target)) return;
     cancelEditing();
   });
+}
+
+function initDeleteRowsBtn(appState) {
+  const deleteBtn = document.getElementById('deleteRowsBtn');
+  if (!deleteBtn) return;
+
+  deleteBtn.addEventListener('click', async () => {
+    const tbody = document.getElementById('sclTableBody');
+    const checkedBoxes = tbody.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedCount = checkedBoxes.length;
+
+    if (selectedCount === 0) {
+      window.alert('Please select at least one row to delete.');
+      return;
+    }
+
+    const head1 = document.getElementById('sclTableHead1');
+    const selectAllCb = head1?.querySelector('input[type="checkbox"]');
+    const totalRowCount = appState.totalRowCount ?? appState.currentRowCount ?? selectedCount;
+    const allSelected = !!selectAllCb && selectAllCb.checked && !selectAllCb.indeterminate;
+
+    const rowsToDelete = allSelected ? totalRowCount : selectedCount;
+    const confirmMsg = `This operation will delete ${rowsToDelete} row${
+      rowsToDelete !== 1 ? 's' : ''
+    }. Do you want to continue?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    const row_ids = allSelected ? [] : [...checkedBoxes].map((cb) => cb.value);
+
+    deleteBtn.disabled = true;
+    showTableLoader();
+    try {
+      const { rows_deleted } = await api.post('/tables/delete-rows', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        select_filters: appState.selectFilters,
+        text_filters: appState.textFilters,
+        row_ids,
+      });
+
+      if (rows_deleted !== rowsToDelete) {
+        bsToastWarning(
+          `Requested to delete ${rowsToDelete} row${rowsToDelete !== 1 ? 's' : ''} but ${rows_deleted} were deleted.`
+        );
+      } else {
+        bsToastSuccess(`${rows_deleted} row${rows_deleted !== 1 ? 's' : ''} deleted`);
+      }
+
+      if (selectAllCb) {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = false;
+      }
+      appState.currentPage = 1;
+      appState.totalRowCount = null;
+      await fetchTableData(appState);
+    } finally {
+      hideTableLoader();
+      deleteBtn.disabled = false;
+    }
+  });
+}
+
+/**
+ * Wire the Show Summary toolbar button (#showSummaryBtn).
+ *
+ * Clicking the button toggles a sticky footer row that displays per-column aggregates
+ * (SUM / AVG / MIN / MAX / COUNT / MEDIAN) as configured on each column's format.
+ * Only columns whose format has an `aggregation` set are sent to the server and
+ * rendered in the summary row; the remaining cells in the summary row are blank.
+ *
+ * The aggregated values are fetched from `/tables/summary` so that the aggregation is
+ * computed across all rows that match the current select/text filters (not just the
+ * currently paginated page).
+ *
+ * @param {Object} appState - Application state. Reads `tableName`, `projectName`,
+ *   `modelName`, `columnNames`, `columnFormats`, `selectFilters`, and `textFilters`.
+ */
+function initShowSummaryBtn(appState) {
+  const showBtn = document.getElementById('showSummaryBtn');
+  if (!showBtn) return;
+
+  showBtn.addEventListener('click', async () => {
+    const tfootRow = document.getElementById('sclTableFoot');
+    if (!tfootRow) return;
+
+    // Toggle off if already visible
+    if (!tfootRow.classList.contains('d-none')) {
+      hideSummaryRow();
+      return;
+    }
+
+    // Collect aggregations configured via column formatting
+    const aggregations = {};
+    for (const [colName, dataType] of appState.columnNames) {
+      const fmt = appState.columnFormats?.[colName];
+      if (fmt) {
+        if (fmt.aggregation) {
+          aggregations[colName] = fmt.aggregation;
+        }
+      } else if (isNumericType(dataType)) {
+        aggregations[colName] = 'SUM';
+      }
+    }
+
+    if (Object.keys(aggregations).length === 0) {
+      bsToastWarning('No columns have an aggregation configured. Set one via Format Column.');
+      return;
+    }
+
+    showBtn.disabled = true;
+    showTableLoader();
+    try {
+      const { summary } = await api.post('/tables/summary', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        select_filters: appState.selectFilters,
+        text_filters: appState.textFilters,
+        column_names: aggregations,
+      });
+
+      renderSummaryRow(appState, summary ?? {}, aggregations);
+      tfootRow.classList.remove('d-none');
+      showBtn.classList.add('active');
+      showBtn.setAttribute('aria-pressed', 'true');
+    } catch {
+      bsToastWarning('Failed to load summary');
+    } finally {
+      showBtn.disabled = false;
+      hideTableLoader();
+    }
+  });
+}
+
+/**
+ * Populate the sticky footer row with aggregated values returned by the server.
+ *
+ * The first cell mirrors the leading checkbox column and shows a Σ label. Each
+ * subsequent cell corresponds to a visible column; when the column has an
+ * aggregation configured, the aggregated value is formatted using the column's
+ * saved formatting (via formatCellValue). Cells for columns without an
+ * aggregation are left blank.
+ *
+ * @param {Object} appState - Application state providing `columnNames` and `columnFormats`.
+ * @param {Object<string, *>} summary - Map of columnName → aggregated raw value.
+ * @param {Object<string, string>} aggregations - Map of columnName → aggregation type
+ *   (e.g. 'SUM', 'AVG'); used to annotate the cell's tooltip.
+ */
+function renderSummaryRow(appState, summary, aggregations) {
+  const tfootRow = document.getElementById('sclTableFoot');
+  if (!tfootRow) return;
+  tfootRow.innerHTML = '';
+
+  // Leading cell aligns with the checkbox column
+  const labelTd = document.createElement('td');
+  labelTd.className = 'scl-summary-label';
+  labelTd.textContent = '\u03A3';
+  labelTd.title = 'Summary';
+  tfootRow.appendChild(labelTd);
+
+  for (const [colName, dataType] of appState.columnNames) {
+    const td = document.createElement('td');
+    const agg = aggregations[colName];
+    if (agg) {
+      const rawVal = summary[colName];
+      const fmt = appState.columnFormats?.[colName];
+      const { text, align } = formatCellValue(rawVal, dataType, fmt);
+      td.textContent = text;
+      td.title = `${agg}${rawVal !== null && rawVal !== undefined ? `: ${rawVal}` : ''}`;
+      if (align) td.style.textAlign = align;
+    } else {
+      td.textContent = '';
+    }
+    tfootRow.appendChild(td);
+  }
+}
+
+/**
+ * Hide the sticky summary row and clear its contents, resetting the toolbar
+ * button's pressed state.
+ */
+function hideSummaryRow() {
+  const tfootRow = document.getElementById('sclTableFoot');
+  if (tfootRow) {
+    tfootRow.classList.add('d-none');
+    tfootRow.innerHTML = '';
+  }
+  const showBtn = document.getElementById('showSummaryBtn');
+  if (showBtn) {
+    showBtn.classList.remove('active');
+    showBtn.setAttribute('aria-pressed', 'false');
+  }
 }
 
 /**

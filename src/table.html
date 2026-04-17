@@ -45,6 +45,10 @@
           <tr id="sclTableHead2" class="head2"></tr>
         </thead>
         <tbody class="scl-tbody" id="sclTableBody"></tbody>
+        <!-- Summary Row (sticky at bottom) -->
+        <tfoot class="scl-tfoot">
+          <tr id="sclTableFoot" class="scl-summary-row d-none"></tr>
+        </tfoot>
       </table>
     </div>
 
@@ -52,7 +56,12 @@
     <div class="d-flex justify-content-between align-items-center my-2 mx-1">
       <!-- Action Buttons -->
       <div class="btn-group">
-        <button class="btn btn-sm btn-outline-dark" title="Delete">
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="deleteRowsBtn"
+          title="Delete"
+          aria-label="Delete Rows"
+        >
           <i class="fa-solid fa-trash-alt"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Download">
@@ -124,8 +133,14 @@
         >
           <i class="fa-solid fa-columns"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Filter">
-          <i class="fa-solid fa-filter"></i>
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="showSummaryBtn"
+          title="Show Summary"
+          aria-label="Show Summary"
+          aria-pressed="false"
+        >
+          <i class="fa-solid fa-sum"></i>
         </button>
         <button class="btn btn-sm btn-outline-dark" title="Copy">
           <i class="fa-solid fa-copy"></i>
