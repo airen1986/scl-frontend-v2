@@ -381,7 +381,7 @@ async function fetchTableData(appState) {
     //   n === columns     → non-editable, non-selectable (no rowid)
     //   n <  columns      → malformed response, raise an error
     const numColumns = appState.columnNames.length;
-    let hasRowId = true;
+    let hasRowId = false;
     if (data.length > 0) {
       const firstRowLength = data[0].length;
       if (firstRowLength === numColumns + 1) {
@@ -1847,6 +1847,13 @@ function buildColumnInput(appState, colName) {
   if (isLov) {
     el = document.createElement('select');
     el.className = 'form-select scl-inline-edit';
+    // Prepend a blank placeholder so untouched selects have no value selected
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '—';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    el.appendChild(placeholder);
     for (const opt of fmt.lov_options) {
       const option = document.createElement('option');
       option.value = opt;
