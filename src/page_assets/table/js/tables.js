@@ -334,8 +334,8 @@ function setEditControlsEnabled(enabled) {
     btn.classList.toggle('d-none', !enabled);
   }
   const head1 = document.getElementById('sclTableHead1');
-  const selectAllCb = head1.querySelector('input[type="checkbox"]');
-  selectAllCb.disabled = !enabled;
+  const selectAllCb = head1?.querySelector('input[type="checkbox"]');
+  if (selectAllCb) selectAllCb.disabled = !enabled;
 }
 
 /**
@@ -2568,6 +2568,7 @@ function closeAddRow() {
   const existing = document.getElementById('sclTableAddRow');
   if (existing) existing.remove();
   const addRowBtn = document.getElementById('addRowBtn');
+  if (!addRowBtn) return;
   addRowBtn.classList.remove('active');
   addRowBtn.setAttribute('aria-pressed', 'false');
 }
