@@ -56,14 +56,23 @@
         >
           <i class="fa-solid fa-trash-alt"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Download">
+        <button
+          class="btn btn-sm btn-outline-dark"
+          title="Download Excel"
+          id="downloadExcelBtn"
+          aria-label="Download Excel"
+        >
           <i class="fa-solid fa-download"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Upload">
+        <button
+          class="btn btn-sm btn-outline-dark"
+          title="Upload Excel"
+          id="uploadExcelBtn"
+          aria-label="Upload Excel"
+          data-bs-target="#uploadExcelModal"
+          data-bs-toggle="modal"
+        >
           <i class="fa-solid fa-upload"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-dark" title="Export">
-          <i class="fa-solid fa-file-export"></i>
         </button>
         <button
           class="btn btn-sm btn-outline-dark"
@@ -148,14 +157,14 @@
         >
           <i class="fa-solid fa-sum"></i>
         </button>
-        <button class="btn btn-sm btn-outline-dark" title="Copy">
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="copyRowsBtn"
+          title="Copy Rows"
+          aria-label="Copy Rows"
+          aria-pressed="false"
+        >
           <i class="fa-solid fa-copy"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-dark" title="Save">
-          <i class="fa-solid fa-save"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-dark" title="Table View">
-          <i class="fa-solid fa-table"></i>
         </button>
       </div>
 
@@ -397,6 +406,62 @@
               <button type="button" class="btn btn-dark ms-auto" id="submitFormatColumnBtn">
                 OK
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Excel Modal -->
+      <div
+        class="modal fade"
+        id="uploadExcelModal"
+        tabindex="-1"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false"
+        aria-labelledby="uploadExcelLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-md modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="uploadExcelLabel">Upload Excel</h5>
+              <button
+                class="btn-close"
+                type="button"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <!-- ✅ NEW: Model name (disabled, JS populated) -->
+              <div class="mb-3">
+                <label class="form-label" for="uploadModelName">Model Name</label>
+                <input type="text" class="form-control" id="uploadModelName" disabled />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="uploadTableName">Table Name</label>
+                <input type="text" class="form-control" id="uploadTableName" disabled />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="uploadExcelFile">Excel File (.xlsx)</label>
+                <input type="file" class="form-control" id="uploadExcelFile" accept=".xlsx,.xls" />
+              </div>
+
+              <div class="form-text text-muted">
+                Only Excel files with the
+                <code>.xlsx</code>
+                or
+                <code>.xls</code>
+                extension are supported. Please ensure your file is in the correct format before
+                uploading.
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-dark" id="submitUploadExcelBtn">Upload</button>
             </div>
           </div>
         </div>
