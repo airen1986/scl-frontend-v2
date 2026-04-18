@@ -1220,8 +1220,10 @@ function initPaginationControls(appState) {
     appState.currentPage = target;
     const head1 = document.getElementById('sclTableHead1');
     const selectAllCb = head1.querySelector('input[type="checkbox"]');
-    selectAllCb.checked = false;
-    selectAllCb.indeterminate = false;
+    if (selectAllCb) {
+      selectAllCb.checked = false;
+      selectAllCb.indeterminate = false;
+    }
     fetchTableData(appState);
   };
 
@@ -2813,7 +2815,7 @@ function setupUploadExcel(appState) {
 
   const allowedExtensions = ['.xlsx', '.xls'];
 
-  modalEl.addEventListener('show.bs.modal', () => {
+  modalEl.addEventListener('show.bs.modal', (event) => {
     modal_name.value = appState.modelName;
     table_name.value = appState.tableName;
     modal_name.disabled = true;
@@ -2823,7 +2825,8 @@ function setupUploadExcel(appState) {
 
     if (!appState.modelName || !appState.tableName) {
       bsToastError('No table exists for upload.');
-      window.bootstrap.Modal.getInstance(modal_name)?.hide();
+      event.preventDefault();
+      window.bootstrap.Modal.getInstance(modalEl)?.hide();
     }
   });
 

@@ -418,27 +418,34 @@
         tabindex="-1"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
+        aria-labelledby="uploadExcelLabel"
+        aria-hidden="true"
       >
         <div class="modal-dialog modal-md modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">Upload Excel</h5>
-              <button class="btn-close" data-bs-dismiss="modal"></button>
+              <h5 class="modal-title" id="uploadExcelLabel">Upload Excel</h5>
+              <button
+                class="btn-close"
+                type="button"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
             </div>
             <div class="modal-body">
               <!-- ✅ NEW: Model name (disabled, JS populated) -->
               <div class="mb-3">
-                <label class="form-label">Model Name</label>
+                <label class="form-label" for="uploadModelName">Model Name</label>
                 <input type="text" class="form-control" id="uploadModelName" disabled />
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Table Name</label>
+                <label class="form-label" for="uploadTableName">Table Name</label>
                 <input type="text" class="form-control" id="uploadTableName" disabled />
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Excel File (.xlsx)</label>
+                <label class="form-label" for="uploadExcelFile">Excel File (.xlsx)</label>
                 <input type="file" class="form-control" id="uploadExcelFile" accept=".xlsx,.xls" />
               </div>
 
