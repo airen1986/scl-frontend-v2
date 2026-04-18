@@ -42,18 +42,23 @@ function hideTableLoader() {
 }
 
 /**
- * Load column metadata and build the table header rows with filter controls and selection UI.
+ * Load table column metadata and construct the header rows with filter controls, sort buttons,
+ * and row-selection UI.
  *
- * Fetches column headers from the server, updates appState.columnNames, clears appState.selectedColumn,
- * replaces the header rows and table body, and attaches handlers for column selection, per-column
- * text/value filters, and row-selection checkboxes. When filters are changed via the UI this function
- * ensures appState.currentPage is reset to 1 and triggers a data refresh.
+ * Fetches column headers from the server, updates appState.columnNames, clears any selected column,
+ * rebuilds the two header rows and the table body (clearing stale listeners), and wires handlers for:
+ * sorting, column selection, per-column text and LOV filters, filter dropdown population, and
+ * select-all / per-row checkboxes. When a text filter is applied this function resets pagination to
+ * the first page, clears the total row count, hides the summary and add-row footers, and triggers a
+ * data refresh.
  *
  * @param {Object} appState - Application state; must include `tableName`, `projectName`, and `modelName`.
  *   Mutated properties:
- *   - `columnNames`: set to the returned headers (array of [columnName, dataType] tuples).
- *   - `selectedColumn`: set to `null`.
- *   - may create or modify `textFilters` and will set `currentPage = 1` when filters change.
+ *   - `columnNames` — set to the returned headers (array of [columnName, dataType] tuples).
+ *   - `selectedColumn` — set to `null`.
+ *   - `textFilters` — may be created or updated when users enter text filters.
+ *   - `currentPage` — set to `1` when filters change.
+ *   - `totalRowCount` — cleared when filters change.
  */
 async function getTableHeaders(appState) {
   showTableLoader();
@@ -185,6 +190,8 @@ async function getTableHeaders(appState) {
       }
       appState.currentPage = 1; // Reset to first page on filter change, since current page may become invalid
       appState.totalRowCount = null;
+      hideSummaryRow();
+      closeAddRow();
       fetchTableData(appState);
     });
 
@@ -308,9 +315,48 @@ function refreshSortIcons(appState) {
 }
 
 /**
+ * Toolbar buttons that mutate table data or structure. These are disabled when
+ * the table is rendered in non-editable mode (no rowid column returned).
+ */
+const EDIT_CONTROL_IDS = ['deleteRowsBtn', 'updateColumnBtn', 'addRowBtn', 'addColumnBtn'];
+
+/**
+ * Enable or disable the row/column mutation toolbar controls
+ * (`deleteRowsBtn`, `updateColumnBtn`, `addRowBtn`, `addColumnBtn`).
+ *
+ * When disabled, the buttons are also given `aria-disabled="true"` and hidden
+ * via the Bootstrap `d-none` utility class so they neither react to clicks nor
+ * appear in the toolbar.
+ *
+ * @param {boolean} enabled - `true` to enable and show the controls; `false` to disable and hide them.
+ */
+function setEditControlsEnabled(enabled) {
+  for (const id of EDIT_CONTROL_IDS) {
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    btn.disabled = !enabled;
+    btn.setAttribute('aria-disabled', String(!enabled));
+    btn.classList.toggle('d-none', !enabled);
+  }
+  const head1 = document.getElementById('sclTableHead1');
+  const selectAllCb = head1?.querySelector('input[type="checkbox"]');
+  if (selectAllCb) selectAllCb.disabled = !enabled;
+}
+
+/**
  * Fetches the current page of table rows and renders them into the table body.
  *
- * Updates appState.currentRowCount, cancels any active inline edit, replaces the contents of #sclTableBody with the fetched rows (the first value of each row becomes the row checkbox value; remaining values populate subsequent cells with display text from formatCellValue and raw values stored on td.title), reapplies column highlighting, and updates pagination state/UI.
+ * Updates appState.currentRowCount, cancels any active inline edit, replaces the contents of #sclTableBody with the fetched rows, reapplies column highlighting, and updates pagination state/UI.
+ *
+ * The rendering mode is determined by inspecting the first row:
+ * - If the first row has `columnNames.length + 1` elements, the leading value is treated as the
+ *   rowid and the table is rendered as editable/selectable (existing behavior: each row gets a
+ *   checkbox carrying the rowid plus dblclick/keydown inline-edit handlers).
+ * - If the first row has exactly `columnNames.length` elements, there is no rowid; the table is
+ *   rendered with the same DOM structure (leading cell preserved) but without checkboxes or
+ *   inline-edit handlers, making it non-editable and non-selectable. The row/column mutation
+ *   toolbar buttons (delete rows, update column, add row, add column) are also hidden/disabled.
+ * - If the first row has fewer than `columnNames.length` elements, an error is thrown.
  *
  * @param {Object} appState - Application state used to build the request and control rendering. Required properties: `tableName`, `projectName`, `modelName`, `currentPage`, `pageSize`, `selectFilters`, `textFilters`, `columnNames`, and `sortColumns`. May include `columnFormats`.
  */
@@ -335,18 +381,54 @@ async function fetchTableData(appState) {
     const tbody = document.getElementById('sclTableBody');
     tbody.innerHTML = '';
 
-    for (const row of data) {
-      const [rowid, ...values] = row;
-      const tr = document.createElement('tr');
+    // Determine rendering mode from the first row's length:
+    //   n === columns + 1 → editable (first element is rowid)
+    //   n === columns     → non-editable, non-selectable (no rowid)
+    //   else      → malformed response, raise an error
+    const numColumns = appState.columnNames.length;
+    let hasRowId = false;
+    if (data.length > 0) {
+      const firstRowLength = data[0].length;
+      if (firstRowLength === numColumns + 1) {
+        hasRowId = true;
+      } else if (firstRowLength === numColumns) {
+        hasRowId = false;
+      } else {
+        throw new Error(
+          `fetchTableData: row has ${firstRowLength} element(s) but table has ${numColumns} column(s); expected ${numColumns} or ${numColumns + 1}.`
+        );
+      }
+    }
 
-      // Checkbox cell with rowid
-      const checkTd = document.createElement('td');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.className = 'form-check-input';
-      checkbox.value = rowid;
-      checkTd.appendChild(checkbox);
-      tr.appendChild(checkTd);
+    // Disable row/column mutation controls when the table is non-editable
+    // (i.e. rows carry no rowid and therefore cannot be targeted for updates).
+    setEditControlsEnabled(hasRowId);
+
+    for (const row of data) {
+      const tr = document.createElement('tr');
+      let values;
+
+      // Leading cell: preserves table structure in both modes.
+      const leadTd = document.createElement('td');
+      if (hasRowId) {
+        const [rowid, ...rest] = row;
+        values = rest;
+        // Checkbox cell with rowid
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'form-check-input';
+        checkbox.value = rowid;
+        leadTd.appendChild(checkbox);
+      } else {
+        // Non-editable, non-selectable: no rowid, no checkbox; keep empty cell.
+        values = row;
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'form-check-input';
+        checkbox.disabled = true;
+        leadTd.appendChild(checkbox);
+      }
+      tr.appendChild(leadTd);
 
       // Data cells
       for (let i = 0; i < values.length; i++) {
@@ -361,35 +443,37 @@ async function fetchTableData(appState) {
         tr.appendChild(td);
       }
 
-      // Inline edit: dblclick → edit mode; keydown → save / cancel / tab
-      tr.addEventListener('dblclick', (e) => {
-        if (e.target.closest('input[type="checkbox"]')) return;
-        if (activeEdit?.tr === tr) return;
-        startEditing(tr, appState);
-      });
+      if (hasRowId) {
+        // Inline edit: dblclick → edit mode; keydown → save / cancel / tab
+        tr.addEventListener('dblclick', (e) => {
+          if (e.target.closest('input[type="checkbox"]')) return;
+          if (activeEdit?.tr === tr) return;
+          startEditing(tr, appState);
+        });
 
-      tr.addEventListener('keydown', (e) => {
-        if (!activeEdit || activeEdit.tr !== tr) return;
-        const input = e.target.closest('.scl-inline-edit');
-        if (!input) return;
+        tr.addEventListener('keydown', (e) => {
+          if (!activeEdit || activeEdit.tr !== tr) return;
+          const input = e.target.closest('.scl-inline-edit');
+          if (!input) return;
 
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          saveEditing(appState);
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          cancelEditing();
-        } else if (e.key === 'Tab') {
-          const inputs = [...tr.querySelectorAll('.scl-inline-edit')];
-          const idx = inputs.indexOf(input);
-          const leavingRow =
-            (e.shiftKey && idx === 0) || (!e.shiftKey && idx === inputs.length - 1);
-          if (!leavingRow) {
+          if (e.key === 'Enter') {
             e.preventDefault();
-            inputs[e.shiftKey ? idx - 1 : idx + 1].focus();
+            saveEditing(appState);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelEditing();
+          } else if (e.key === 'Tab') {
+            const inputs = [...tr.querySelectorAll('.scl-inline-edit')];
+            const idx = inputs.indexOf(input);
+            const leavingRow =
+              (e.shiftKey && idx === 0) || (!e.shiftKey && idx === inputs.length - 1);
+            if (!leavingRow) {
+              e.preventDefault();
+              inputs[e.shiftKey ? idx - 1 : idx + 1].focus();
+            }
           }
-        }
-      });
+        });
+      }
 
       tbody.appendChild(tr);
     }
@@ -426,6 +510,8 @@ function initRefreshDataBtn(appState) {
     try {
       clearColumnHighlight();
       refreshSortIcons(appState);
+      hideSummaryRow();
+      closeAddRow();
 
       const head1 = document.getElementById('sclTableHead1');
       const selectAllCb = head1.querySelector('input[type="checkbox"]');
@@ -583,6 +669,8 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     if (filterChanged) {
       appState.currentPage = 1;
       appState.totalRowCount = null;
+      hideSummaryRow();
+      closeAddRow();
       fetchTableData(appState);
     }
   });
@@ -600,6 +688,8 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     if (filterChanged) {
       appState.currentPage = 1;
       appState.totalRowCount = null;
+      hideSummaryRow();
+      closeAddRow();
       fetchTableData(appState);
     }
   });
@@ -1410,9 +1500,9 @@ function initRemoveColumnBtn(appState) {
 }
 
 /**
- * Wire the Add Column UI: opens the modal, validate the entered name/type, persist the new column and updated column order, and refresh table headers and data.
+ * Initialize the Add Column button and its modal flow: open the modal, validate the entered name and type, persist the new column and updated column ordering on the server, refresh table headers and data, and update relevant application state and UI to reflect the change.
  *
- * @param {Object} appState - Application state (reads tableName/projectName/modelName/columnNames and updates pagination and selection state).
+ * @param {Object} appState - Application state object; this function reads table identifiers and existing column names and updates pagination/selection state (it sets `currentPage`, clears `selectedColumn`, and clears `totalRowCount`) and triggers header/data refreshes.
  */
 function initAddColumnBtn(appState) {
   const addBtn = document.getElementById('addColumnBtn');
@@ -1432,6 +1522,14 @@ function initAddColumnBtn(appState) {
     const columnName = nameInput.value.trim();
     if (!columnName) {
       bsToastWarning('Please enter a column name');
+      return;
+    }
+
+    // validate column name: only allow letters, numbers, and underscores, and must start with a letter or underscore
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(columnName)) {
+      bsToastWarning(
+        'Invalid column name. Use only letters, numbers, and underscores, and start with a letter or underscore.'
+      );
       return;
     }
 
@@ -1728,15 +1826,15 @@ function initDecimalBtns(appState) {
 // ── Bulk column update ───────────────────────────────────────────────────
 
 /**
- * Create an input or select element appropriate for editing values in the given column.
+ * Create and return an input or select element configured for editing values in the specified column.
  *
- * The returned element is configured according to the column's SQL type and any saved
- * per-column formatting in `appState.columnFormats`. For DATE/DATETIME columns that are
+ * The element type is chosen from LOV select, date, datetime-local, or text based on the column's SQL
+ * type and any saved per-column formatting in `appState.columnFormats`. For DATE/DATETIME columns
  * stored as Excel serial numbers the element will include `dataset.excelSerial = 'true'`.
  *
  * @param {Object} appState - Application state containing `columnNames` and `columnFormats`.
- * @param {string} colName - The name of the column to build the input for.
- * @returns {HTMLElement} An input (text/date/datetime-local) or select element configured for the column.
+ * @param {string} colName - Column name to build the editor for.
+ * @returns {HTMLElement} An input (`text`/`date`/`datetime-local`) or `select` element ready for inline editing.
  */
 function buildColumnInput(appState, colName) {
   const colMeta = appState.columnNames.find(([name]) => name === colName);
@@ -1754,6 +1852,13 @@ function buildColumnInput(appState, colName) {
   if (isLov) {
     el = document.createElement('select');
     el.className = 'form-select scl-inline-edit';
+    // Prepend a blank placeholder so untouched selects have no value selected
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '—';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    el.appendChild(placeholder);
     for (const opt of fmt.lov_options) {
       const option = document.createElement('option');
       option.value = opt;
@@ -2139,6 +2244,9 @@ function initTableControls(appState) {
   initFormatColumnBtn(appState);
   initDecimalBtns(appState);
   initUpdateColumnBtn(appState);
+  initDeleteRowsBtn(appState);
+  initShowSummaryBtn(appState);
+  initAddRowBtn(appState);
 
   // Click outside an editing row → cancel inline edit
   document.addEventListener('mousedown', (e) => {
@@ -2146,6 +2254,352 @@ function initTableControls(appState) {
     if (activeEdit.tr.contains(e.target)) return;
     cancelEditing();
   });
+}
+
+/**
+ * Toggle and manage an add-row footer that lets the user enter values for a new table row.
+ *
+ * Shows or hides a footer row (#sclTableAddRow) containing one input per visible column (built via
+ * buildColumnInput). The footer confines Tab focus, supports Enter to submit and Escape to cancel,
+ * validates that at least one column has a value, posts the values to `/tables/add-row`, and refreshes
+ * table state on success.
+ *
+ * @param {Object} appState - Application state. Uses `tableName`, `projectName`, `modelName`,
+ *   `columnNames`, and `columnFormats`; resets pagination/row-count state (`totalRowCount`) and
+ *   triggers a data refresh after a successful add.
+ */
+function initAddRowBtn(appState) {
+  const addRowBtn = document.getElementById('addRowBtn');
+  if (!addRowBtn) return;
+
+  const tfoot = document.querySelector('.scl-tfoot');
+  if (!tfoot) return;
+
+  addRowBtn.addEventListener('click', () => {
+    // Toggle off if already open
+    hideSummaryRow();
+    if (document.getElementById('sclTableAddRow')) {
+      closeAddRow();
+      return;
+    }
+
+    if (!appState.columnNames?.length) {
+      bsToastWarning('No columns available');
+      return;
+    }
+
+    const addRow = document.createElement('tr');
+    addRow.id = 'sclTableAddRow';
+    addRow.className = 'scl-add-row';
+
+    // Leading cell mirrors the checkbox column and holds the Save button
+    const actionTd = document.createElement('td');
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'btn btn-sm btn-dark p-0 px-1 scl-add-row-save';
+    saveBtn.title = 'Save Row';
+    saveBtn.setAttribute('aria-label', 'Save Row');
+    saveBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+    actionTd.appendChild(saveBtn);
+    addRow.appendChild(actionTd);
+
+    // Data cells: one input per visible column, built using the same helper
+    // used by the Update Column modal / inline editing so formatting rules
+    // (LOV, date, datetime, Excel-serial, numeric) stay consistent.
+    for (const [colName] of appState.columnNames) {
+      const td = document.createElement('td');
+      const input = buildColumnInput(appState, colName);
+      if (input.tagName === 'SELECT') {
+        input.classList.add('form-select-sm');
+      } else {
+        input.classList.add('form-control-sm');
+      }
+      td.appendChild(input);
+      addRow.appendChild(td);
+    }
+
+    tfoot.appendChild(addRow);
+    addRowBtn.classList.add('active');
+    addRowBtn.setAttribute('aria-pressed', 'true');
+
+    // Enter = save, Escape = cancel, Tab navigates between inputs
+    addRow.addEventListener('keydown', (e) => {
+      const input = e.target.closest('.scl-inline-edit');
+      if (!input) return;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveBtn.click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeAddRow();
+      } else if (e.key === 'Tab') {
+        const inputs = [...addRow.querySelectorAll('.scl-inline-edit')];
+        const idx = inputs.indexOf(input);
+        const leavingRow = (e.shiftKey && idx === 0) || (!e.shiftKey && idx === inputs.length - 1);
+        if (!leavingRow) {
+          e.preventDefault();
+          inputs[e.shiftKey ? idx - 1 : idx + 1].focus();
+        }
+      }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      const inputs = [...addRow.querySelectorAll('.scl-inline-edit')];
+      const values = {};
+      let hasValue = false;
+      inputs.forEach((input, idx) => {
+        const colName = appState.columnNames[idx]?.[0];
+        if (!colName) return;
+        const v = readInputValue(input);
+        if (v !== null && v !== '') hasValue = true;
+        values[colName] = v;
+      });
+
+      if (!hasValue) {
+        bsToastWarning('Please enter a value for at least one column');
+        return;
+      }
+
+      saveBtn.disabled = true;
+      for (const input of inputs) input.disabled = true;
+      showTableLoader();
+      try {
+        await api.post('/tables/add-row', {
+          table_name: appState.tableName,
+          project_name: appState.projectName,
+          model_name: appState.modelName,
+          values,
+        });
+        bsToastSuccess('Row added');
+        closeAddRow();
+        appState.totalRowCount = null;
+        await fetchTableData(appState);
+      } catch {
+        saveBtn.disabled = false;
+        for (const input of inputs) input.disabled = false;
+      } finally {
+        hideTableLoader();
+      }
+    });
+
+    const firstInput = addRow.querySelector('.scl-inline-edit');
+    if (firstInput) firstInput.focus();
+  });
+}
+
+/**
+ * Wires the Delete Rows toolbar button to delete selected (or all filtered) table rows.
+ *
+ * When the delete button is clicked, prompts for confirmation showing how many rows will be deleted,
+ * then issues a server request to remove either the explicitly checked rows or all rows matching current filters
+ * when the header select-all checkbox is fully checked. On success updates pagination state, clears the header
+ * select-all checkbox, refreshes table data, and shows a toast indicating the result.
+ *
+ * @param {object} appState - Application state object for the table view. Used for table identifiers, current/total row counts, and active filters.
+ */
+function initDeleteRowsBtn(appState) {
+  const deleteBtn = document.getElementById('deleteRowsBtn');
+  if (!deleteBtn) return;
+
+  deleteBtn.addEventListener('click', async () => {
+    const tbody = document.getElementById('sclTableBody');
+    const checkedBoxes = tbody.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedCount = checkedBoxes.length;
+
+    if (selectedCount === 0) {
+      window.alert('Please select at least one row to delete.');
+      return;
+    }
+
+    const head1 = document.getElementById('sclTableHead1');
+    const selectAllCb = head1?.querySelector('input[type="checkbox"]');
+    const totalRowCount = appState.totalRowCount ?? appState.currentRowCount ?? selectedCount;
+    const allSelected = !!selectAllCb && selectAllCb.checked && !selectAllCb.indeterminate;
+
+    const rowsToDelete = allSelected ? totalRowCount : selectedCount;
+    const confirmMsg = `This operation will delete ${rowsToDelete} row${
+      rowsToDelete !== 1 ? 's' : ''
+    }. Do you want to continue?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    const row_ids = allSelected ? [] : [...checkedBoxes].map((cb) => cb.value);
+
+    deleteBtn.disabled = true;
+    showTableLoader();
+    try {
+      const { rows_deleted } = await api.post('/tables/delete-rows', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        select_filters: appState.selectFilters,
+        text_filters: appState.textFilters,
+        row_ids,
+      });
+
+      if (rows_deleted !== rowsToDelete) {
+        bsToastWarning(
+          `Requested to delete ${rowsToDelete} row${rowsToDelete !== 1 ? 's' : ''} but ${rows_deleted} were deleted.`
+        );
+      } else {
+        bsToastSuccess(`${rows_deleted} row${rows_deleted !== 1 ? 's' : ''} deleted`);
+      }
+
+      if (selectAllCb) {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = false;
+      }
+      appState.currentPage = 1;
+      appState.totalRowCount = null;
+      await fetchTableData(appState);
+    } finally {
+      hideTableLoader();
+      deleteBtn.disabled = false;
+    }
+  });
+}
+
+/**
+ * Wire the Show Summary toolbar button (#showSummaryBtn).
+ *
+ * Clicking the button toggles a sticky footer row that displays per-column aggregates
+ * (SUM / AVG / MIN / MAX / COUNT / MEDIAN) as configured on each column's format.
+ * Only columns whose format has an `aggregation` set are sent to the server and
+ * rendered in the summary row; the remaining cells in the summary row are blank.
+ *
+ * The aggregated values are fetched from `/tables/summary` so that the aggregation is
+ * computed across all rows that match the current select/text filters (not just the
+ * currently paginated page).
+ *
+ * @param {Object} appState - Application state. Reads `tableName`, `projectName`,
+ *   `modelName`, `columnNames`, `columnFormats`, `selectFilters`, and `textFilters`.
+ */
+function initShowSummaryBtn(appState) {
+  const showBtn = document.getElementById('showSummaryBtn');
+  if (!showBtn) return;
+
+  showBtn.addEventListener('click', async () => {
+    const tfootRow = document.getElementById('sclTableFoot');
+    if (!tfootRow) return;
+
+    // Toggle off if already visible
+    if (!tfootRow.classList.contains('d-none')) {
+      hideSummaryRow();
+      return;
+    }
+
+    // Collect aggregations configured via column formatting
+    const aggregations = {};
+    for (const [colName, dataType] of appState.columnNames) {
+      const fmt = appState.columnFormats?.[colName];
+      if (fmt) {
+        if (fmt.aggregation) {
+          aggregations[colName] = fmt.aggregation;
+        }
+      } else if (isNumericType(dataType)) {
+        aggregations[colName] = 'SUM';
+      }
+    }
+
+    if (Object.keys(aggregations).length === 0) {
+      bsToastWarning('No columns have an aggregation configured. Set one via Format Column.');
+      return;
+    }
+
+    showBtn.disabled = true;
+    showTableLoader();
+    try {
+      const { summary } = await api.post('/tables/summary', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        select_filters: appState.selectFilters,
+        text_filters: appState.textFilters,
+        column_names: aggregations,
+      });
+
+      renderSummaryRow(appState, summary ?? {}, aggregations);
+      tfootRow.classList.remove('d-none');
+      showBtn.classList.add('active');
+      showBtn.setAttribute('aria-pressed', 'true');
+    } catch {
+      bsToastWarning('Failed to load summary');
+    } finally {
+      showBtn.disabled = false;
+      hideTableLoader();
+    }
+  });
+}
+
+/**
+ * Populate the sticky footer row with aggregated values returned by the server.
+ *
+ * The first cell mirrors the leading checkbox column and shows a Σ label. Each
+ * subsequent cell corresponds to a visible column; when the column has an
+ * aggregation configured, the aggregated value is formatted using the column's
+ * saved formatting (via formatCellValue). Cells for columns without an
+ * aggregation are left blank.
+ *
+ * @param {Object} appState - Application state providing `columnNames` and `columnFormats`.
+ * @param {Object<string, *>} summary - Map of columnName → aggregated raw value.
+ * @param {Object<string, string>} aggregations - Map of columnName → aggregation type
+ *   (e.g. 'SUM', 'AVG'); used to annotate the cell's tooltip.
+ */
+function renderSummaryRow(appState, summary, aggregations) {
+  closeAddRow();
+  const tfootRow = document.getElementById('sclTableFoot');
+  if (!tfootRow) return;
+  tfootRow.innerHTML = '';
+
+  // Leading cell aligns with the checkbox column
+  const labelTd = document.createElement('td');
+  labelTd.className = 'scl-summary-label';
+  labelTd.textContent = '\u03A3';
+  labelTd.title = 'Summary';
+  tfootRow.appendChild(labelTd);
+
+  for (const [colName, dataType] of appState.columnNames) {
+    const td = document.createElement('td');
+    const agg = aggregations[colName];
+    if (agg) {
+      const rawVal = summary[colName];
+      const fmt = appState.columnFormats?.[colName];
+      const { text, align } = formatCellValue(rawVal, dataType, fmt);
+      td.textContent = text;
+      td.title = `${agg}${rawVal !== null && rawVal !== undefined ? `: ${rawVal}` : ''}`;
+      if (align) td.style.textAlign = align;
+    } else {
+      td.textContent = '';
+    }
+    tfootRow.appendChild(td);
+  }
+}
+
+/** Remove the add-row footer and reset the toolbar button state. */
+function closeAddRow() {
+  const existing = document.getElementById('sclTableAddRow');
+  if (existing) existing.remove();
+  const addRowBtn = document.getElementById('addRowBtn');
+  if (!addRowBtn) return;
+  addRowBtn.classList.remove('active');
+  addRowBtn.setAttribute('aria-pressed', 'false');
+}
+
+/**
+ * Hide the sticky summary row and clear its contents, resetting the toolbar
+ * button's pressed state.
+ */
+function hideSummaryRow() {
+  const tfootRow = document.getElementById('sclTableFoot');
+  if (tfootRow) {
+    tfootRow.classList.add('d-none');
+    tfootRow.innerHTML = '';
+  }
+  const showBtn = document.getElementById('showSummaryBtn');
+  if (showBtn) {
+    showBtn.classList.remove('active');
+    showBtn.setAttribute('aria-pressed', 'false');
+  }
 }
 
 /**

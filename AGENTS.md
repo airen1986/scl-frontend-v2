@@ -67,7 +67,6 @@ import '../css/main.css';           // page-specific styles
   - `src/common/js/bsToast.js` — for Bootstrap native toast notifications.
   - `src/common/js/dom.js` — for DOM helpers (`$`, `$$`, `on`, `off`, `ready`).
 - Do not use `var`. Use `const` by default, `let` only when reassignment is needed.
-- **Do NOT add JSDoc comments or docstrings** to any functions, variables, or modules.
 - Use `async`/`await` over `.then()` chains.
 - `main.js` must always start with the Bootstrap + SCSS imports:
   ```js
