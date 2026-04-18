@@ -1,5 +1,5 @@
 import api from '@/common/js/api';
-import { bsToastWarning, bsToastSuccess } from '@/common/js/bsToast';
+import { bsToastWarning, bsToastSuccess, bsToastError } from '@/common/js/bsToast';
 
 let tableLoaderDepth = 0;
 
@@ -15,14 +15,20 @@ let activeEdit = null;
  * If the '#pageLoader' element is not present, the function does nothing. It increments the module-level
  * `tableLoaderDepth`, removes the 'd-none' class from the loader, and sets `aria-hidden` to "false"
  * so the loader remains visible across nested async operations.
+ *
+ * @param {string} [message] - Optional message to display in the loader. Defaults to the existing text.
  */
-function showTableLoader() {
+function showTableLoader(message) {
   const loader = document.getElementById('pageLoader');
   if (!loader) return;
 
   tableLoaderDepth += 1;
   loader.classList.remove('d-none');
   loader.setAttribute('aria-hidden', 'false');
+  if (message !== undefined) {
+    const msgEl = loader.querySelector('.page-loader__content .small');
+    if (msgEl) msgEl.textContent = message;
+  }
 }
 
 /**
@@ -39,6 +45,8 @@ function hideTableLoader() {
 
   loader.classList.add('d-none');
   loader.setAttribute('aria-hidden', 'true');
+  const msgEl = loader.querySelector('.page-loader__content .small');
+  if (msgEl) msgEl.textContent = 'Loading table data...';
 }
 
 /**
@@ -1210,6 +1218,10 @@ function initPaginationControls(appState) {
     const target = Math.max(1, Math.min(page, totalPages));
     if (target === appState.currentPage) return;
     appState.currentPage = target;
+    const head1 = document.getElementById('sclTableHead1');
+    const selectAllCb = head1.querySelector('input[type="checkbox"]');
+    selectAllCb.checked = false;
+    selectAllCb.indeterminate = false;
     fetchTableData(appState);
   };
 
@@ -2247,6 +2259,9 @@ function initTableControls(appState) {
   initDeleteRowsBtn(appState);
   initShowSummaryBtn(appState);
   initAddRowBtn(appState);
+  initCopyRowsBtn(appState);
+  initDownloadExcelBtn(appState);
+  setupUploadExcel(appState);
 
   // Click outside an editing row → cancel inline edit
   document.addEventListener('mousedown', (e) => {
@@ -2460,6 +2475,120 @@ function initDeleteRowsBtn(appState) {
 }
 
 /**
+ * Escape a cell value for inclusion in a TSV clipboard payload.
+ *
+ * Converts `null`/`undefined` to an empty string and replaces embedded tabs and
+ * line breaks with spaces so that cell boundaries stay intact when pasted into
+ * spreadsheet applications.
+ *
+ * @param {*} val - The cell value to sanitize.
+ * @returns {string} The sanitized string representation.
+ */
+function sanitizeCellForClipboard(val) {
+  if (val === null || val === undefined) return '';
+  return String(val).replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+}
+
+/**
+ * Wire the Copy Rows toolbar button (#copyRowsBtn).
+ *
+ * Copies table data to the clipboard as tab-separated values (TSV) with a
+ * header row. Behavior:
+ *  - If one or more rows are selected via the row checkboxes, copies just
+ *    those rows (formatted text as currently displayed in the table).
+ *  - Otherwise, fetches up to 5000 rows from the server that match the
+ *    current select/text filters and sort order, formats each value using
+ *    the column's saved formatting, and copies the result.
+ *
+ * @param {Object} appState - Application state; reads `tableName`,
+ *   `projectName`, `modelName`, `columnNames`, `columnFormats`,
+ *   `selectFilters`, `textFilters`, and `sortColumns`.
+ */
+function initCopyRowsBtn(appState) {
+  const copyBtn = document.getElementById('copyRowsBtn');
+  if (!copyBtn) return;
+
+  const COPY_ROW_LIMIT = 5000;
+
+  copyBtn.addEventListener('click', async () => {
+    if (!appState.columnNames?.length) {
+      bsToastWarning('No columns available to copy');
+      return;
+    }
+
+    const headers = appState.columnNames.map(([name]) => name);
+    const tbody = document.getElementById('sclTableBody');
+    const checkedBoxes = tbody ? [...tbody.querySelectorAll('input[type="checkbox"]:checked')] : [];
+
+    copyBtn.disabled = true;
+    showTableLoader();
+    try {
+      let rows;
+
+      // All filtered rows already fit on the current page when the known
+      // total row count is less than or equal to the page size. In that case
+      // we can copy directly from the DOM and skip a redundant server call.
+      const allRowsOnPage =
+        appState.totalRowCount !== null && appState.totalRowCount <= appState.pageSize;
+
+      if (checkedBoxes.length > 0) {
+        // Copy the currently rendered text for the selected rows only.
+        rows = checkedBoxes.map((cb) => {
+          const tr = cb.closest('tr');
+          // Skip the leading checkbox column.
+          return [...tr.cells].slice(1).map((td) => td.textContent ?? '');
+        });
+      } else if (allRowsOnPage && tbody) {
+        // No rows selected, but the entire dataset is already rendered.
+        rows = [...tbody.rows].map((tr) =>
+          [...tr.cells].slice(1).map((td) => td.textContent ?? '')
+        );
+      } else {
+        // No rows selected — pull up to COPY_ROW_LIMIT rows from the server
+        // honoring the current filters and sort order.
+        const { data } = await api.post('/tables/data', {
+          table_name: appState.tableName,
+          project_name: appState.projectName,
+          model_name: appState.modelName,
+          page_number: 1,
+          page_size: COPY_ROW_LIMIT,
+          select_filters: appState.selectFilters,
+          text_filters: appState.textFilters,
+          sort_columns: appState.sortColumns,
+          column_names: headers,
+        });
+
+        const numColumns = headers.length;
+        rows = (data ?? []).map((row) => {
+          // When the response includes a rowid, it is the first element and
+          // has length = numColumns + 1; otherwise length = numColumns.
+          const values = row.length === numColumns + 1 ? row.slice(1) : row;
+          return values.map((val, i) => {
+            const [colName, dataType] = appState.columnNames[i] ?? [];
+            const fmt = appState.columnFormats?.[colName];
+            return formatCellValue(val, dataType, fmt).text;
+          });
+        });
+      }
+
+      const tsv = [headers, ...rows]
+        .map((row) => row.map(sanitizeCellForClipboard).join('\t'))
+        .join('\r\n');
+
+      await window.navigator.clipboard.writeText(tsv);
+
+      const rowCount = rows.length;
+      bsToastSuccess(`Copied ${rowCount} row${rowCount !== 1 ? 's' : ''} to clipboard`);
+    } catch {
+      bsToastWarning('Failed to copy rows to clipboard');
+    } finally {
+      hideTableLoader();
+      copyBtn.disabled = false;
+    }
+  });
+}
+
+/**
  * Wire the Show Summary toolbar button (#showSummaryBtn).
  *
  * Clicking the button toggles a sticky footer row that displays per-column aggregates
@@ -2619,6 +2748,149 @@ async function fetchColumnFormats(appState) {
   } catch {
     appState.columnFormats = {};
   }
+}
+
+// ── Excel download / upload ──────────────────────────────────────────────
+
+/**
+ * Wire the Download Excel toolbar button (#downloadExcelBtn).
+ *
+ * Clicking the button posts the current table identifiers along with the
+ * active select/text filters and sort order to `/tables/download-excel`
+ * and triggers a browser download of the returned `.xlsx` blob. The
+ * filename is taken from the server's Content-Disposition header when
+ * present and otherwise falls back to `<tableName>.xlsx`.
+ *
+ * @param {Object} appState - Application state; reads `tableName`,
+ *   `projectName`, `modelName`, `columnNames`, `selectFilters`,
+ *   `textFilters`, and `sortColumns`.
+ */
+function initDownloadExcelBtn(appState) {
+  const downloadBtn = document.getElementById('downloadExcelBtn');
+  if (!downloadBtn) return;
+
+  downloadBtn.addEventListener('click', async () => {
+    if (!appState.columnNames?.length) {
+      bsToastWarning('No columns available to download');
+      return;
+    }
+
+    downloadBtn.disabled = true;
+    showTableLoader('Downloading excel data...');
+    try {
+      const { blob, fileName } = await api.postDownload('/tables/download-excel', {
+        table_names: [appState.tableName],
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+      });
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = fileName || `${appState.tableName}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      bsToastSuccess('Excel download started');
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      hideTableLoader();
+      downloadBtn.disabled = false;
+    }
+  });
+}
+
+function setupUploadExcel(appState) {
+  const modalEl = document.getElementById('uploadExcelModal');
+  const modal_name = document.getElementById('uploadModelName');
+  const table_name = document.getElementById('uploadTableName');
+  const fileInput = document.getElementById('uploadExcelFile');
+  const submitBtn = document.getElementById('submitUploadExcelBtn');
+  if (!modalEl || !modal_name || !table_name || !submitBtn || !fileInput) return;
+
+  const allowedExtensions = ['.xlsx', '.xls'];
+
+  modalEl.addEventListener('show.bs.modal', () => {
+    modal_name.value = appState.modelName;
+    table_name.value = appState.tableName;
+    modal_name.disabled = true;
+    table_name.disabled = true;
+    fileInput.value = '';
+    fileInput.accept = allowedExtensions.join(',');
+
+    if (!appState.modelName || !appState.tableName) {
+      bsToastError('No table exists for upload.');
+      window.bootstrap.Modal.getInstance(modal_name)?.hide();
+    }
+  });
+
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    fileInput.value = '';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Upload';
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    if (!appState.modelName || !appState.tableName) {
+      bsToastError('No table exists for upload.');
+      return;
+    }
+
+    const selectedFile = fileInput.files?.[0];
+    if (!selectedFile) {
+      bsToastError('Please choose an Excel file.');
+      return;
+    }
+
+    const lowerName = selectedFile.name.toLowerCase();
+    const isAllowedFile = allowedExtensions.some((extension) => lowerName.endsWith(extension));
+    if (!isAllowedFile) {
+      bsToastError('Only .xlsx and .xls files are supported.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Uploading…';
+
+    try {
+      const formData = new FormData();
+      formData.append('model_name', appState.modelName);
+      formData.append('table_name', appState.tableName);
+      formData.append('upload_file', selectedFile);
+      const result = await api.postFormData('/tables/upload', formData);
+      const rowsAdded = result?.rows_added;
+      bsToastSuccess(
+        typeof rowsAdded === 'number'
+          ? `Uploaded ${rowsAdded} row${rowsAdded !== 1 ? 's' : ''} from Excel`
+          : 'Excel uploaded successfully'
+      );
+
+      // Refresh the table to reflect the newly uploaded data
+      hideSummaryRow();
+      closeAddRow();
+      appState.currentPage = 1;
+      appState.selectedColumn = null;
+      appState.totalRowCount = null;
+
+      const head1 = document.getElementById('sclTableHead1');
+      const selectAllCb = head1?.querySelector('input[type="checkbox"]');
+      if (selectAllCb) {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = false;
+      }
+      window.bootstrap.Modal.getInstance(modalEl)?.hide();
+      await fetchTableData(appState);
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Upload';
+    }
+  });
 }
 
 export { getTableHeaders, fetchTableData, fetchColumnFormats, initTableControls, selectColumn };
