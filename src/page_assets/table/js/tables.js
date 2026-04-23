@@ -2512,7 +2512,7 @@ function setupUploadExcel(appState) {
         );
         return;
       }
-    } catch (err) {
+    } catch {
       bsToastError('Unable to read the selected Excel file. Please verify the file and try again.');
       return;
     }
