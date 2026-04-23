@@ -395,12 +395,18 @@ function getDragAfterElement(container, y) {
   );
 }
 
+const NON_NUMERIC_FORMATS = new Set(['DATE', 'DATETIME', 'TEXT', 'LOV']);
+
+function buildColumnDataTypeMap(columnNames = []) {
+  return new Map(columnNames.map(([name, dataType]) => [name, dataType]));
+}
+
 function getDateColumnsInTextFilters(appState) {
   const dateCols = [];
+  const dataTypeByColumn = buildColumnDataTypeMap(appState.columnNames ?? []);
   for (const [col] of Object.entries(appState.textFilters ?? {})) {
-    const columnMeta = appState.columnNames.find(([name]) => name === col);
-    if (!columnMeta) continue;
-    const data_type = columnMeta[1];
+    const data_type = dataTypeByColumn.get(col);
+    if (!data_type) continue;
     const fmt = appState.columnFormats?.[col]?.column_type;
     if (fmt === 'DATE' || fmt === 'DATETIME') {
       if (isNumericType(data_type) || isIntegerType(data_type)) {
@@ -424,18 +430,17 @@ function getNumericFiltersInTextFilters(appState) {
   };
   // Match an operator (longer tokens first) followed by an optional-sign numeric value.
   const numericFilterRegex = /^\s*(>=|<=|==|=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/;
+  const dataTypeByColumn = buildColumnDataTypeMap(appState.columnNames ?? []);
   for (const [col, val] of Object.entries(appState.textFilters ?? {})) {
     const rawVal = typeof val === 'string' ? val : String(val ?? '');
-    const columnMeta = appState.columnNames.find(([name]) => name === col);
-    if (!columnMeta) {
+    const data_type = dataTypeByColumn.get(col);
+    if (!data_type) {
       textFilters[col] = rawVal;
       continue;
     }
-    const data_type = columnMeta[1];
     const fmt = appState.columnFormats?.[col]?.column_type;
     if (isNumericType(data_type) || isIntegerType(data_type)) {
-      const non_numeric_formats = ['DATE', 'DATETIME', 'TEXT', 'LOV'];
-      if (non_numeric_formats.includes(fmt)) {
+      if (NON_NUMERIC_FORMATS.has(fmt)) {
         textFilters[col] = rawVal;
         continue;
       } else {
