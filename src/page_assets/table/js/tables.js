@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import api from '@/common/js/api';
 import { bsToastWarning, bsToastSuccess, bsToastError } from '@/common/js/bsToast';
 
@@ -1205,9 +1206,11 @@ async function populatePaginationInfo(appState) {
 }
 
 /**
- * Wire pagination controls and the page-number input so users can navigate table pages.
- * The controls clamp requested pages to [1, totalPages], update `appState.currentPage`, and trigger data fetches.
- * @param {Object} appState - Application state; reads `totalRowCount` and `pageSize`, and mutates `currentPage`.
+ * Initialize pagination controls and the page-number input to navigate between table pages.
+ *
+ * Updates appState.currentPage (clamped to the valid page range) and triggers table data reloads.
+ * Changing pages also clears the header select-all checkbox state. Pressing Enter in the page input navigates to the typed page if numeric.
+ * @param {Object} appState - Application state; reads `totalRowCount` and `pageSize`, and sets `currentPage`.
  */
 function initPaginationControls(appState) {
   const getTotalPages = () =>
@@ -2734,10 +2737,12 @@ function hideSummaryRow() {
 }
 
 /**
- * Fetch saved column formats from the server and store them in `appState.columnFormats`.
+ * Loads column formatting metadata from the server and stores it on appState.
  *
- * @param {Object} appState - Application state; reads `tableName`, `projectName`, `modelName`.
- *   Sets `columnFormats` to the returned format map (keyed by column name).
+ * On success sets `appState.columnFormats` to the returned mapping keyed by column name.
+ * On failure sets `appState.columnFormats` to an empty object.
+ *
+ * @param {Object} appState - Application state providing `tableName`, `projectName`, and `modelName`; mutated with `columnFormats`.
  */
 async function fetchColumnFormats(appState) {
   try {
@@ -2805,6 +2810,20 @@ function initDownloadExcelBtn(appState) {
   });
 }
 
+/**
+ * Wires the "Upload Excel" modal and submit flow to allow uploading an .xlsx/.xls file into the current table.
+ *
+ * Sets up modal show/hidden handlers and the submit button to:
+ * - prefill and disable model/table name inputs from `appState`,
+ * - enforce allowed extensions (.xlsx, .xls) and present a file picker,
+ * - validate presence of table identifiers and selected file, showing error toasts on invalid state,
+ * - upload the selected file via `api.postFormData('/tables/upload', formData)`,
+ * - show a success toast including the number of rows added when provided by the server,
+ * - reset relevant UI (file input, submit button) and table state (clear summary/add-row, reset pagination/selection, clear header select-all),
+ * - close the modal and refresh table data on successful upload.
+ *
+ * @param {Object} appState - Application state object containing at least `modelName`, `tableName`, `currentPage`, `selectedColumn`, and `totalRowCount`; the function mutates pagination/selection fields when an upload completes.
+ */
 function setupUploadExcel(appState) {
   const modalEl = document.getElementById('uploadExcelModal');
   const modal_name = document.getElementById('uploadModelName');
@@ -2855,22 +2874,48 @@ function setupUploadExcel(appState) {
       return;
     }
 
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+
+      const workbook = XLSX.read(arrayBuffer, { type: 'array', bookSheets: true });
+
+      const sheetNames = workbook.SheetNames ?? [];
+      const expected = appState.tableName.trim().toLowerCase();
+      const hasMatchingSheet = sheetNames.some((name) => name.trim().toLowerCase() === expected);
+
+      if (!hasMatchingSheet) {
+        bsToastError(
+          `Excel file must contain a sheet named "${appState.tableName}". ` +
+            `Found: ${sheetNames.length ? sheetNames.join(', ') : 'none'}.`
+        );
+        return;
+      }
+    } catch (err) {
+      bsToastError('Unable to read the selected Excel file. Please verify the file and try again.');
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.innerHTML =
       '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Uploading…';
 
     try {
       const formData = new FormData();
+      formData.append('project_name', appState.projectName);
       formData.append('model_name', appState.modelName);
       formData.append('table_name', appState.tableName);
       formData.append('upload_file', selectedFile);
-      const result = await api.postFormData('/tables/upload', formData);
-      const rowsAdded = result?.rows_added;
-      bsToastSuccess(
-        typeof rowsAdded === 'number'
-          ? `Uploaded ${rowsAdded} row${rowsAdded !== 1 ? 's' : ''} from Excel`
-          : 'Excel uploaded successfully'
-      );
+      const result = await api.postFormData('/tables/upload-excel', formData);
+      const rowsAdded = result?.rows_inserted;
+      if (rowsAdded === 0) {
+        bsToastSuccess('Table deleted as empty table is uploaded');
+      } else {
+        bsToastSuccess(
+          typeof rowsAdded === 'number'
+            ? `Uploaded ${rowsAdded} row${rowsAdded !== 1 ? 's' : ''} from Excel`
+            : 'Excel uploaded successfully'
+        );
+      }
 
       // Refresh the table to reflect the newly uploaded data
       hideSummaryRow();
