@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import api from '@/common/js/api';
 import { bsToastWarning, bsToastSuccess, bsToastError } from '@/common/js/bsToast';
 
@@ -2870,6 +2871,29 @@ function setupUploadExcel(appState) {
     const isAllowedFile = allowedExtensions.some((extension) => lowerName.endsWith(extension));
     if (!isAllowedFile) {
       bsToastError('Only .xlsx and .xls files are supported.');
+      return;
+    }
+
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+
+      const workbook = XLSX.read(arrayBuffer, { type: 'array', bookSheets: true });
+
+      const sheetNames = workbook.SheetNames ?? [];
+      const expected = appState.tableName.trim().toLowerCase();
+      const hasMatchingSheet = sheetNames.some(
+        (name) => name.trim().toLowerCase() === expected
+      );
+
+      if (!hasMatchingSheet) {
+        bsToastError(
+          `Excel file must contain a sheet named "${appState.tableName}". ` +
+            `Found: ${sheetNames.length ? sheetNames.join(', ') : 'none'}.`
+        );
+        return;
+      }
+    } catch (err) {
+      bsToastError('Unable to read the selected Excel file. Please verify the file and try again.');
       return;
     }
 
