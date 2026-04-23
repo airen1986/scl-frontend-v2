@@ -2881,9 +2881,7 @@ function setupUploadExcel(appState) {
 
       const sheetNames = workbook.SheetNames ?? [];
       const expected = appState.tableName.trim().toLowerCase();
-      const hasMatchingSheet = sheetNames.some(
-        (name) => name.trim().toLowerCase() === expected
-      );
+      const hasMatchingSheet = sheetNames.some((name) => name.trim().toLowerCase() === expected);
 
       if (!hasMatchingSheet) {
         bsToastError(
