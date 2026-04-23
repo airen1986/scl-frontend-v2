@@ -425,9 +425,10 @@ function getNumericFiltersInTextFilters(appState) {
   // Match an operator (longer tokens first) followed by an optional-sign numeric value.
   const numericFilterRegex = /^\s*(>=|<=|==|=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/;
   for (const [col, val] of Object.entries(appState.textFilters ?? {})) {
+    const rawVal = typeof val === 'string' ? val : String(val ?? '');
     const columnMeta = appState.columnNames.find(([name]) => name === col);
     if (!columnMeta) {
-      textFilters[col] = val;
+      textFilters[col] = rawVal;
       continue;
     }
     const data_type = columnMeta[1];
@@ -435,24 +436,24 @@ function getNumericFiltersInTextFilters(appState) {
     if (isNumericType(data_type) || isIntegerType(data_type)) {
       const non_numeric_formats = ['DATE', 'DATETIME', 'TEXT', 'LOV'];
       if (non_numeric_formats.includes(fmt)) {
-        textFilters[col] = val;
+        textFilters[col] = rawVal;
         continue;
       } else {
-        const match = val.match(numericFilterRegex);
+        const match = rawVal.match(numericFilterRegex);
         if (!match) {
-          textFilters[col] = val;
+          textFilters[col] = rawVal;
           continue;
         }
         const op = opMap[match[1]];
         const value = Number(match[2]);
         if (op === undefined || Number.isNaN(value)) {
-          textFilters[col] = val;
+          textFilters[col] = rawVal;
           continue;
         }
         numericFilters.push([col, op, value]);
       }
     } else {
-      textFilters[col] = val;
+      textFilters[col] = rawVal;
     }
   }
   return { numericFilters, textFilters };
