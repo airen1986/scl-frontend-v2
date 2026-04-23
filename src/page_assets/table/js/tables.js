@@ -2879,16 +2879,21 @@ function setupUploadExcel(appState) {
 
     try {
       const formData = new FormData();
+      formData.append('project_name', appState.projectName);
       formData.append('model_name', appState.modelName);
       formData.append('table_name', appState.tableName);
       formData.append('upload_file', selectedFile);
-      const result = await api.postFormData('/tables/upload', formData);
-      const rowsAdded = result?.rows_added;
-      bsToastSuccess(
-        typeof rowsAdded === 'number'
-          ? `Uploaded ${rowsAdded} row${rowsAdded !== 1 ? 's' : ''} from Excel`
-          : 'Excel uploaded successfully'
-      );
+      const result = await api.postFormData('/tables/upload-excel', formData);
+      const rowsAdded = result?.rows_inserted;
+      if (rowsAdded === 0) {
+        bsToastSuccess('Table deleted as empty table is uploaded');
+      } else {
+        bsToastSuccess(
+          typeof rowsAdded === 'number'
+            ? `Uploaded ${rowsAdded} row${rowsAdded !== 1 ? 's' : ''} from Excel`
+            : 'Excel uploaded successfully'
+        );
+      }
 
       // Refresh the table to reflect the newly uploaded data
       hideSummaryRow();
