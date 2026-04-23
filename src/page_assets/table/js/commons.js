@@ -395,6 +395,69 @@ function getDragAfterElement(container, y) {
   );
 }
 
+function getDateColumnsInTextFilters(appState) {
+  const dateCols = [];
+  for (const [col] of Object.entries(appState.textFilters ?? {})) {
+    const columnMeta = appState.columnNames.find(([name]) => name === col);
+    if (!columnMeta) continue;
+    const data_type = columnMeta[1];
+    const fmt = appState.columnFormats?.[col]?.column_type;
+    if (fmt === 'DATE' || fmt === 'DATETIME') {
+      if (isNumericType(data_type) || isIntegerType(data_type)) {
+        dateCols.push(col);
+      }
+    }
+  }
+  return dateCols;
+}
+
+function getNumericFiltersInTextFilters(appState) {
+  const numericFilters = [];
+  const textFilters = {};
+  const opMap = {
+    '>=': 'gte',
+    '<=': 'lte',
+    '==': 'eq',
+    '=': 'eq',
+    '>': 'gt',
+    '<': 'lt',
+  };
+  // Match an operator (longer tokens first) followed by an optional-sign numeric value.
+  const numericFilterRegex = /^\s*(>=|<=|==|=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/;
+  for (const [col, val] of Object.entries(appState.textFilters ?? {})) {
+    const columnMeta = appState.columnNames.find(([name]) => name === col);
+    if (!columnMeta) {
+      textFilters[col] = val;
+      continue;
+    }
+    const data_type = columnMeta[1];
+    const fmt = appState.columnFormats?.[col]?.column_type;
+    if (isNumericType(data_type) || isIntegerType(data_type)) {
+      const non_numeric_formats = ['DATE', 'DATETIME', 'TEXT', 'LOV'];
+      if (non_numeric_formats.includes(fmt)) {
+        textFilters[col] = val;
+        continue;
+      } else {
+        const match = val.match(numericFilterRegex);
+        if (!match) {
+          textFilters[col] = val;
+          continue;
+        }
+        const op = opMap[match[1]];
+        const value = Number(match[2]);
+        if (op === undefined || Number.isNaN(value)) {
+          textFilters[col] = val;
+          continue;
+        }
+        numericFilters.push([col, op, value]);
+      }
+    } else {
+      textFilters[col] = val;
+    }
+  }
+  return { numericFilters, textFilters };
+}
+
 export {
   // SQL type classification
   defaultFormatType,
@@ -417,4 +480,8 @@ export {
   updateFilterIcon,
   bindDropdownItemToggle,
   getDragAfterElement,
+  // Text filter date column detection
+  getDateColumnsInTextFilters,
+  // Text filter numeric column detection
+  getNumericFiltersInTextFilters,
 };
