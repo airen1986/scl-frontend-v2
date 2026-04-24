@@ -160,8 +160,26 @@
                     Share Model
                   </a>
                 </li>
-                <li><a class="dropdown-item" href="#">Upload Excel</a></li>
-                <li><a class="dropdown-item" href="#">Download Excel</a></li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    data-bs-toggle="modal"
+                    data-bs-target="#uploadExcelModal"
+                  >
+                    Upload Excel
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    data-bs-toggle="modal"
+                    data-bs-target="#downloadExcelModal"
+                  >
+                    Download Excel
+                  </a>
+                </li>
               </ul>
             </li>
             <li class="nav-item dropdown">
@@ -1075,6 +1093,56 @@
           <div class="modal-footer">
             <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
             <button class="btn btn-dark" id="submitShareModelBtn" disabled>Share</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="downloadExcelModal"
+      tabindex="-1"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Download Excel</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Current Project</label>
+              <input type="text" class="form-control" id="downloadExcelModalProjectName" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-control" id="downloadExcelModalModelName" disabled />
+            </div>
+
+            <div class="mb-3 mt-4" id="tableGroupSelect">
+              <table class="table table-sm table-hover scl-table table-bordered align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col" class="text-center" style="width: 40px">
+                      <input type="checkbox" class="form-check-input" id="selectAllTables" />
+                    </th>
+                    <th scope="col" class="text-left">Table Groups</th>
+                  </tr>
+                </thead>
+                <tbody id="tableListForExcel">
+                  <!-- ✅ JS will populate this -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-dark" id="submitDownloadExcelBtn">Download</button>
           </div>
         </div>
       </div>

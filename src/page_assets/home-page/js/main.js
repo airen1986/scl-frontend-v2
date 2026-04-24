@@ -20,6 +20,7 @@ import {
   setupShareModel,
   setupMoveModel,
   setupAcceptModel,
+  setupDownloadExcelModel,
 } from './models';
 import { initProjects } from './projects';
 import { initNotifications } from './notifications';
@@ -154,6 +155,7 @@ ready(async () => {
   setupShareModel(appState);
   setupMoveModel(appState);
   setupAcceptModel(appState);
+  setupDownloadExcelModel(appState);
 
   // ── Display avatar initials & user info ───────────────────────────────
   const avatar = $('#displayAvatar');

@@ -1282,6 +1282,149 @@ function setupAcceptModel(appState) {
   }
 }
 
+function setupDownloadExcelModel(appState) {
+  const modal = $('#downloadExcelModal');
+  const currentProjectInput = $('#downloadExcelModalProjectName');
+  const currentModelInput = $('#downloadExcelModalModelName');
+  const tableListBody = $('#tableListForExcel');
+  const selectAllCheckbox = $('#selectAllTables');
+  const submitBtn = $('#submitDownloadExcelBtn');
+  if (!modal || !submitBtn) return;
+
+  function updateSubmitState() {
+    if (!tableListBody) return;
+    const checkedCount = tableListBody.querySelectorAll('.table-group-cb:checked').length;
+    submitBtn.disabled = checkedCount === 0;
+  }
+
+  function renderTableGroupList() {
+    if (!tableListBody) return;
+    tableListBody.innerHTML = '';
+
+    const groupNames = Object.keys(appState.tableGroups || {});
+
+    if (!groupNames.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = 2;
+      emptyCell.className = 'text-center text-muted fst-italic';
+      emptyCell.textContent = 'No table groups available.';
+      emptyRow.appendChild(emptyCell);
+      tableListBody.appendChild(emptyRow);
+      updateSubmitState();
+      return;
+    }
+
+    groupNames.forEach((groupName) => {
+      const tr = document.createElement('tr');
+
+      const checkboxTd = document.createElement('td');
+      checkboxTd.className = 'text-center';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-check-input table-group-cb';
+      checkbox.value = groupName;
+      checkbox.dataset.groupName = groupName;
+      checkboxTd.appendChild(checkbox);
+
+      const nameTd = document.createElement('td');
+      nameTd.className = 'text-left';
+      nameTd.textContent = groupName;
+
+      tr.appendChild(checkboxTd);
+      tr.appendChild(nameTd);
+      tableListBody.appendChild(tr);
+    });
+
+    updateSubmitState();
+  }
+
+  if (selectAllCheckbox && tableListBody) {
+    on(selectAllCheckbox, 'change', () => {
+      tableListBody
+        .querySelectorAll('.table-group-cb')
+        .forEach((cb) => (cb.checked = selectAllCheckbox.checked));
+      updateSubmitState();
+    });
+  }
+
+  if (tableListBody) {
+    on(tableListBody, 'change', (event) => {
+      if (!event.target.classList.contains('table-group-cb')) return;
+
+      if (selectAllCheckbox) {
+        const checkboxes = Array.from(tableListBody.querySelectorAll('.table-group-cb'));
+        selectAllCheckbox.checked = checkboxes.length > 0 && checkboxes.every((cb) => cb.checked);
+      }
+
+      updateSubmitState();
+    });
+  }
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for Excel download.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    renderTableGroupList();
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for Excel download.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Downloading…';
+
+    try {
+      const group_names = Array.from(tableListBody.querySelectorAll('.table-group-cb:checked')).map(
+        (cb) => cb.dataset.groupName
+      );
+      if (!group_names.length) {
+        toastError('Select at least one table group to download.');
+        return;
+      }
+      const table_names = [];
+      (group_names || []).forEach((group) => {
+        const tables = appState.tableGroups?.[group] || [];
+        tables.forEach(([tableKey]) => table_names.push(tableKey));
+      });
+      const { blob: excelBlob, fileName } = await api.postDownload('/tables/download-excel', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+        table_names,
+      });
+      const downloadUrl = window.URL.createObjectURL(excelBlob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = fileName || `${appState.selected_model}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toastSuccess('Excel download started.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Download';
+    }
+  });
+}
+
 /**
  * Populate the #tablesAccordion element with table groups for the currently selected model.
  *
@@ -1320,6 +1463,8 @@ async function updateTableAccordion(appState) {
     if (requestId !== latestTableAccordionRequestId) return;
 
     const tableGroups = data.table_groups || {};
+    // Cache table groups on appState so other UI (e.g. Download Excel modal) can reuse them.
+    appState.tableGroups = tableGroups;
 
     Object.entries(tableGroups).forEach(([groupName, tables], index) => {
       const itemId = `tablesAccordionItem-${index}`;
@@ -1396,6 +1541,7 @@ async function updateTableAccordion(appState) {
 export {
   fetchModels,
   renderCurrentProjectModels,
+  setupDownloadExcelModel,
   setupAddNewModel,
   setupSaveAsModel,
   setupAddExistingModel,
