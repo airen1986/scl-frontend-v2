@@ -395,6 +395,75 @@ function getDragAfterElement(container, y) {
   );
 }
 
+const NON_NUMERIC_FORMATS = new Set(['DATE', 'DATETIME', 'TEXT', 'LOV']);
+
+function buildColumnDataTypeMap(columnNames = []) {
+  return new Map(columnNames.map(([name, dataType]) => [name, dataType]));
+}
+
+function getDateColumnsInTextFilters(appState) {
+  const dateCols = [];
+  const dataTypeByColumn = buildColumnDataTypeMap(appState.columnNames ?? []);
+  for (const [col] of Object.entries(appState.textFilters ?? {})) {
+    const data_type = dataTypeByColumn.get(col);
+    if (!data_type) continue;
+    const fmt = appState.columnFormats?.[col]?.column_type;
+    if (fmt === 'DATE' || fmt === 'DATETIME') {
+      if (isNumericType(data_type) || isIntegerType(data_type)) {
+        dateCols.push(col);
+      }
+    }
+  }
+  return dateCols;
+}
+
+function getNumericFiltersInTextFilters(appState) {
+  const numericFilters = [];
+  const textFilters = {};
+  const opMap = {
+    '>=': 'gte',
+    '<=': 'lte',
+    '==': 'eq',
+    '=': 'eq',
+    '>': 'gt',
+    '<': 'lt',
+  };
+  // Match an operator (longer tokens first) followed by an optional-sign numeric value.
+  const numericFilterRegex = /^\s*(>=|<=|==|=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/;
+  const dataTypeByColumn = buildColumnDataTypeMap(appState.columnNames ?? []);
+  for (const [col, val] of Object.entries(appState.textFilters ?? {})) {
+    const rawVal = typeof val === 'string' ? val : String(val ?? '');
+    const data_type = dataTypeByColumn.get(col);
+    if (!data_type) {
+      textFilters[col] = rawVal;
+      continue;
+    }
+    const fmt = appState.columnFormats?.[col]?.column_type;
+    if (isNumericType(data_type) || isIntegerType(data_type)) {
+      if (NON_NUMERIC_FORMATS.has(fmt)) {
+        textFilters[col] = rawVal;
+        continue;
+      } else {
+        const match = rawVal.match(numericFilterRegex);
+        if (!match) {
+          textFilters[col] = rawVal;
+          continue;
+        }
+        const op = opMap[match[1]];
+        const value = Number(match[2]);
+        if (op === undefined || Number.isNaN(value)) {
+          textFilters[col] = rawVal;
+          continue;
+        }
+        numericFilters.push([col, op, value]);
+      }
+    } else {
+      textFilters[col] = rawVal;
+    }
+  }
+  return { numericFilters, textFilters };
+}
+
 export {
   // SQL type classification
   defaultFormatType,
@@ -417,4 +486,8 @@ export {
   updateFilterIcon,
   bindDropdownItemToggle,
   getDragAfterElement,
+  // Text filter date column detection
+  getDateColumnsInTextFilters,
+  // Text filter numeric column detection
+  getNumericFiltersInTextFilters,
 };

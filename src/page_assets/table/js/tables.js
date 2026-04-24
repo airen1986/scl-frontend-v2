@@ -16,6 +16,8 @@ import {
   updateFilterIcon,
   bindDropdownItemToggle,
   getDragAfterElement,
+  getDateColumnsInTextFilters,
+  getNumericFiltersInTextFilters,
 } from './commons';
 
 let tableLoaderDepth = 0;
@@ -388,6 +390,8 @@ function setEditControlsEnabled(enabled) {
 async function fetchTableData(appState) {
   showTableLoader();
   try {
+    const dateCols = getDateColumnsInTextFilters(appState);
+    const { numericFilters, textFilters } = getNumericFiltersInTextFilters(appState);
     const column_names = appState.columnNames.map(([name]) => name);
     const { data } = await api.post('/tables/data', {
       table_name: appState.tableName,
@@ -396,8 +400,10 @@ async function fetchTableData(appState) {
       page_number: appState.currentPage,
       page_size: appState.pageSize,
       select_filters: appState.selectFilters,
-      text_filters: appState.textFilters,
+      text_filters: textFilters,
+      numeric_filters: numericFilters,
       sort_columns: appState.sortColumns,
+      date_columns: dateCols,
       column_names,
     });
 
@@ -584,6 +590,8 @@ async function populateFilterDropdown(dropdown, colName, appState) {
 
   let values;
   try {
+    const dateCols = getDateColumnsInTextFilters(appState);
+    const { numericFilters, textFilters } = getNumericFiltersInTextFilters(appState);
     const res = await api.post('/tables/distinct-values', {
       table_name: appState.tableName,
       project_name: appState.projectName,
@@ -591,7 +599,9 @@ async function populateFilterDropdown(dropdown, colName, appState) {
       column_name: colName,
       page_size: appState.pageSize,
       select_filters: appState.selectFilters,
-      text_filters: appState.textFilters,
+      text_filters: textFilters,
+      numeric_filters: numericFilters,
+      date_columns: dateCols,
     });
     values = res.values ?? [];
   } catch {
@@ -834,12 +844,16 @@ async function populatePaginationInfo(appState) {
   paginationInfo.textContent = 'Fetching row count…';
   try {
     if (appState.currentPage === 1 && appState.totalRowCount === null) {
+      const dateCols = getDateColumnsInTextFilters(appState);
+      const { numericFilters, textFilters } = getNumericFiltersInTextFilters(appState);
       const { row_count: totalRowCount } = await api.post('/tables/row-count', {
         table_name: appState.tableName,
         project_name: appState.projectName,
         model_name: appState.modelName,
         select_filters: appState.selectFilters,
-        text_filters: appState.textFilters,
+        text_filters: textFilters,
+        numeric_filters: numericFilters,
+        date_columns: dateCols,
       });
 
       appState.totalRowCount = totalRowCount;
@@ -1636,6 +1650,8 @@ function initUpdateColumnBtn(appState) {
 
     submitBtn.disabled = true;
     try {
+      const dateCols = getDateColumnsInTextFilters(appState);
+      const { numericFilters, textFilters } = getNumericFiltersInTextFilters(appState);
       const { rows_updated } = await api.post('/tables/update-rows', {
         table_name: appState.tableName,
         project_name: appState.projectName,
@@ -1644,7 +1660,9 @@ function initUpdateColumnBtn(appState) {
         column_value: newValue,
         row_ids: rowIds,
         select_filters: appState.selectFilters,
-        text_filters: appState.textFilters,
+        text_filters: textFilters,
+        numeric_filters: numericFilters,
+        date_columns: dateCols,
       });
 
       bsToastSuccess(`${rows_updated} row${rows_updated !== 1 ? 's' : ''} updated`);
@@ -2085,12 +2103,16 @@ function initDeleteRowsBtn(appState) {
     deleteBtn.disabled = true;
     showTableLoader();
     try {
+      const dateCols = getDateColumnsInTextFilters(appState);
+      const { numericFilters, textFilters } = getNumericFiltersInTextFilters(appState);
       const { rows_deleted } = await api.post('/tables/delete-rows', {
         table_name: appState.tableName,
         project_name: appState.projectName,
         model_name: appState.modelName,
         select_filters: appState.selectFilters,
-        text_filters: appState.textFilters,
+        text_filters: textFilters,
+        numeric_filters: numericFilters,
+        date_columns: dateCols,
         row_ids,
       });
 
@@ -2173,6 +2195,8 @@ function initCopyRowsBtn(appState) {
       } else {
         // No rows selected — pull up to COPY_ROW_LIMIT rows from the server
         // honoring the current filters and sort order.
+        const dateCols = getDateColumnsInTextFilters(appState);
+        const { numericFilters, textFilters } = getNumericFiltersInTextFilters(appState);
         const { data } = await api.post('/tables/data', {
           table_name: appState.tableName,
           project_name: appState.projectName,
@@ -2180,9 +2204,11 @@ function initCopyRowsBtn(appState) {
           page_number: 1,
           page_size: COPY_ROW_LIMIT,
           select_filters: appState.selectFilters,
-          text_filters: appState.textFilters,
+          text_filters: textFilters,
+          numeric_filters: numericFilters,
           sort_columns: appState.sortColumns,
           column_names: headers,
+          date_columns: dateCols,
         });
 
         const numColumns = headers.length;
@@ -2265,13 +2291,17 @@ function initShowSummaryBtn(appState) {
     showBtn.disabled = true;
     showTableLoader();
     try {
+      const dateCols = getDateColumnsInTextFilters(appState);
+      const { numericFilters, textFilters } = getNumericFiltersInTextFilters(appState);
       const { summary } = await api.post('/tables/summary', {
         table_name: appState.tableName,
         project_name: appState.projectName,
         model_name: appState.modelName,
         select_filters: appState.selectFilters,
-        text_filters: appState.textFilters,
+        text_filters: textFilters,
+        numeric_filters: numericFilters,
         column_names: aggregations,
+        date_columns: dateCols,
       });
 
       renderSummaryRow(appState, summary ?? {}, aggregations);
