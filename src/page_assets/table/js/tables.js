@@ -2553,12 +2553,24 @@ function setupUploadExcel(appState) {
 
     try {
       const formData = new FormData();
+      const sheet_actions = { [appState.tableName]: 'upload' };
       formData.append('project_name', appState.projectName);
       formData.append('model_name', appState.modelName);
-      formData.append('table_name', appState.tableName);
+      formData.append('sheet_actions', JSON.stringify(sheet_actions));
       formData.append('upload_file', selectedFile);
       const result = await api.postFormData('/tables/upload-excel', formData);
-      const rowsAdded = result?.rows_inserted;
+      const tableResponse = result?.response?.[appState.tableName];
+      const requestStatus = String(tableResponse?.status || '').toLowerCase();
+      if (!tableResponse || requestStatus !== 'success') {
+        const reason =
+          tableResponse?.reason ||
+          (tableResponse?.status
+            ? `Unexpected status: ${tableResponse.status}`
+            : 'No response received from the server for this table.');
+        bsToastError(`Server failed to process the uploaded Excel file: ${reason}`);
+        return;
+      }
+      const rowsAdded = tableResponse.rows_imported;
       if (rowsAdded === 0) {
         bsToastSuccess('Table deleted as empty table is uploaded');
       } else {

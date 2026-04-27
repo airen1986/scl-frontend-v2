@@ -835,6 +835,122 @@
       </div>
     </div>
 
+     <!-- Upload Excel Modal -->
+    <div
+      class="modal fade"
+      id="uploadExcelModal"
+      tabindex="-1"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Upload Excel</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Current Project</label>
+              <input type="text" class="form-control" id="uploadExcelProjectName" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-control" id="uploadExcelModelName" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Excel File (.xlsx)</label>
+              <input type="file" class="form-control" id="uploadExcelFile" accept=".xlsx" />
+            </div>
+
+            <div class="form-text text-muted">
+              Only Excel files with the
+                <code>.xlsx</code>
+                or
+                <code>.xls</code>
+              extension are supported. Please ensure your file is in the correct format before uploading.
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-dark" id="submitUploadExcelBtn">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Excel - Sheet Actions Modal -->
+    <div
+      class="modal fade"
+      id="uploadExcelActionsModal"
+      tabindex="-1"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="uploadExcelActionsModalTitle">Upload Excel - Select Actions</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <!-- Step 2a: Action selection view -->
+            <div id="uploadExcelActionsView">
+              <p class="text-muted small mb-3">
+                Review each sheet detected in the Excel file and choose how it should be
+                handled before uploading.
+              </p>
+              <div class="table-responsive">
+                <table class="table table-hover table-sm table-bordered scl-table">
+                  <thead class="scl-thead">
+                    <tr>
+                      <th style="width: 60%">Sheet / Table Name</th>
+                      <th style="width: 40%">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody class="scl-tbody" id="uploadExcelActionsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Step 2b: Upload results view -->
+            <div id="uploadExcelResultsView" class="d-none">
+              <p class="text-muted small mb-3">
+                Upload completed. Review the result for each sheet below.
+              </p>
+              <div class="table-responsive">
+                <table class="table table-hover table-sm table-bordered scl-table">
+                  <thead class="scl-thead">
+                    <tr>
+                      <th style="width: 40%">Sheet / Table Name</th>
+                      <th style="width: 20%">Status</th>
+                      <th style="width: 40%">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody class="scl-tbody" id="uploadExcelResultsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <div id="uploadExcelActionsFooter" class="d-flex w-100">
+              <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-dark" id="submitUploadExcelActionsBtn">Upload</button>
+            </div>
+            <div id="uploadExcelResultsFooter" class="d-none w-100 text-end">
+              <button class="btn btn-dark" id="dismissUploadExcelResultsBtn" data-bs-dismiss="modal">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Backup Model Modal -->
     <div
       class="modal fade"
