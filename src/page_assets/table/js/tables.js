@@ -2463,19 +2463,12 @@ function initDownloadExcelBtn(appState) {
 }
 
 /**
- * Wires the "Upload Excel" modal and submit flow to allow uploading an .xlsx/.xls file into the current table.
+ * Wire the Upload Excel modal and submit flow to validate a selected .xlsx/.xls file, upload the matched worksheet to the server, and refresh table state on success.
  *
- * Sets up modal show/hidden handlers and the submit button to:
- * - prefill and disable model/table name inputs from `appState`,
- * - enforce allowed extensions (.xlsx, .xls) and present a file picker,
- * - validate presence of table identifiers and selected file, showing error toasts on invalid state,
- * - upload the selected file via `api.postFormData('/tables/upload', formData)`,
- * - show a success toast including the number of rows added when provided by the server,
- * - reset relevant UI (file input, submit button) and table state (clear summary/add-row, reset pagination/selection, clear header select-all),
- * - close the modal and refresh table data on successful upload.
+ * Validates presence of table identifiers and file extension, ensures the workbook contains a sheet whose name matches the current table (case-insensitive), posts a FormData payload with a `sheet_actions` mapping for the matched sheet and the file, interprets the per-sheet response at `response[matchedSheetName]` expecting `status: 'success'`, shows success or error toasts, and resets pagination/selection UI and reloads table data when upload completes.
  *
- * @param {Object} appState - Application state object containing at least `modelName`, `tableName`, `currentPage`, `selectedColumn`, and `totalRowCount`; the function mutates pagination/selection fields when an upload completes.
- */
+ * @param {Object} appState - Application state containing at least `projectName`, `modelName`, and `tableName`; this function mutates pagination/selection fields (`currentPage`, `selectedColumn`, `totalRowCount`) when an upload succeeds.
+ **/
 function setupUploadExcel(appState) {
   const modalEl = document.getElementById('uploadExcelModal');
   const modal_name = document.getElementById('uploadModelName');
@@ -2526,13 +2519,15 @@ function setupUploadExcel(appState) {
       return;
     }
 
+    let sheetNames;
+    const expected = appState.tableName.trim().toLowerCase();
+
     try {
       const arrayBuffer = await selectedFile.arrayBuffer();
 
       const workbook = XLSX.read(arrayBuffer, { type: 'array', bookSheets: true });
 
-      const sheetNames = workbook.SheetNames ?? [];
-      const expected = appState.tableName.trim().toLowerCase();
+      sheetNames = workbook.SheetNames ?? [];
       const hasMatchingSheet = sheetNames.some((name) => name.trim().toLowerCase() === expected);
 
       if (!hasMatchingSheet) {
@@ -2553,12 +2548,25 @@ function setupUploadExcel(appState) {
 
     try {
       const formData = new FormData();
+      const matchedSheetName = sheetNames.find((name) => name.trim().toLowerCase() === expected);
+      const sheet_actions = { [matchedSheetName]: 'upload' };
       formData.append('project_name', appState.projectName);
       formData.append('model_name', appState.modelName);
-      formData.append('table_name', appState.tableName);
+      formData.append('sheet_actions', JSON.stringify(sheet_actions));
       formData.append('upload_file', selectedFile);
       const result = await api.postFormData('/tables/upload-excel', formData);
-      const rowsAdded = result?.rows_inserted;
+      const tableResponse = result?.response?.[matchedSheetName];
+      const requestStatus = String(tableResponse?.status || '').toLowerCase();
+      if (!tableResponse || requestStatus !== 'success') {
+        const reason =
+          tableResponse?.reason ||
+          (tableResponse?.status
+            ? `Unexpected status: ${tableResponse.status}`
+            : 'No response received from the server for this table.');
+        bsToastError(`Server failed to process the uploaded Excel file: ${reason}`);
+        return;
+      }
+      const rowsAdded = tableResponse.rows_imported;
       if (rowsAdded === 0) {
         bsToastSuccess('Table deleted as empty table is uploaded');
       } else {

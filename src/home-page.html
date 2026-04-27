@@ -160,8 +160,27 @@
                     Share Model
                   </a>
                 </li>
-                <li><a class="dropdown-item" href="#">Upload Excel</a></li>
-                <li><a class="dropdown-item" href="#">Download Excel</a></li>
+                <li>
+                  <a
+                    id="uploadExcelMenu"
+                    class="dropdown-item"
+                    href="#"
+                    data-bs-toggle="modal"
+                    data-bs-target="#uploadExcelModal"
+                  >
+                    Upload Excel
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    data-bs-toggle="modal"
+                    data-bs-target="#downloadExcelModal"
+                  >
+                    Download Excel
+                  </a>
+                </li>
               </ul>
             </li>
             <li class="nav-item dropdown">
@@ -320,11 +339,7 @@
           <div class="card h-100">
             <div class="card-body" id="modelListBody">
               <h4 class="card-title text-center mb-3">Models</h4>
-              <div class="list-group" id="modelList">
-                <a href="#" class="list-group-item list-group-item-action active">
-                  Supply Chain Model A
-                </a>
-              </div>
+              <div class="list-group" id="modelList"></div>
             </div>
             <div class="card-footer text-left py-2 px-2">
               <span class="text-muted">Current Project:</span>
@@ -337,107 +352,7 @@
           <div class="card h-100">
             <div class="card-body" id="tablesBody">
               <h4 class="card-title text-center mb-3">Tables</h4>
-              <div class="accordion" id="tablesAccordion">
-                <div class="accordion-item">
-                  <h2 class="accordion-header" id="headingOne">
-                    <button
-                      class="accordion-button collapsed"
-                      type="button"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#collapseOne"
-                      aria-expanded="false"
-                      aria-controls="collapseOne"
-                    >
-                      Orders
-                    </button>
-                  </h2>
-                  <div
-                    id="collapseOne"
-                    class="accordion-collapse collapse"
-                    aria-labelledby="headingOne"
-                    data-bs-parent="#tablesAccordion"
-                  >
-                    <div class="accordion-body">
-                      <table class="table table-md table-bordered align-middle mb-0">
-                        <tbody>
-                          <tr>
-                            <td>Acme Co.</td>
-                          </tr>
-                          <tr>
-                            <td>Globex</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-                <div class="accordion-item">
-                  <h2 class="accordion-header" id="headingTwo">
-                    <button
-                      class="accordion-button collapsed"
-                      type="button"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#collapseTwo"
-                      aria-expanded="false"
-                      aria-controls="collapseTwo"
-                    >
-                      Inventory
-                    </button>
-                  </h2>
-                  <div
-                    id="collapseTwo"
-                    class="accordion-collapse collapse"
-                    aria-labelledby="headingTwo"
-                    data-bs-parent="#tablesAccordion"
-                  >
-                    <div class="accordion-body">
-                      <table class="table table-md table-bordered align-middle mb-0">
-                        <tbody>
-                          <tr>
-                            <td>Acme Co.</td>
-                          </tr>
-                          <tr>
-                            <td>Globex</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-                <div class="accordion-item">
-                  <h2 class="accordion-header" id="headingThree">
-                    <button
-                      class="accordion-button collapsed"
-                      type="button"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#collapseThree"
-                      aria-expanded="false"
-                      aria-controls="collapseThree"
-                    >
-                      Shipments
-                    </button>
-                  </h2>
-                  <div
-                    id="collapseThree"
-                    class="accordion-collapse collapse"
-                    aria-labelledby="headingThree"
-                    data-bs-parent="#tablesAccordion"
-                  >
-                    <div class="accordion-body">
-                      <table class="table table-md table-bordered align-middle mb-0">
-                        <tbody>
-                          <tr>
-                            <td>Acme Co.</td>
-                          </tr>
-                          <tr>
-                            <td>Globex</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div class="accordion" id="tablesAccordion"></div>
             </div>
           </div>
         </div>
@@ -921,6 +836,131 @@
       </div>
     </div>
 
+    <!-- Upload Excel Modal -->
+    <div
+      class="modal fade"
+      id="uploadExcelModal"
+      tabindex="-1"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Upload Excel</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Current Project</label>
+              <input type="text" class="form-control" id="uploadExcelProjectName" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-control" id="uploadExcelModelName" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Excel File (.xlsx)</label>
+              <input type="file" class="form-control" id="uploadExcelFile" accept=".xlsx,.xls" />
+            </div>
+
+            <div class="form-text text-muted">
+              Only Excel files with the
+              <code>.xlsx</code>
+              or
+              <code>.xls</code>
+              extension are supported. Please ensure your file is in the correct format before
+              uploading.
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-dark" id="submitUploadExcelBtn">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Excel - Sheet Actions Modal -->
+    <div
+      class="modal fade"
+      id="uploadExcelActionsModal"
+      tabindex="-1"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="uploadExcelActionsModalTitle">
+              Upload Excel - Select Actions
+            </h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <!-- Step 2a: Action selection view -->
+            <div id="uploadExcelActionsView">
+              <p class="text-muted small mb-3">
+                Review each sheet detected in the Excel file and choose how it should be handled
+                before uploading.
+              </p>
+              <div class="table-responsive">
+                <table class="table table-hover table-sm table-bordered scl-table">
+                  <thead class="scl-thead">
+                    <tr>
+                      <th style="width: 60%">Sheet / Table Name</th>
+                      <th style="width: 40%">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody class="scl-tbody" id="uploadExcelActionsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Step 2b: Upload results view -->
+            <div id="uploadExcelResultsView" class="d-none">
+              <p class="text-muted small mb-3">
+                Upload completed. Review the result for each sheet below.
+              </p>
+              <div class="table-responsive">
+                <table class="table table-hover table-sm table-bordered scl-table">
+                  <thead class="scl-thead">
+                    <tr>
+                      <th style="width: 40%">Sheet / Table Name</th>
+                      <th style="width: 20%">Status</th>
+                      <th style="width: 40%">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody class="scl-tbody" id="uploadExcelResultsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <div id="uploadExcelActionsFooter" class="d-flex w-100">
+              <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-dark" id="submitUploadExcelActionsBtn">Upload</button>
+            </div>
+            <div id="uploadExcelResultsFooter" class="d-none w-100 text-end">
+              <button
+                class="btn btn-dark"
+                id="dismissUploadExcelResultsBtn"
+                data-bs-dismiss="modal"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Backup Model Modal -->
     <div
       class="modal fade"
@@ -1075,6 +1115,56 @@
           <div class="modal-footer">
             <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
             <button class="btn btn-dark" id="submitShareModelBtn" disabled>Share</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="downloadExcelModal"
+      tabindex="-1"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Download Excel</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Current Project</label>
+              <input type="text" class="form-control" id="downloadExcelModalProjectName" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-control" id="downloadExcelModalModelName" disabled />
+            </div>
+
+            <div class="mb-3 mt-4" id="tableGroupSelect">
+              <table class="table table-sm table-hover scl-table table-bordered align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col" class="text-center" style="width: 40px">
+                      <input type="checkbox" class="form-check-input" id="selectAllTables" />
+                    </th>
+                    <th scope="col" class="text-left">Table Groups</th>
+                  </tr>
+                </thead>
+                <tbody id="tableListForExcel">
+                  <!-- ✅ JS will populate this -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-dark" id="submitDownloadExcelBtn">Download</button>
           </div>
         </div>
       </div>

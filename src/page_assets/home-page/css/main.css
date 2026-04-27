@@ -86,3 +86,17 @@
   text-shadow: 0 0 1px #fff;
   pointer-events: none;
 }
+
+.scl-table .form-check-input {
+  border-width: 2px;
+  border-color: var(--bs-heading-color);
+}
+
+.scl-table .form-check-input:focus {
+  box-shadow: none;
+}
+
+
+.scl-table .form-check-input:not(:checked) {
+  background-color: transparent;
+}

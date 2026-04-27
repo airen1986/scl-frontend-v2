@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import {
   bsToastSuccess as toastSuccess,
   bsToastError as toastError,
@@ -95,13 +96,13 @@ function renderCurrentProjectModels(appState) {
 }
 
 /**
- * Toggle visibility of model action menu items based on the selected model's access level.
+ * Update visibility of model action menu items to require owner access.
  *
- * Reads the access level for appState.currentProject's appState.selected_model and makes the
- * menu elements with IDs "backupModelMenu", "restoreModelMenu", "shareModelMenu", and
- * "uploadModelMenu" visible only when the access level is exactly "owner"; hides them otherwise.
+ * Shows the elements with IDs "backupModelMenu", "restoreModelMenu", "shareModelMenu",
+ * "uploadModelMenu", and "uploadExcelMenu" only when the selected model's access level
+ * within the current project is exactly `"owner"`; hides them otherwise.
  *
- * @param {Object} appState - Application state containing projectModels, currentProject, and selected_model.
+ * @param {Object} appState - Application state containing `projectModels`, `currentProject`, and `selected_model`.
  */
 function updateModelActionVisibility(appState) {
   const access =
@@ -110,8 +111,9 @@ function updateModelActionVisibility(appState) {
   const restore = document.getElementById('restoreModelMenu');
   const share = document.getElementById('shareModelMenu');
   const upload = document.getElementById('uploadModelMenu');
+  const excelUpload = document.getElementById('uploadExcelMenu');
 
-  if (!backup || !restore || !share || !upload) return;
+  if (!backup || !restore || !share || !upload || !excelUpload) return;
 
   const isOwner = access === 'owner';
 
@@ -119,6 +121,7 @@ function updateModelActionVisibility(appState) {
   restore.style.display = isOwner ? '' : 'none';
   share.style.display = isOwner ? '' : 'none';
   upload.style.display = isOwner ? '' : 'none';
+  excelUpload.style.display = isOwner ? '' : 'none';
 }
 
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
@@ -1283,15 +1286,623 @@ function setupAcceptModel(appState) {
 }
 
 /**
- * Populate the #tablesAccordion element with table groups for the currently selected model.
+ * Initialize and wire the "Download Excel" modal UI for downloading selected table groups as an Excel file.
  *
- * Calls the backend `/models/table-groups` with the current project and selected model, clears
- * any existing content in `#tablesAccordion`, and builds a Bootstrap accordion where each group
- * becomes a collapsible section containing links to tables.
+ * Sets up modal show/hide behavior, renders selectable table-group rows from `appState.tableGroups`,
+ * manages select-all and submit button state, and performs the download request which triggers a file save.
  *
- * If `#tablesAccordion` is not present the function returns immediately. On API failure the
- * accordion remains empty and the function suppresses the error (error reporting is handled by
- * the API helper).
+ * @param {Object} appState - Application state object; this function reads `appState.tableGroups`, `appState.currentProject`, and `appState.selected_model`.
+ */
+function setupDownloadExcelModel(appState) {
+  const modal = $('#downloadExcelModal');
+  const currentProjectInput = $('#downloadExcelModalProjectName');
+  const currentModelInput = $('#downloadExcelModalModelName');
+  const tableListBody = $('#tableListForExcel');
+  const selectAllCheckbox = $('#selectAllTables');
+  const submitBtn = $('#submitDownloadExcelBtn');
+  if (!modal || !submitBtn) return;
+
+  function updateSubmitState() {
+    if (!tableListBody) return;
+    const checkedCount = tableListBody.querySelectorAll('.table-group-cb:checked').length;
+    submitBtn.disabled = checkedCount === 0;
+  }
+
+  function renderTableGroupList() {
+    if (!tableListBody) return;
+    tableListBody.innerHTML = '';
+
+    const groupNames = Object.keys(appState.tableGroups || {});
+
+    if (!groupNames.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = 2;
+      emptyCell.className = 'text-center text-muted fst-italic';
+      emptyCell.textContent = 'No table groups available.';
+      emptyRow.appendChild(emptyCell);
+      tableListBody.appendChild(emptyRow);
+      updateSubmitState();
+      return;
+    }
+
+    groupNames.forEach((groupName) => {
+      const tr = document.createElement('tr');
+
+      const checkboxTd = document.createElement('td');
+      checkboxTd.className = 'text-center';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-check-input table-group-cb';
+      checkbox.value = groupName;
+      checkbox.dataset.groupName = groupName;
+      checkboxTd.appendChild(checkbox);
+
+      const nameTd = document.createElement('td');
+      nameTd.className = 'text-left';
+      nameTd.textContent = groupName;
+
+      tr.appendChild(checkboxTd);
+      tr.appendChild(nameTd);
+      tableListBody.appendChild(tr);
+    });
+
+    updateSubmitState();
+  }
+
+  if (selectAllCheckbox && tableListBody) {
+    on(selectAllCheckbox, 'change', () => {
+      tableListBody
+        .querySelectorAll('.table-group-cb')
+        .forEach((cb) => (cb.checked = selectAllCheckbox.checked));
+      updateSubmitState();
+    });
+  }
+
+  if (tableListBody) {
+    on(tableListBody, 'change', (event) => {
+      if (!event.target.classList.contains('table-group-cb')) return;
+
+      if (selectAllCheckbox) {
+        const checkboxes = Array.from(tableListBody.querySelectorAll('.table-group-cb'));
+        selectAllCheckbox.checked = checkboxes.length > 0 && checkboxes.every((cb) => cb.checked);
+      }
+
+      updateSubmitState();
+    });
+  }
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for Excel download.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    renderTableGroupList();
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for Excel download.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Downloading…';
+
+    try {
+      const group_names = Array.from(tableListBody.querySelectorAll('.table-group-cb:checked')).map(
+        (cb) => cb.dataset.groupName
+      );
+      if (!group_names.length) {
+        toastError('Select at least one table group to download.');
+        return;
+      }
+      const table_names = [];
+      (group_names || []).forEach((group) => {
+        const tables = appState.tableGroups?.[group] || [];
+        tables.forEach(([tableKey]) => table_names.push(tableKey));
+      });
+      const { blob: excelBlob, fileName } = await api.postDownload('/tables/download-excel', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+        table_names,
+      });
+      const downloadUrl = window.URL.createObjectURL(excelBlob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = fileName || `${appState.selected_model}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toastSuccess('Excel download started.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Download';
+    }
+  });
+}
+
+/**
+ * Wire the two-step Upload Excel flow.
+ *
+ * Step 1 (#uploadExcelModal): The user selects an .xlsx/.xls file. On submit the file is read
+ *   with SheetJS to extract sheet names, which are POSTed to `/models/check-excel-sheets` to
+ *   classify each sheet as one of: `not_existing`, `input_table`, `view`, or `output_table`.
+ * Step 2 (#uploadExcelActionsModal): The user is shown a table of sheet names together with
+ *   their detected type and a per-sheet action select populated based on the type. On submit
+ *   the file is uploaded to `/models/upload-excel` together with the chosen per-sheet actions.
+ *
+ * @param {Object} appState - Application state providing `currentProject` and `selected_model`.
+ */
+function setupUploadExcel(appState) {
+  const modal = $('#uploadExcelModal');
+  const currentProjectInput = $('#uploadExcelProjectName');
+  const currentModelInput = $('#uploadExcelModelName');
+  const fileInput = $('#uploadExcelFile');
+  const submitBtn = $('#submitUploadExcelBtn');
+
+  const actionsModal = $('#uploadExcelActionsModal');
+  const actionsTableBody = $('#uploadExcelActionsTableBody');
+  const actionsSubmitBtn = $('#submitUploadExcelActionsBtn');
+
+  const actionsView = $('#uploadExcelActionsView');
+  const resultsView = $('#uploadExcelResultsView');
+  const resultsTableBody = $('#uploadExcelResultsTableBody');
+  const actionsFooter = $('#uploadExcelActionsFooter');
+  const resultsFooter = $('#uploadExcelResultsFooter');
+  const actionsModalTitle = $('#uploadExcelActionsModalTitle');
+
+  if (!modal || !submitBtn || !fileInput) return;
+  if (!actionsModal || !actionsTableBody || !actionsSubmitBtn) return;
+  if (!actionsView || !resultsView || !resultsTableBody) return;
+  if (!actionsFooter || !resultsFooter) return;
+
+  const ACTIONS_TITLE = 'Upload Excel - Select Actions';
+  const RESULTS_TITLE = 'Upload Excel - Results';
+
+  const allowedExtensions = ['.xlsx', '.xls'];
+
+  // Available actions keyed by their backend value.
+  const ACTION_LABELS = {
+    upload: 'Delete data and upload',
+    delete: 'Delete data',
+    create: 'Create table and Upload',
+    ignore: 'Ignore',
+  };
+
+  // Per-type configuration of which actions are shown, the default selection,
+  // and whether the select should be disabled.
+  const TYPE_CONFIG = {
+    not_existing: { options: ['create', 'ignore'], default: 'ignore', disabled: false },
+    input_table: { options: ['ignore', 'upload', 'delete'], default: 'upload', disabled: false },
+    view: { options: ['ignore'], default: 'ignore', disabled: true },
+    output_table: { options: ['ignore', 'upload', 'delete'], default: 'ignore', disabled: false },
+    unknown: { options: ['ignore'], default: 'ignore', disabled: true },
+  };
+
+  // Normalize a raw type string (from the server or user) into one of the
+  // canonical keys in TYPE_CONFIG. Accepts variations in case, spacing,
+  /**
+   * Normalize a raw sheet type value into a canonical sheet type key used by the upload/download flows.
+   *
+   * Uses an exact match against TYPE_CONFIG keys first, then applies heuristic matching (checks for substrings
+   * like "view", "output", "input", or variants indicating non-existence). Empty, null, or missing-like values
+   * map to `not_existing`; unrecognized values map to `unknown`.
+   *
+   * @param {*} rawType - The raw type value (string, null, undefined, or other) obtained from the client/server.
+   * @returns {'input_table'|'output_table'|'view'|'not_existing'|'unknown'} A canonical sheet type key.
+   **/
+  function normalizeSheetType(rawType) {
+    if (rawType === null || rawType === undefined) return 'not_existing';
+    const normalized = String(rawType)
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, '_');
+    if (!normalized) return 'not_existing';
+
+    // Exact canonical match first.
+    if (Object.prototype.hasOwnProperty.call(TYPE_CONFIG, normalized)) {
+      return normalized;
+    }
+
+    if (normalized.includes('view')) return 'view';
+    if (normalized.includes('output')) return 'output_table';
+    if (normalized.includes('input')) return 'input_table';
+    // Bare 'table' is treated as an input table.
+    if (normalized === 'table') return 'input_table';
+    if (
+      normalized.includes('not_exist') ||
+      normalized.includes('non_exist') ||
+      normalized.includes('missing') ||
+      normalized.includes('none')
+    ) {
+      return 'not_existing';
+    }
+    return 'unknown'; // Default to unknown for unknown types, as it's safer to require explicit input tables and views.
+  }
+
+  // Session state shared between the two modals.
+  let pendingFile = null;
+  let pendingSheetNames = [];
+
+  /**
+   * Restore the submit button to its default enabled state and label it "Next".
+   */
+  function resetSubmitBtn() {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Next';
+  }
+
+  /**
+   * Restore the actions submit button to its default enabled state and label.
+   *
+   * Re-enables the button and sets its text to "Upload".
+   */
+  function resetActionsSubmitBtn() {
+    actionsSubmitBtn.disabled = false;
+    actionsSubmitBtn.textContent = 'Upload';
+  }
+
+  /**
+   * Show the actions view in the upload-excel modal and hide the results view.
+   *
+   * Updates visibility and layout classes for the actions/results panes and their footers,
+   * and sets the modal title to ACTIONS_TITLE when present.
+   */
+  function showActionsView() {
+    actionsView.classList.remove('d-none');
+    resultsView.classList.add('d-none');
+    actionsFooter.classList.remove('d-none');
+    actionsFooter.classList.add('d-flex');
+    resultsFooter.classList.add('d-none');
+    if (actionsModalTitle) actionsModalTitle.textContent = ACTIONS_TITLE;
+  }
+
+  /**
+   * Switches the upload-excel modal from the actions view to the results view.
+   *
+   * Hides the actions view and its footer, shows the results view and its footer,
+   * and updates the modal title to `RESULTS_TITLE` when a title element exists.
+   */
+  function showResultsView() {
+    actionsView.classList.add('d-none');
+    resultsView.classList.remove('d-none');
+    actionsFooter.classList.add('d-none');
+    actionsFooter.classList.remove('d-flex');
+    resultsFooter.classList.remove('d-none');
+    if (actionsModalTitle) actionsModalTitle.textContent = RESULTS_TITLE;
+  }
+
+  // Build the post-upload results table.
+  //
+  // `result` is the response object returned by `/tables/upload-excel`, keyed
+  // by table/sheet name. Each entry has either:
+  //   - { status: 'failed', reason: <string> }
+  //   - { status: 'success', rows_imported: <number> }   (create/upload)
+  //   - { status: 'success', rows_deleted: <number> }    (delete)
+  // Sheets that are not present in `result` are only considered ignored when
+  // their selected action was `ignore`; otherwise they are surfaced as failed.
+  //
+  /**
+   * Render per-sheet upload results into the results table, grouping rows as failed, success, then ignored.
+   *
+   * Parses the server `result` for each name in `sheetNames` and appends rows to the global `resultsTableBody`.
+   * - A sheet is treated as "Ignored" when `sheetActions[sheetName] === 'ignore'` and there is no server entry.
+   * - A missing or unknown-status entry is surfaced as "Failed" (with the server-provided `reason` if present).
+   * - A "Success" entry may display `rows_imported` or `rows_deleted` when provided.
+   *
+   * This function mutates the DOM by clearing and populating `resultsTableBody`.
+   *
+   * @param {string[]} sheetNames - Ordered list of sheet names to display in the results table.
+   * @param {Object<string, Object>} result - Mapping of sheet name → server response object. Each response may include `status` (`"success"`/`"failed"`), `reason`, `rows_imported`, and `rows_deleted`.
+   * @param {Object<string, string>} [sheetActions={}] - Mapping of sheet name → selected action (e.g., `'ignore'`); used to classify sheets with no server response as ignored.
+   */
+  function buildResultsTable(sheetNames, result, sheetActions = {}) {
+    resultsTableBody.innerHTML = '';
+
+    const safeResult = result && typeof result === 'object' ? result : {};
+    const safeSheetActions = sheetActions && typeof sheetActions === 'object' ? sheetActions : {};
+
+    const failedRows = [];
+    const successRows = [];
+    const ignoredRows = [];
+
+    sheetNames.forEach((sheetName) => {
+      const entry = safeResult[sheetName];
+      if (!entry || typeof entry !== 'object') {
+        if (safeSheetActions[sheetName] === 'ignore') {
+          ignoredRows.push({ sheetName });
+        } else {
+          failedRows.push({
+            sheetName,
+            reason: 'No response received from the server for this sheet.',
+          });
+        }
+        return;
+      }
+      const status = String(entry.status || '').toLowerCase();
+      if (status === 'failed') {
+        failedRows.push({ sheetName, reason: entry.reason });
+      } else if (status === 'success') {
+        successRows.push({
+          sheetName,
+          rowsImported: entry.rows_imported,
+          rowsDeleted: entry.rows_deleted,
+        });
+      } else {
+        // Unknown status — surface it as failed so the user can see it.
+        failedRows.push({
+          sheetName,
+          reason: entry.reason || `Unknown status: ${entry.status ?? '(none)'}`,
+        });
+      }
+    });
+
+    const appendRow = (sheetName, statusText, statusClass, details) => {
+      const tr = document.createElement('tr');
+
+      const tdName = document.createElement('td');
+      tdName.textContent = sheetName;
+      tr.appendChild(tdName);
+
+      const tdStatus = document.createElement('td');
+      const badge = document.createElement('span');
+      badge.className = `badge ${statusClass}`;
+      badge.textContent = statusText;
+      tdStatus.appendChild(badge);
+      tr.appendChild(tdStatus);
+
+      const tdDetails = document.createElement('td');
+      tdDetails.textContent = details || '';
+      tr.appendChild(tdDetails);
+
+      resultsTableBody.appendChild(tr);
+    };
+
+    failedRows.forEach((row) => {
+      appendRow(row.sheetName, 'Failed', 'bg-danger', row.reason || 'Unknown error');
+    });
+
+    successRows.forEach((row) => {
+      let details = '';
+      if (typeof row.rowsImported === 'number') {
+        details = `${row.rowsImported} row(s) imported`;
+      } else if (typeof row.rowsDeleted === 'number') {
+        details = `${row.rowsDeleted} row(s) deleted`;
+      }
+      appendRow(row.sheetName, 'Success', 'bg-success', details);
+    });
+
+    ignoredRows.forEach((row) => {
+      appendRow(row.sheetName, 'Ignored', 'bg-secondary', '');
+    });
+  }
+
+  /**
+   * Populate the actions table with one row per sheet, each containing the sheet name and a select control to choose the upload action.
+   *
+   * Rows are ordered so sheets whose configured default action is "Delete data and upload" ("upload") appear before other sheets.
+   *
+   * @param {string[]} sheetNames - Array of sheet names to render (preserves order within each sorted group).
+   * @param {Object.<string,string>} sheetTypes - Mapping from sheet name to detected sheet type used to determine available actions.
+   */
+  function buildActionsTable(sheetNames, sheetTypes) {
+    actionsTableBody.innerHTML = '';
+
+    // Sort rows so sheets whose default action is "Delete data and upload"
+    // appear first, preserving original order within each group.
+    const sortedSheetNames = [...sheetNames].sort((a, b) => {
+      const aDefault = (TYPE_CONFIG[normalizeSheetType(sheetTypes[a])] || TYPE_CONFIG.not_existing)
+        .default;
+      const bDefault = (TYPE_CONFIG[normalizeSheetType(sheetTypes[b])] || TYPE_CONFIG.not_existing)
+        .default;
+      const aPurge = aDefault === 'upload' ? 0 : 1;
+      const bPurge = bDefault === 'upload' ? 0 : 1;
+      return aPurge - bPurge;
+    });
+
+    sortedSheetNames.forEach((sheetName) => {
+      const type = normalizeSheetType(sheetTypes[sheetName]);
+      const config = TYPE_CONFIG[type] || TYPE_CONFIG.not_existing;
+
+      const tr = document.createElement('tr');
+
+      const tdName = document.createElement('td');
+      tdName.textContent = sheetName;
+      tr.appendChild(tdName);
+
+      const tdAction = document.createElement('td');
+      const select = document.createElement('select');
+      select.className = 'form-select form-select-sm';
+      select.dataset.sheet = sheetName;
+      select.dataset.type = type;
+
+      config.options.forEach((optKey) => {
+        const opt = document.createElement('option');
+        opt.value = optKey;
+        opt.textContent = ACTION_LABELS[optKey];
+        if (optKey === config.default) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      if (config.disabled) select.disabled = true;
+      tdAction.appendChild(select);
+      tr.appendChild(tdAction);
+
+      actionsTableBody.appendChild(tr);
+    });
+  }
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    fileInput.value = '';
+    fileInput.accept = allowedExtensions.join(',');
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for upload.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    }
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    fileInput.value = '';
+    resetSubmitBtn();
+  });
+
+  on(actionsModal, 'hidden.bs.modal', () => {
+    actionsTableBody.innerHTML = '';
+    resultsTableBody.innerHTML = '';
+    resetActionsSubmitBtn();
+    showActionsView();
+    pendingFile = null;
+    pendingSheetNames = [];
+  });
+
+  // Step 1: validate file, read sheet names with SheetJS, ask the server for
+  // their types, then switch to the actions modal.
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for upload.');
+      return;
+    }
+
+    const selectedFile = fileInput.files?.[0];
+    if (!selectedFile) {
+      toastError('Please choose a model excel file.');
+      return;
+    }
+
+    const lowerName = selectedFile.name.toLowerCase();
+    const isAllowedFile = allowedExtensions.some((extension) => lowerName.endsWith(extension));
+    if (!isAllowedFile) {
+      toastError('Only .xlsx and .xls files are supported.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Checking…';
+
+    let sheetNames;
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array', bookSheets: true });
+      sheetNames = workbook.SheetNames ?? [];
+    } catch {
+      toastError('Unable to read the selected Excel file. Please verify the file and try again.');
+      resetSubmitBtn();
+      return;
+    }
+
+    if (!sheetNames.length) {
+      toastError('The selected Excel file does not contain any sheets.');
+      resetSubmitBtn();
+      return;
+    }
+
+    let sheetTypes;
+    try {
+      const response = await api.post('/tables/check-excel-sheets', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+        sheet_names: sheetNames,
+      });
+      sheetTypes = response?.sheet_types || {};
+    } catch {
+      // api.js already displayed the error toast
+      resetSubmitBtn();
+      return;
+    }
+
+    pendingFile = selectedFile;
+    pendingSheetNames = [...sheetNames];
+    showActionsView();
+    buildActionsTable(sheetNames, sheetTypes);
+
+    window.bootstrap.Modal.getInstance(modal)?.hide();
+    window.bootstrap.Modal.getOrCreateInstance(actionsModal).show();
+  });
+
+  // Step 2: collect chosen actions and perform the actual upload.
+  on(actionsSubmitBtn, 'click', async () => {
+    if (!pendingFile) {
+      toastError('No file selected. Please choose a file to upload.');
+      return;
+    }
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for upload.');
+      return;
+    }
+
+    const selects = actionsTableBody.querySelectorAll('select[data-sheet]');
+    const sheetActions = {};
+    selects.forEach((select) => {
+      sheetActions[select.dataset.sheet] = select.value;
+    });
+
+    const selectedActions = Object.entries(sheetActions).filter(
+      ([, action]) => action !== 'ignore'
+    );
+    if (!selectedActions.length) {
+      toastError('No sheets selected for upload. Please choose at least one sheet to upload.');
+      return;
+    }
+    const shouldRefreshTables = selectedActions.some(([, action]) => action === 'create');
+
+    actionsSubmitBtn.disabled = true;
+    actionsSubmitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Uploading…';
+
+    try {
+      const formData = new FormData();
+      formData.append('project_name', appState.currentProject);
+      formData.append('model_name', appState.selected_model);
+      formData.append('upload_file', pendingFile);
+      formData.append('sheet_actions', JSON.stringify(Object.fromEntries(selectedActions)));
+      const result = await api.postFormData('/tables/upload-excel', formData);
+      const response = result?.response || {};
+      // Swap the modal contents to a results view so the user can see
+      // the per-sheet status before dismissing.
+      buildResultsTable(pendingSheetNames, response, sheetActions);
+      if (shouldRefreshTables) {
+        await updateTableAccordion(appState);
+      }
+      showResultsView();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      resetActionsSubmitBtn();
+    }
+  });
+}
+
+/**
+ * Populate the #tablesAccordion element with the table groups for the currently selected project/model.
+ *
+ * Clears any existing accordion content, requests table groups from the backend for
+ * the current project and selected model, and builds a Bootstrap accordion where each
+ * group is a collapsible section listing links to individual tables.
+ *
+ * If the accordion element is missing the function returns without action. On API error
+ * the accordion is left empty and the function suppresses the error (error reporting is
+ * handled by the API helper).
  *
  * @param {Object} appState - Application state object.
  * @param {string} appState.currentProject - Name of the current project to request table groups for.
@@ -1303,6 +1914,7 @@ async function updateTableAccordion(appState) {
   if (!accordion) return;
 
   accordion.innerHTML = '';
+  appState.tableGroups = {};
 
   if (!appState.currentProject || !appState.selected_model) {
     const placeholder = document.createElement('div');
@@ -1320,6 +1932,7 @@ async function updateTableAccordion(appState) {
     if (requestId !== latestTableAccordionRequestId) return;
 
     const tableGroups = data.table_groups || {};
+    appState.tableGroups = tableGroups;
 
     Object.entries(tableGroups).forEach(([groupName, tables], index) => {
       const itemId = `tablesAccordionItem-${index}`;
@@ -1390,12 +2003,14 @@ async function updateTableAccordion(appState) {
       accordion.appendChild(item);
     });
   } catch {
+    appState.tableGroups = {};
     // api.js already displayed the error toast
   }
 }
 export {
   fetchModels,
   renderCurrentProjectModels,
+  setupDownloadExcelModel,
   setupAddNewModel,
   setupSaveAsModel,
   setupAddExistingModel,
@@ -1405,6 +2020,7 @@ export {
   setupRestoreModel,
   setupDownloadModel,
   setupUploadModel,
+  setupUploadExcel,
   setupShareModel,
   setupMoveModel,
   setupAcceptModel,
