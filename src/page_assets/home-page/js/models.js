@@ -1562,8 +1562,7 @@ function setupUploadExcel(appState) {
     resultsTableBody.innerHTML = '';
 
     const safeResult = result && typeof result === 'object' ? result : {};
-    const safeSheetActions =
-      sheetActions && typeof sheetActions === 'object' ? sheetActions : {};
+    const safeSheetActions = sheetActions && typeof sheetActions === 'object' ? sheetActions : {};
 
     const failedRows = [];
     const successRows = [];
@@ -1646,10 +1645,10 @@ function setupUploadExcel(appState) {
     // Sort rows so sheets whose default action is "Delete data and upload"
     // appear first, preserving original order within each group.
     const sortedSheetNames = [...sheetNames].sort((a, b) => {
-      const aDefault =
-        (TYPE_CONFIG[normalizeSheetType(sheetTypes[a])] || TYPE_CONFIG.not_existing).default;
-      const bDefault =
-        (TYPE_CONFIG[normalizeSheetType(sheetTypes[b])] || TYPE_CONFIG.not_existing).default;
+      const aDefault = (TYPE_CONFIG[normalizeSheetType(sheetTypes[a])] || TYPE_CONFIG.not_existing)
+        .default;
+      const bDefault = (TYPE_CONFIG[normalizeSheetType(sheetTypes[b])] || TYPE_CONFIG.not_existing)
+        .default;
       const aPurge = aDefault === 'upload' ? 0 : 1;
       const bPurge = bDefault === 'upload' ? 0 : 1;
       return aPurge - bPurge;
@@ -1664,7 +1663,6 @@ function setupUploadExcel(appState) {
       const tdName = document.createElement('td');
       tdName.textContent = sheetName;
       tr.appendChild(tdName);
-
 
       const tdAction = document.createElement('td');
       const select = document.createElement('select');
