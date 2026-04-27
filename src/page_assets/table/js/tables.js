@@ -2463,19 +2463,11 @@ function initDownloadExcelBtn(appState) {
 }
 
 /**
- * Wires the "Upload Excel" modal and submit flow to allow uploading an .xlsx/.xls file into the current table.
+ * Wire the Upload Excel modal and submit flow to validate a selected .xlsx/.xls file, upload the matched worksheet to the server, and refresh table state on success.
  *
- * Sets up modal show/hidden handlers and the submit button to:
- * - prefill and disable model/table name inputs from `appState`,
- * - enforce allowed extensions (.xlsx, .xls) and present a file picker,
- * - validate presence of table identifiers and selected file, showing error toasts on invalid state,
- * - upload the selected file via `api.postFormData('/tables/upload', formData)`,
- * - show a success toast including the number of rows added when provided by the server,
- * - reset relevant UI (file input, submit button) and table state (clear summary/add-row, reset pagination/selection, clear header select-all),
- * - close the modal and refresh table data on successful upload.
+ * Validates presence of table identifiers and file extension, ensures the workbook contains a sheet whose name matches the current table (case-insensitive), posts a FormData payload with a `sheet_actions` mapping for the matched sheet and the file, interprets the per-sheet response at `response[matchedSheetName]` expecting `status: 'success'`, shows success or error toasts, and resets pagination/selection UI and reloads table data when upload completes.
  *
- * @param {Object} appState - Application state object containing at least `modelName`, `tableName`, `currentPage`, `selectedColumn`, and `totalRowCount`; the function mutates pagination/selection fields when an upload completes.
- */
+ * @param {Object} appState - Application state containing at least `projectName`, `modelName`, and `tableName`; this function mutates pagination/selection fields (`currentPage`, `selectedColumn`, `totalRowCount`) when an upload succeeds.
 function setupUploadExcel(appState) {
   const modalEl = document.getElementById('uploadExcelModal');
   const modal_name = document.getElementById('uploadModelName');

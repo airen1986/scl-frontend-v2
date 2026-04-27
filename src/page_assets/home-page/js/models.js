@@ -96,13 +96,13 @@ function renderCurrentProjectModels(appState) {
 }
 
 /**
- * Toggle visibility of model action menu items based on the selected model's access level.
+ * Update visibility of model action menu items to require owner access.
  *
- * Reads the access level for appState.currentProject's appState.selected_model and makes the
- * menu elements with IDs "backupModelMenu", "restoreModelMenu", "shareModelMenu", and
- * "uploadModelMenu" visible only when the access level is exactly "owner"; hides them otherwise.
+ * Shows the elements with IDs "backupModelMenu", "restoreModelMenu", "shareModelMenu",
+ * "uploadModelMenu", and "uploadExcelMenu" only when the selected model's access level
+ * within the current project is exactly `"owner"`; hides them otherwise.
  *
- * @param {Object} appState - Application state containing projectModels, currentProject, and selected_model.
+ * @param {Object} appState - Application state containing `projectModels`, `currentProject`, and `selected_model`.
  */
 function updateModelActionVisibility(appState) {
   const access =
@@ -1285,6 +1285,14 @@ function setupAcceptModel(appState) {
   }
 }
 
+/**
+ * Initialize and wire the "Download Excel" modal UI for downloading selected table groups as an Excel file.
+ *
+ * Sets up modal show/hide behavior, renders selectable table-group rows from `appState.tableGroups`,
+ * manages select-all and submit button state, and performs the download request which triggers a file save.
+ *
+ * @param {Object} appState - Application state object; this function reads `appState.tableGroups`, `appState.currentProject`, and `appState.selected_model`.
+ */
 function setupDownloadExcelModel(appState) {
   const modal = $('#downloadExcelModal');
   const currentProjectInput = $('#downloadExcelModalProjectName');
@@ -1488,7 +1496,15 @@ function setupUploadExcel(appState) {
 
   // Normalize a raw type string (from the server or user) into one of the
   // canonical keys in TYPE_CONFIG. Accepts variations in case, spacing,
-  // hyphens, and partial names like 'input', 'INPUT Table', 'table', etc.
+  /**
+   * Normalize a raw sheet type value into a canonical sheet type key used by the upload/download flows.
+   *
+   * Uses an exact match against TYPE_CONFIG keys first, then applies heuristic matching (checks for substrings
+   * like "view", "output", "input", or variants indicating non-existence). Empty, null, or missing-like values
+   * map to `not_existing`; unrecognized values map to `unknown`.
+   *
+   * @param {*} rawType - The raw type value (string, null, undefined, or other) obtained from the client/server.
+   * @returns {'input_table'|'output_table'|'view'|'not_existing'|'unknown'} A canonical sheet type key.
   function normalizeSheetType(rawType) {
     if (rawType === null || rawType === undefined) return 'not_existing';
     const normalized = String(rawType)
@@ -1522,16 +1538,30 @@ function setupUploadExcel(appState) {
   let pendingFile = null;
   let pendingSheetNames = [];
 
+  /**
+   * Restore the submit button to its default enabled state and label it "Next".
+   */
   function resetSubmitBtn() {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Next';
   }
 
+  /**
+   * Restore the actions submit button to its default enabled state and label.
+   *
+   * Re-enables the button and sets its text to "Upload".
+   */
   function resetActionsSubmitBtn() {
     actionsSubmitBtn.disabled = false;
     actionsSubmitBtn.textContent = 'Upload';
   }
 
+  /**
+   * Show the actions view in the upload-excel modal and hide the results view.
+   *
+   * Updates visibility and layout classes for the actions/results panes and their footers,
+   * and sets the modal title to ACTIONS_TITLE when present.
+   */
   function showActionsView() {
     actionsView.classList.remove('d-none');
     resultsView.classList.add('d-none');
@@ -1541,6 +1571,12 @@ function setupUploadExcel(appState) {
     if (actionsModalTitle) actionsModalTitle.textContent = ACTIONS_TITLE;
   }
 
+  /**
+   * Switches the upload-excel modal from the actions view to the results view.
+   *
+   * Hides the actions view and its footer, shows the results view and its footer,
+   * and updates the modal title to `RESULTS_TITLE` when a title element exists.
+   */
   function showResultsView() {
     actionsView.classList.add('d-none');
     resultsView.classList.remove('d-none');
@@ -1560,7 +1596,20 @@ function setupUploadExcel(appState) {
   // Sheets that are not present in `result` are only considered ignored when
   // their selected action was `ignore`; otherwise they are surfaced as failed.
   //
-  // Rows are grouped: failed first, then success, then ignored.
+  /**
+   * Render per-sheet upload results into the results table, grouping rows as failed, success, then ignored.
+   *
+   * Parses the server `result` for each name in `sheetNames` and appends rows to the global `resultsTableBody`.
+   * - A sheet is treated as "Ignored" when `sheetActions[sheetName] === 'ignore'` and there is no server entry.
+   * - A missing or unknown-status entry is surfaced as "Failed" (with the server-provided `reason` if present).
+   * - A "Success" entry may display `rows_imported` or `rows_deleted` when provided.
+   *
+   * This function mutates the DOM by clearing and populating `resultsTableBody`.
+   *
+   * @param {string[]} sheetNames - Ordered list of sheet names to display in the results table.
+   * @param {Object<string, Object>} result - Mapping of sheet name → server response object. Each response may include `status` (`"success"`/`"failed"`), `reason`, `rows_imported`, and `rows_deleted`.
+   * @param {Object<string, string>} [sheetActions={}] - Mapping of sheet name → selected action (e.g., `'ignore'`); used to classify sheets with no server response as ignored.
+   */
   function buildResultsTable(sheetNames, result, sheetActions = {}) {
     resultsTableBody.innerHTML = '';
 
@@ -1642,6 +1691,14 @@ function setupUploadExcel(appState) {
     });
   }
 
+  /**
+   * Populate the actions table with one row per sheet, each containing the sheet name and a select control to choose the upload action.
+   *
+   * Rows are ordered so sheets whose configured default action is "Delete data and upload" ("upload") appear before other sheets.
+   *
+   * @param {string[]} sheetNames - Array of sheet names to render (preserves order within each sorted group).
+   * @param {Object.<string,string>} sheetTypes - Mapping from sheet name to detected sheet type used to determine available actions.
+   */
   function buildActionsTable(sheetNames, sheetTypes) {
     actionsTableBody.innerHTML = '';
 
@@ -1836,15 +1893,15 @@ function setupUploadExcel(appState) {
 }
 
 /**
- * Populate the #tablesAccordion element with table groups for the currently selected model.
+ * Populate the #tablesAccordion element with the table groups for the currently selected project/model.
  *
- * Calls the backend `/models/table-groups` with the current project and selected model, clears
- * any existing content in `#tablesAccordion`, and builds a Bootstrap accordion where each group
- * becomes a collapsible section containing links to tables.
+ * Clears any existing accordion content, requests table groups from the backend for
+ * the current project and selected model, and builds a Bootstrap accordion where each
+ * group is a collapsible section listing links to individual tables.
  *
- * If `#tablesAccordion` is not present the function returns immediately. On API failure the
- * accordion remains empty and the function suppresses the error (error reporting is handled by
- * the API helper).
+ * If the accordion element is missing the function returns without action. On API error
+ * the accordion is left empty and the function suppresses the error (error reporting is
+ * handled by the API helper).
  *
  * @param {Object} appState - Application state object.
  * @param {string} appState.currentProject - Name of the current project to request table groups for.
