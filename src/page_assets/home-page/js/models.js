@@ -111,8 +111,9 @@ function updateModelActionVisibility(appState) {
   const restore = document.getElementById('restoreModelMenu');
   const share = document.getElementById('shareModelMenu');
   const upload = document.getElementById('uploadModelMenu');
+  const excelUpload = document.getElementById('uploadExcelMenu');
 
-  if (!backup || !restore || !share || !upload) return;
+  if (!backup || !restore || !share || !upload || !excelUpload) return;
 
   const isOwner = access === 'owner';
 
@@ -120,6 +121,7 @@ function updateModelActionVisibility(appState) {
   restore.style.display = isOwner ? '' : 'none';
   share.style.display = isOwner ? '' : 'none';
   upload.style.display = isOwner ? '' : 'none';
+  excelUpload.style.display = isOwner ? '' : 'none';
 }
 
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
@@ -1853,6 +1855,7 @@ async function updateTableAccordion(appState) {
   if (!accordion) return;
 
   accordion.innerHTML = '';
+  appState.tableGroups = {};
 
   if (!appState.currentProject || !appState.selected_model) {
     const placeholder = document.createElement('div');
@@ -1870,7 +1873,6 @@ async function updateTableAccordion(appState) {
     if (requestId !== latestTableAccordionRequestId) return;
 
     const tableGroups = data.table_groups || {};
-    // Cache table groups on appState so other UI (e.g. Download Excel modal) can reuse them.
     appState.tableGroups = tableGroups;
 
     Object.entries(tableGroups).forEach(([groupName, tables], index) => {
@@ -1942,6 +1944,7 @@ async function updateTableAccordion(appState) {
       accordion.appendChild(item);
     });
   } catch {
+    appState.tableGroups = {};
     // api.js already displayed the error toast
   }
 }

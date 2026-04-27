@@ -2526,13 +2526,15 @@ function setupUploadExcel(appState) {
       return;
     }
 
+    let sheetNames;
+    const expected = appState.tableName.trim().toLowerCase();
+
     try {
       const arrayBuffer = await selectedFile.arrayBuffer();
 
       const workbook = XLSX.read(arrayBuffer, { type: 'array', bookSheets: true });
 
-      const sheetNames = workbook.SheetNames ?? [];
-      const expected = appState.tableName.trim().toLowerCase();
+      sheetNames = workbook.SheetNames ?? [];
       const hasMatchingSheet = sheetNames.some((name) => name.trim().toLowerCase() === expected);
 
       if (!hasMatchingSheet) {
@@ -2553,13 +2555,14 @@ function setupUploadExcel(appState) {
 
     try {
       const formData = new FormData();
-      const sheet_actions = { [appState.tableName]: 'upload' };
+      const matchedSheetName = sheetNames.find((name) => name.trim().toLowerCase() === expected);
+      const sheet_actions = { [matchedSheetName]: 'upload' };
       formData.append('project_name', appState.projectName);
       formData.append('model_name', appState.modelName);
       formData.append('sheet_actions', JSON.stringify(sheet_actions));
       formData.append('upload_file', selectedFile);
       const result = await api.postFormData('/tables/upload-excel', formData);
-      const tableResponse = result?.response?.[appState.tableName];
+      const tableResponse = result?.response?.[matchedSheetName];
       const requestStatus = String(tableResponse?.status || '').toLowerCase();
       if (!tableResponse || requestStatus !== 'success') {
         const reason =
