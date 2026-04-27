@@ -1483,6 +1483,7 @@ function setupUploadExcel(appState) {
     input_table: { options: ['ignore', 'upload', 'delete'], default: 'upload', disabled: false },
     view: { options: ['ignore'], default: 'ignore', disabled: true },
     output_table: { options: ['ignore', 'upload', 'delete'], default: 'ignore', disabled: false },
+    unknown: { options: ['ignore'], default: 'ignore', disabled: true },
   };
 
   // Normalize a raw type string (from the server or user) into one of the
@@ -1514,7 +1515,7 @@ function setupUploadExcel(appState) {
     ) {
       return 'not_existing';
     }
-    return 'output_table'; // Default to output_table for unknown types, as it's safer to require explicit input tables and views.
+    return 'unknown'; // Default to unknown for unknown types, as it's safer to require explicit input tables and views.
   }
 
   // Session state shared between the two modals.
