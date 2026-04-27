@@ -22,6 +22,7 @@ import {
   setupAcceptModel,
   setupDownloadExcelModel,
   setupUploadExcel,
+  setupVacuumDatabaseModal,
 } from './models';
 import { initProjects } from './projects';
 import { initNotifications } from './notifications';
@@ -158,6 +159,7 @@ ready(async () => {
   setupAcceptModel(appState);
   setupDownloadExcelModel(appState);
   setupUploadExcel(appState);
+  setupVacuumDatabaseModal(appState);
   // ── Display avatar initials & user info ───────────────────────────────
   const avatar = $('#displayAvatar');
   if (avatar) {

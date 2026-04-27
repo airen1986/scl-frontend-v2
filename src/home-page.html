@@ -181,6 +181,17 @@
                     Download Excel
                   </a>
                 </li>
+                <li>
+                  <a
+                    id="vacuumDatabaseMenu"
+                    class="dropdown-item"
+                    href="#"
+                    data-bs-toggle="modal"
+                    data-bs-target="#vacuumDatabaseModal"
+                  >
+                    Vacuum Database
+                  </a>
+                </li>
               </ul>
             </li>
             <li class="nav-item dropdown">
@@ -956,6 +967,45 @@
                 OK
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vacuum database modal -->
+    <div
+      class="modal fade"
+      id="vacuumDatabaseModal"
+      tabindex="-1"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Vacuum Database</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Current Project</label>
+              <input type="text" class="form-control" id="vacuumDatabaseProjectName" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-control" id="vacuumDatabaseModelName" disabled />
+            </div>
+
+            <p>
+              <strong>This action will vacuum the SQLite database and truncate WAL files.</strong>
+            </p>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-dark" id="submitVacuumDatabaseBtn">Vacuum</button>
           </div>
         </div>
       </div>
