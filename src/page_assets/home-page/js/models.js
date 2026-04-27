@@ -1311,6 +1311,11 @@ function setupVacuumDatabaseModal(appState) {
     }
   });
 
+  on(modal, 'hidden.bs.modal', () => {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Vacuum';
+  });
+
   on(submitBtn, 'click', async () => {
     if (!appState.currentProject || !appState.selected_model) {
       toastError('No model selected for vacuuming.');
