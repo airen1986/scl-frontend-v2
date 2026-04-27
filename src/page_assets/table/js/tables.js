@@ -2468,6 +2468,7 @@ function initDownloadExcelBtn(appState) {
  * Validates presence of table identifiers and file extension, ensures the workbook contains a sheet whose name matches the current table (case-insensitive), posts a FormData payload with a `sheet_actions` mapping for the matched sheet and the file, interprets the per-sheet response at `response[matchedSheetName]` expecting `status: 'success'`, shows success or error toasts, and resets pagination/selection UI and reloads table data when upload completes.
  *
  * @param {Object} appState - Application state containing at least `projectName`, `modelName`, and `tableName`; this function mutates pagination/selection fields (`currentPage`, `selectedColumn`, `totalRowCount`) when an upload succeeds.
+ **/
 function setupUploadExcel(appState) {
   const modalEl = document.getElementById('uploadExcelModal');
   const modal_name = document.getElementById('uploadModelName');

@@ -1505,6 +1505,7 @@ function setupUploadExcel(appState) {
    *
    * @param {*} rawType - The raw type value (string, null, undefined, or other) obtained from the client/server.
    * @returns {'input_table'|'output_table'|'view'|'not_existing'|'unknown'} A canonical sheet type key.
+   **/
   function normalizeSheetType(rawType) {
     if (rawType === null || rawType === undefined) return 'not_existing';
     const normalized = String(rawType)
