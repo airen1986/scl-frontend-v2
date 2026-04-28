@@ -112,16 +112,16 @@ function updateModelActionVisibility(appState) {
   const share = document.getElementById('shareModelMenu');
   const upload = document.getElementById('uploadModelMenu');
   const excelUpload = document.getElementById('uploadExcelMenu');
-
-  if (!backup || !restore || !share || !upload || !excelUpload) return;
+  const vacuumDatabase = document.getElementById('vacuumDatabaseMenu');
 
   const isOwner = access === 'owner';
 
-  backup.style.display = isOwner ? '' : 'none';
-  restore.style.display = isOwner ? '' : 'none';
-  share.style.display = isOwner ? '' : 'none';
-  upload.style.display = isOwner ? '' : 'none';
-  excelUpload.style.display = isOwner ? '' : 'none';
+  if (vacuumDatabase) vacuumDatabase.style.display = isOwner ? '' : 'none';
+  if (backup) backup.style.display = isOwner ? '' : 'none';
+  if (restore) restore.style.display = isOwner ? '' : 'none';
+  if (share) share.style.display = isOwner ? '' : 'none';
+  if (upload) upload.style.display = isOwner ? '' : 'none';
+  if (excelUpload) excelUpload.style.display = isOwner ? '' : 'none';
 }
 
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
@@ -1285,6 +1285,58 @@ function setupAcceptModel(appState) {
   }
 }
 
+function setupVacuumDatabaseModal(appState) {
+  const modal = $('#vacuumDatabaseModal');
+  const currentProjectInput = $('#vacuumDatabaseProjectName');
+  const currentModelInput = $('#vacuumDatabaseModelName');
+  const submitBtn = $('#submitVacuumDatabaseBtn');
+
+  if (!modal || !submitBtn) return;
+
+  on(modal, 'show.bs.modal', () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for vacuuming.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Vacuum';
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for vacuuming.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Vacuuming…';
+
+    try {
+      await api.post('/models/vacuum', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+      });
+      toastSuccess('Database vacuumed successfully!');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Vacuum';
+    }
+  });
+}
+
 /**
  * Initialize and wire the "Download Excel" modal UI for downloading selected table groups as an Excel file.
  *
@@ -2024,4 +2076,5 @@ export {
   setupShareModel,
   setupMoveModel,
   setupAcceptModel,
+  setupVacuumDatabaseModal,
 };
