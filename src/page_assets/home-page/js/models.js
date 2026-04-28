@@ -116,7 +116,6 @@ function updateModelActionVisibility(appState) {
 
   const isOwner = access === 'owner';
 
-
   if (vacuumDatabase) vacuumDatabase.style.display = isOwner ? '' : 'none';
   if (backup) backup.style.display = isOwner ? '' : 'none';
   if (restore) restore.style.display = isOwner ? '' : 'none';
