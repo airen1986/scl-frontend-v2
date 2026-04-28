@@ -920,7 +920,7 @@
                 Review each sheet detected in the Excel file and choose how it should be handled
                 before uploading.
               </p>
-              <div class="table-responsive">
+              <div class="table-responsive scl-table-div">
                 <table class="table table-hover table-sm table-bordered scl-table">
                   <thead class="scl-thead">
                     <tr>
@@ -931,6 +931,7 @@
                   <tbody class="scl-tbody" id="uploadExcelActionsTableBody"></tbody>
                 </table>
               </div>
+              <div class="with-border"></div>
             </div>
 
             <!-- Step 2b: Upload results view -->
@@ -938,18 +939,19 @@
               <p class="text-muted small mb-3">
                 Upload completed. Review the result for each sheet below.
               </p>
-              <div class="table-responsive">
+              <div class="table-responsive scl-table-div">
                 <table class="table table-hover table-sm table-bordered scl-table">
                   <thead class="scl-thead">
                     <tr>
-                      <th style="width: 40%">Sheet / Table Name</th>
-                      <th style="width: 20%">Status</th>
-                      <th style="width: 40%">Details</th>
+                      <th style="max-width: 30%">Sheet / Table Name</th>
+                      <th style="max-width: 20%">Status</th>
+                      <th style="max-width: 50%">Details</th>
                     </tr>
                   </thead>
                   <tbody class="scl-tbody" id="uploadExcelResultsTableBody"></tbody>
                 </table>
               </div>
+              <div class="with-border"></div>
             </div>
           </div>
 
@@ -1195,7 +1197,7 @@
               <input type="text" class="form-control" id="downloadExcelModalModelName" disabled />
             </div>
 
-            <div class="mb-3 mt-4" id="tableGroupSelect">
+            <div class="mb-3 mt-4" class="scl-table-div" id="tableGroupSelect">
               <table class="table table-sm table-hover scl-table table-bordered align-middle mb-0">
                 <thead>
                   <tr>
