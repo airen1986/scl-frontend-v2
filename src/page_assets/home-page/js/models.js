@@ -114,19 +114,15 @@ function updateModelActionVisibility(appState) {
   const excelUpload = document.getElementById('uploadExcelMenu');
   const vacuumDatabase = document.getElementById('vacuumDatabaseMenu');
 
-  if (!backup || !restore || !share || !upload || !excelUpload) return;
-
   const isOwner = access === 'owner';
 
-  backup.style.display = isOwner ? '' : 'none';
-  restore.style.display = isOwner ? '' : 'none';
-  share.style.display = isOwner ? '' : 'none';
-  upload.style.display = isOwner ? '' : 'none';
-  excelUpload.style.display = isOwner ? '' : 'none';
 
-  if (vacuumDatabase) {
-    vacuumDatabase.style.display = isOwner ? '' : 'none';
-  }
+  if (vacuumDatabase) vacuumDatabase.style.display = isOwner ? '' : 'none';
+  if (backup) backup.style.display = isOwner ? '' : 'none';
+  if (restore) restore.style.display = isOwner ? '' : 'none';
+  if (share) share.style.display = isOwner ? '' : 'none';
+  if (upload) upload.style.display = isOwner ? '' : 'none';
+  if (excelUpload) excelUpload.style.display = isOwner ? '' : 'none';
 }
 
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
