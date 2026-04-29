@@ -137,5 +137,4 @@ div.with-border {
 #uploadExcelResultsView .upload-excel-results-table th,
 #uploadExcelResultsView .upload-excel-results-table td {
   overflow-wrap: anywhere;
-  word-break: break-word;
 }

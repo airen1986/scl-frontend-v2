@@ -1185,9 +1185,7 @@ function setupManageAccessModel(appState) {
     } catch {
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } finally {
-      if (!submitBtn.classList.contains('d-none') && userList.children.length > 0) {
-        setLoadingState(false);
-      }
+      setLoadingState(false);
     }
   });
 
