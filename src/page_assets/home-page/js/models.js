@@ -1072,53 +1072,62 @@ function setupManageAccessModel(appState) {
     ['execute', 'Read & Execute'],
     ['write', 'Write & Execute'],
     ['admin', 'Full Access'],
-    ['delete', 'Remove Access'],
+    ['delete', 'Revoke Access'],
   ];
+
+  let submitMode = 'save';
 
   function setLoadingState(isLoading) {
     submitBtn.disabled = isLoading;
     submitBtn.innerHTML = isLoading
       ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading…'
-      : 'Save';
+      : submitMode === 'close'
+        ? 'OK'
+        : 'Save';
   }
 
   function renderOwnerAccessList(accessUsers) {
     userList.innerHTML = '';
 
-    accessUsers.forEach(({ user_email: userEmail, access_level: accessLevel }) => {
-      const row = document.createElement('tr');
-      row.dataset.userEmail = userEmail;
+    accessUsers.forEach(
+      ({ user_email: userEmail, access_level: accessLevel, accepted: accepted }) => {
+        const row = document.createElement('tr');
+        row.dataset.userEmail = userEmail;
 
-      const userCell = document.createElement('td');
-      userCell.textContent = userEmail;
+        const userCell = document.createElement('td');
+        userCell.textContent = userEmail;
 
-      const accessCell = document.createElement('td');
-      const accessSelect = document.createElement('select');
-      accessSelect.className = 'form-select form-select-sm manage-access-level';
-      accessOptions.forEach(([value, label]) => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = label;
-        if (value === String(accessLevel || '').toLowerCase()) option.selected = true;
-        accessSelect.appendChild(option);
-      });
-      const this_access =
-        accessOptions.find(([value]) => value === String(accessLevel || '').toLowerCase())?.[1] ||
-        'Unknown';
-      if (this_access === 'Unknown') {
-        const unknownOption = document.createElement('option');
-        unknownOption.value = String(accessLevel || '').toLowerCase();
-        unknownOption.textContent = this_access;
-        unknownOption.selected = true;
-        unknownOption.disabled = true;
-        accessSelect.appendChild(unknownOption);
+        const accessCell = document.createElement('td');
+        const accessSelect = document.createElement('select');
+        accessSelect.className = 'form-select form-select-sm manage-access-level';
+        accessOptions.forEach(([value, label]) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = label;
+          if (value === String(accessLevel || '').toLowerCase()) {
+            option.selected = true;
+            if (accepted === 'No') option.textContent += ' (Pending)';
+          }
+          accessSelect.appendChild(option);
+        });
+        const this_access =
+          accessOptions.find(([value]) => value === String(accessLevel || '').toLowerCase())?.[1] ||
+          'Unknown';
+        if (this_access === 'Unknown') {
+          const unknownOption = document.createElement('option');
+          unknownOption.value = String(accessLevel || '').toLowerCase();
+          unknownOption.textContent = this_access;
+          unknownOption.selected = true;
+          unknownOption.disabled = true;
+          accessSelect.appendChild(unknownOption);
+        }
+
+        accessCell.appendChild(accessSelect);
+
+        row.append(userCell, accessCell);
+        userList.appendChild(row);
       }
-
-      accessCell.appendChild(accessSelect);
-
-      row.append(userCell, accessCell);
-      userList.appendChild(row);
-    });
+    );
 
     emptyMessage.classList.toggle('d-none', accessUsers.length > 0);
     ownerView.classList.toggle('d-none', accessUsers.length === 0);
@@ -1165,9 +1174,8 @@ function setupManageAccessModel(appState) {
         infoView.classList.add('d-none');
         const accessUsers = modelInfo.access_user_list || [];
         renderOwnerAccessList(accessUsers);
-        submitBtn.textContent = 'Save';
+        submitMode = accessUsers.length === 0 ? 'close' : 'save';
         submitBtn.disabled = false;
-        if (accessUsers.length === 0) submitBtn.textContent = 'OK';
       } else {
         ownerView.classList.add('d-none');
         infoView.classList.remove('d-none');
@@ -1179,7 +1187,7 @@ function setupManageAccessModel(appState) {
         ownerProjectNameInput.textContent =
           modelInfo.owner_project_name || modelInfo.project_name || '';
         ownerModelNameInput.textContent = modelInfo.owner_model_name || modelInfo.model_name || '';
-        submitBtn.textContent = 'OK';
+        submitMode = 'close';
         submitBtn.disabled = false;
       }
     } catch {
@@ -1196,11 +1204,11 @@ function setupManageAccessModel(appState) {
     emptyMessage.classList.add('d-none');
     submitBtn.classList.remove('d-none');
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Save';
+    submitBtn.textContent = submitMode === 'close' ? 'OK' : 'Save';
   });
 
   on(submitBtn, 'click', async () => {
-    if (submitBtn.textContent === 'OK') {
+    if (submitMode === 'close') {
       window.bootstrap.Modal.getInstance(modal)?.hide();
       return;
     }
@@ -1231,7 +1239,7 @@ function setupManageAccessModel(appState) {
       // api.js already displayed the error toast
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Save';
+      submitBtn.textContent = submitMode === 'close' ? 'OK' : 'Save';
     }
   });
 }
