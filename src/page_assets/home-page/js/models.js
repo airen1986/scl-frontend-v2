@@ -113,6 +113,7 @@ function updateModelActionVisibility(appState) {
   const upload = document.getElementById('uploadModelMenu');
   const excelUpload = document.getElementById('uploadExcelMenu');
   const vacuumDatabase = document.getElementById('vacuumDatabaseMenu');
+  const manageAccess = document.getElementById('manageAccessMenu');
 
   const isOwner = access === 'owner';
 
@@ -122,6 +123,7 @@ function updateModelActionVisibility(appState) {
   if (share) share.style.display = isOwner ? '' : 'none';
   if (upload) upload.style.display = isOwner ? '' : 'none';
   if (excelUpload) excelUpload.style.display = isOwner ? '' : 'none';
+  if (manageAccess) manageAccess.style.display = access === 'none' ? 'none' : '';
 }
 
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
@@ -1048,6 +1050,193 @@ function setupShareModel(appState) {
   });
 }
 
+function setupManageAccessModel(appState) {
+  const modal = $('#manageAccessModal');
+  const currentProjectInput = $('#manageAccessCurrentProject');
+  const currentModelInput = $('#manageAccessModelName');
+  const currentTemplateInput = $('#manageAccessTemplateName');
+  const ownerView = $('#manageAccessOwnerView');
+  const infoView = $('#manageAccessInfoView');
+  const userList = $('#manageAccessUserList');
+  const emptyMessage = $('#manageAccessEmptyMessage');
+  const thisUserAccessInput = $('#thisUserAccessLevel');
+  const ownerEmailInput = $('#manageAccessOwnerEmail');
+  const ownerProjectNameInput = $('#manageAccessOwnerProject');
+  const ownerModelNameInput = $('#manageAccessOwnerModel');
+  const submitBtn = $('#submitManageAccessBtn');
+
+  if (!modal || !submitBtn || !ownerView || !infoView || !userList) return;
+
+  const accessOptions = [
+    ['read', 'Read Only'],
+    ['execute', 'Read & Execute'],
+    ['write', 'Write & Execute'],
+    ['admin', 'Full Access'],
+    ['delete', 'Remove Access'],
+  ];
+
+  function setLoadingState(isLoading) {
+    submitBtn.disabled = isLoading;
+    submitBtn.innerHTML = isLoading
+      ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading…'
+      : 'Save';
+  }
+
+  function renderOwnerAccessList(accessUsers) {
+    userList.innerHTML = '';
+
+    accessUsers.forEach(({ user_email: userEmail, access_level: accessLevel }) => {
+      const row = document.createElement('tr');
+      row.dataset.userEmail = userEmail;
+
+      const userCell = document.createElement('td');
+      userCell.textContent = userEmail;
+
+      const accessCell = document.createElement('td');
+      const accessSelect = document.createElement('select');
+      accessSelect.className = 'form-select form-select-sm manage-access-level';
+      accessOptions.forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        if (value === String(accessLevel || '').toLowerCase()) option.selected = true;
+        accessSelect.appendChild(option);
+      });
+      const this_access =
+        accessOptions.find(([value]) => value === String(accessLevel || '').toLowerCase())?.[1] ||
+        'Unknown';
+      if (this_access === 'Unknown') {
+        const unknownOption = document.createElement('option');
+        unknownOption.value = String(accessLevel || '').toLowerCase();
+        unknownOption.textContent = this_access;
+        unknownOption.selected = true;
+        unknownOption.disabled = true;
+        accessSelect.appendChild(unknownOption);
+      }
+
+      accessCell.appendChild(accessSelect);
+
+      row.append(userCell, accessCell);
+      userList.appendChild(row);
+    });
+
+    emptyMessage.classList.toggle('d-none', accessUsers.length > 0);
+    ownerView.classList.toggle('d-none', accessUsers.length === 0);
+    submitBtn.disabled = accessUsers.length === 0;
+  }
+
+  async function loadModelInfo() {
+    return api.post('/models/info', {
+      project_name: appState.currentProject,
+      model_name: appState.selected_model,
+    });
+  }
+
+  on(modal, 'show.bs.modal', async () => {
+    currentProjectInput.value = appState.currentProject || '';
+    currentProjectInput.disabled = true;
+    currentModelInput.value = appState.selected_model || '';
+    currentModelInput.disabled = true;
+    ownerView.classList.add('d-none');
+    infoView.classList.add('d-none');
+    userList.innerHTML = '';
+    emptyMessage.classList.add('d-none');
+    thisUserAccessInput.textContent = '';
+    ownerEmailInput.textContent = '';
+    ownerProjectNameInput.textContent = '';
+    ownerModelNameInput.textContent = '';
+
+    if (!appState.currentProject || !appState.selected_model) {
+      toastError('No model selected for managing access.');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+
+    setLoadingState(true);
+
+    try {
+      const modelInfo = await loadModelInfo();
+      currentTemplateInput.textContent = modelInfo.template_name || '';
+      const currentAccess = String(modelInfo.access_level || '').toLowerCase();
+      const isOwner = currentAccess === 'owner';
+
+      if (isOwner) {
+        ownerView.classList.remove('d-none');
+        infoView.classList.add('d-none');
+        const accessUsers = modelInfo.access_user_list || [];
+        renderOwnerAccessList(accessUsers);
+        submitBtn.textContent = 'Save';
+        submitBtn.disabled = false;
+        if (accessUsers.length === 0) submitBtn.textContent = 'OK';
+      } else {
+        ownerView.classList.add('d-none');
+        infoView.classList.remove('d-none');
+        const this_access =
+          accessOptions.find(([value]) => value === currentAccess)?.[1] || 'Unknown';
+
+        thisUserAccessInput.textContent = this_access;
+        ownerEmailInput.textContent = modelInfo.owner_email || '';
+        ownerProjectNameInput.textContent =
+          modelInfo.owner_project_name || modelInfo.project_name || '';
+        ownerModelNameInput.textContent = modelInfo.owner_model_name || modelInfo.model_name || '';
+        submitBtn.textContent = 'OK';
+        submitBtn.disabled = false;
+      }
+    } catch {
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } finally {
+      if (!submitBtn.classList.contains('d-none') && userList.children.length > 0) {
+        setLoadingState(false);
+      }
+    }
+  });
+
+  on(modal, 'hidden.bs.modal', () => {
+    ownerView.classList.add('d-none');
+    infoView.classList.add('d-none');
+    userList.innerHTML = '';
+    emptyMessage.classList.add('d-none');
+    submitBtn.classList.remove('d-none');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Save';
+  });
+
+  on(submitBtn, 'click', async () => {
+    if (submitBtn.textContent === 'OK') {
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+      return;
+    }
+    const accessList = Array.from(userList.querySelectorAll('tr')).map((row) => {
+      const userEmail = row.dataset.userEmail;
+      const accessLevel = row.querySelector('.manage-access-level')?.value || 'read';
+      return [userEmail, accessLevel];
+    });
+
+    if (!accessList.length) {
+      toastError('No shared users found to update.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving…';
+
+    try {
+      await api.post('/models/update-access', {
+        project_name: appState.currentProject,
+        model_name: appState.selected_model,
+        access_list: accessList,
+      });
+      toastSuccess('Model access updated successfully!');
+      window.bootstrap.Modal.getInstance(modal)?.hide();
+    } catch {
+      // api.js already displayed the error toast
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save';
+    }
+  });
+}
 /**
  * Wire the "Move Model" modal: populate fields, validate user input, call the move API, and update local state on success.
  *
@@ -2074,6 +2263,7 @@ export {
   setupUploadModel,
   setupUploadExcel,
   setupShareModel,
+  setupManageAccessModel,
   setupMoveModel,
   setupAcceptModel,
   setupVacuumDatabaseModal,
