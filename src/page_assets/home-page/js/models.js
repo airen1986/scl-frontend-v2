@@ -1141,7 +1141,9 @@ function setupManageAccessModel(appState) {
     });
   }
 
+  let latestManageAccessRequestId = 0;
   on(modal, 'show.bs.modal', async () => {
+    const requestId = ++latestManageAccessRequestId;
     currentProjectInput.value = appState.currentProject || '';
     currentProjectInput.disabled = true;
     currentModelInput.value = appState.selected_model || '';
@@ -1165,6 +1167,7 @@ function setupManageAccessModel(appState) {
 
     try {
       const modelInfo = await loadModelInfo();
+      if (requestId !== latestManageAccessRequestId) return;
       currentTemplateInput.textContent = modelInfo.template_name || '';
       const currentAccess = String(modelInfo.access_level || '').toLowerCase();
       const isOwner = currentAccess === 'owner';
@@ -1193,11 +1196,12 @@ function setupManageAccessModel(appState) {
     } catch {
       window.bootstrap.Modal.getInstance(modal)?.hide();
     } finally {
-      setLoadingState(false);
+      if (requestId === latestManageAccessRequestId) setLoadingState(false);
     }
   });
 
   on(modal, 'hidden.bs.modal', () => {
+    latestManageAccessRequestId++;
     ownerView.classList.add('d-none');
     infoView.classList.add('d-none');
     userList.innerHTML = '';
