@@ -18,6 +18,7 @@ import {
   setupDownloadModel,
   setupUploadModel,
   setupShareModel,
+  setupManageAccessModel,
   setupMoveModel,
   setupAcceptModel,
   setupDownloadExcelModel,
@@ -155,6 +156,7 @@ ready(async () => {
   setupDownloadModel(appState);
   setupUploadModel(appState);
   setupShareModel(appState);
+  setupManageAccessModel(appState);
   setupMoveModel(appState);
   setupAcceptModel(appState);
   setupDownloadExcelModel(appState);

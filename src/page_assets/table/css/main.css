@@ -88,7 +88,7 @@ td .form-check-input {
 
 .scl-table td {
   white-space: pre;
-  max-width: 400px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
