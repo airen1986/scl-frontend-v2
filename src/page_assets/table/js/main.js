@@ -5,6 +5,7 @@ import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // table-specific styles
 import api from '@/common/js/api';
 import { getTableHeaders, fetchTableData, fetchColumnFormats, initTableControls } from './tables';
+import { initTableModals } from './tableModals';
 import { bsToastError } from '../../../common/js/bsToast';
 import { $, ready } from '@/common/js/dom';
 
@@ -157,4 +158,5 @@ ready(async () => {
   });
 
   initTableControls(appState);
+  initTableModals(appState);
 });

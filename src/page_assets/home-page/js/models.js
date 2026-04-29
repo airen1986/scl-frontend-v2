@@ -2258,23 +2258,26 @@ async function updateTableAccordion(appState) {
     // api.js already displayed the error toast
   }
 }
-export {
-  fetchModels,
-  renderCurrentProjectModels,
-  setupDownloadExcelModel,
-  setupAddNewModel,
-  setupSaveAsModel,
-  setupAddExistingModel,
-  setupRenameModel,
-  setupDeleteModel,
-  setupBackupModel,
-  setupRestoreModel,
-  setupDownloadModel,
-  setupUploadModel,
-  setupUploadExcel,
-  setupShareModel,
-  setupManageAccessModel,
-  setupMoveModel,
-  setupAcceptModel,
-  setupVacuumDatabaseModal,
-};
+
+async function initModels(appState) {
+  await fetchModels(appState);
+  renderCurrentProjectModels(appState);
+  setupAddNewModel(appState);
+  setupSaveAsModel(appState);
+  setupAddExistingModel(appState);
+  setupRenameModel(appState);
+  setupDeleteModel(appState);
+  setupBackupModel(appState);
+  setupRestoreModel(appState);
+  setupDownloadModel(appState);
+  setupUploadModel(appState);
+  setupShareModel(appState);
+  setupManageAccessModel(appState);
+  setupMoveModel(appState);
+  setupAcceptModel(appState);
+  setupDownloadExcelModel(appState);
+  setupUploadExcel(appState);
+  setupVacuumDatabaseModal(appState);
+}
+
+export { initModels, renderCurrentProjectModels };

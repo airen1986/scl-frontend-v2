@@ -5,26 +5,7 @@ import '../../../common/css/custom.css'; // shared plain-CSS utilities
 import '../css/main.css'; // home-page-specific styles
 
 import api from '@/common/js/api';
-import {
-  fetchModels,
-  renderCurrentProjectModels,
-  setupAddNewModel,
-  setupSaveAsModel,
-  setupAddExistingModel,
-  setupRenameModel,
-  setupDeleteModel,
-  setupBackupModel,
-  setupRestoreModel,
-  setupDownloadModel,
-  setupUploadModel,
-  setupShareModel,
-  setupManageAccessModel,
-  setupMoveModel,
-  setupAcceptModel,
-  setupDownloadExcelModel,
-  setupUploadExcel,
-  setupVacuumDatabaseModal,
-} from './models';
+import { initModels } from './models';
 import { initProjects } from './projects';
 import { initNotifications } from './notifications';
 import {
@@ -126,14 +107,11 @@ ready(async () => {
     return;
   }
 
-  // ── Fetch project → models mapping ─────────────────────────────────────
-  await fetchModels(appState);
-
   // ── Init projects (fetch current + list, wire up modals) ───────────────
   await initProjects(appState);
 
-  // ── Render models for active project ─────────────────────────────────────
-  renderCurrentProjectModels(appState);
+  // ── Init models (fetch models, render list, wire up modals) ─────────────
+  await initModels(appState);
   autosizeModelListBody();
 
   // ── Load notifications ─────────────────────────────────────────────────────
@@ -144,24 +122,6 @@ ready(async () => {
   if (activeProjectDisplay) {
     activeProjectDisplay.textContent = appState.currentProject || '—';
   }
-
-  // ── Wire up model modals ──────────────────────────────────────────────────
-  setupAddNewModel(appState);
-  setupSaveAsModel(appState);
-  setupAddExistingModel(appState);
-  setupRenameModel(appState);
-  setupDeleteModel(appState);
-  setupBackupModel(appState);
-  setupRestoreModel(appState);
-  setupDownloadModel(appState);
-  setupUploadModel(appState);
-  setupShareModel(appState);
-  setupManageAccessModel(appState);
-  setupMoveModel(appState);
-  setupAcceptModel(appState);
-  setupDownloadExcelModel(appState);
-  setupUploadExcel(appState);
-  setupVacuumDatabaseModal(appState);
   // ── Display avatar initials & user info ───────────────────────────────
   const avatar = $('#displayAvatar');
   if (avatar) {
