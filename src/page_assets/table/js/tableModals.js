@@ -253,13 +253,24 @@ function initAddColumnBtn(appState) {
         column_type: dataTypeSelect.value,
       });
 
-      const newColumnOrder = [...appState.columnNames.map(([name]) => name), columnName];
-      await api.post('/tables/set-columns-order', {
-        table_name: appState.tableName,
-        project_name: appState.projectName,
-        model_name: appState.modelName,
-        column_names: newColumnOrder,
-      });
+      // Immediately reflect the new column in local state so that:
+      // - the duplicate-name guard won't allow re-submission on a retry, and
+      // - newColumnOrder is consistent with the current backend state.
+      appState.columnNames = [...appState.columnNames, [columnName, dataTypeSelect.value]];
+      const newColumnOrder = appState.columnNames.map(([name]) => name);
+
+      try {
+        await api.post('/tables/set-columns-order', {
+          table_name: appState.tableName,
+          project_name: appState.projectName,
+          model_name: appState.modelName,
+          column_names: newColumnOrder,
+        });
+      } catch {
+        // Column was created but ordering failed. Local state is already
+        // updated so a retry will not hit a duplicate-column error.
+        bsToastWarning(`Column "${columnName}" was added but column order could not be saved`);
+      }
 
       bsToastSuccess(`Column "${columnName}" added`);
 
@@ -519,6 +530,8 @@ function initUpdateColumnBtn(appState) {
 
       bsToastSuccess(`${rows_updated} row${rows_updated !== 1 ? 's' : ''} updated`);
       modal.hide();
+      appState.currentPage = 1;
+      appState.totalRowCount = null;
       await fetchTableData(appState);
     } finally {
       submitBtn.disabled = false;
@@ -629,13 +642,20 @@ function setupUploadExcel(appState) {
       const rowsAdded = tableResponse.rows_imported;
       if (rowsAdded === 0) {
         bsToastSuccess('Table deleted as empty table is uploaded');
-      } else {
-        bsToastSuccess(
-          typeof rowsAdded === 'number'
-            ? `Uploaded ${rowsAdded} row${rowsAdded !== 1 ? 's' : ''} from Excel`
-            : 'Excel uploaded successfully'
-        );
+        hideSummaryRow();
+        closeAddRow();
+        appState.currentPage = 1;
+        appState.selectedColumn = null;
+        appState.totalRowCount = null;
+        window.bootstrap.Modal.getInstance(modalEl)?.hide();
+        return;
       }
+
+      bsToastSuccess(
+        typeof rowsAdded === 'number'
+          ? `Uploaded ${rowsAdded} row${rowsAdded !== 1 ? 's' : ''} from Excel`
+          : 'Excel uploaded successfully'
+      );
 
       hideSummaryRow();
       closeAddRow();
