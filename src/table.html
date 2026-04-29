@@ -509,31 +509,58 @@
       <!-- Pagination -->
       <div class="d-flex align-items-center gap-2">
         <div class="d-flex align-items-center gap-2" id="paginationControls">
-          <button id="paginationFirstBtn" class="btn btn-sm btn-outline-dark">
-            <i class="fas fa-chevron-left"></i>
-            <i class="fas fa-chevron-left"></i>
+          <button
+            id="paginationFirstBtn"
+            type="button"
+            class="btn btn-sm btn-outline-dark"
+            aria-label="Go to first page"
+            aria-controls="sclTableBody"
+          >
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
           </button>
-          <button id="paginationPrevBtn" class="btn btn-sm btn-outline-dark">
-            <i class="fas fa-chevron-left"></i>
+          <button
+            id="paginationPrevBtn"
+            type="button"
+            class="btn btn-sm btn-outline-dark"
+            aria-label="Go to previous page"
+            aria-controls="sclTableBody"
+          >
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
           </button>
-          <span class="text-muted">Page</span>
+          <label class="text-muted mb-0" for="paginationPageInput">Page</label>
           <input
             id="paginationPageInput"
             type="text"
             class="form-control form-control-sm"
             value="1"
             style="width: 50px"
+            inputmode="numeric"
+            aria-describedby="paginationTotalPages paginationInfo"
+            aria-controls="sclTableBody"
           />
           <span class="text-muted" id="paginationTotalPages">of 1</span>
-          <button id="paginationNextBtn" class="btn btn-sm btn-outline-dark">
-            <i class="fas fa-chevron-right"></i>
+          <button
+            id="paginationNextBtn"
+            type="button"
+            class="btn btn-sm btn-outline-dark"
+            aria-label="Go to next page"
+            aria-controls="sclTableBody"
+          >
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
           </button>
-          <button id="paginationLastBtn" class="btn btn-sm btn-outline-dark">
-            <i class="fas fa-chevron-right"></i>
-            <i class="fas fa-chevron-right"></i>
+          <button
+            id="paginationLastBtn"
+            type="button"
+            class="btn btn-sm btn-outline-dark"
+            aria-label="Go to last page"
+            aria-controls="sclTableBody"
+          >
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
           </button>
         </div>
-        <span class="text-muted mx-2" id="paginationInfo"></span>
+        <span class="text-muted mx-2" id="paginationInfo" aria-live="polite"></span>
       </div>
     </div>
 
