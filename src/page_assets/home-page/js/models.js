@@ -50,6 +50,8 @@ function renderCurrentProjectModels(appState) {
   modelList.innerHTML = '';
 
   if (!modelNames.length) {
+    appState.selected_model = null;
+    updateModelActionVisibility(appState);
     const emptyItem = document.createElement('div');
     emptyItem.className = 'list-group-item text-muted';
     emptyItem.textContent = 'No models found for current project.';

@@ -171,32 +171,36 @@ function initSelectColumnsModal(appState) {
 
     if (selectedCols.length === 0) return;
 
-    await api.post('/tables/set-columns-order', {
-      table_name: appState.tableName,
-      project_name: appState.projectName,
-      model_name: appState.modelName,
-      column_names: selectedCols.map((col) => col),
-    });
+    try {
+      await api.post('/tables/set-columns-order', {
+        table_name: appState.tableName,
+        project_name: appState.projectName,
+        model_name: appState.modelName,
+        column_names: selectedCols.map((col) => col),
+      });
 
-    for (const col of Object.keys(appState.selectFilters ?? {})) {
-      if (!selectedCols.includes(col)) delete appState.selectFilters[col];
+      for (const col of Object.keys(appState.selectFilters ?? {})) {
+        if (!selectedCols.includes(col)) delete appState.selectFilters[col];
+      }
+      for (const col of Object.keys(appState.textFilters ?? {})) {
+        if (!selectedCols.includes(col)) delete appState.textFilters[col];
+      }
+
+      appState.sortColumns = (appState.sortColumns ?? []).filter(([name]) =>
+        selectedCols.includes(name)
+      );
+
+      appState.currentPage = 1;
+      appState.selectedColumn = null;
+      appState.totalRowCount = null;
+
+      await getTableHeaders(appState);
+      await fetchTableData(appState);
+
+      window.bootstrap.Modal.getInstance(modalEl)?.hide();
+    } catch {
+      // api.js already displays the error toast
     }
-    for (const col of Object.keys(appState.textFilters ?? {})) {
-      if (!selectedCols.includes(col)) delete appState.textFilters[col];
-    }
-
-    appState.sortColumns = (appState.sortColumns ?? []).filter(([name]) =>
-      selectedCols.includes(name)
-    );
-
-    appState.currentPage = 1;
-    appState.selectedColumn = null;
-    appState.totalRowCount = null;
-
-    await getTableHeaders(appState);
-    await fetchTableData(appState);
-
-    window.bootstrap.Modal.getInstance(modalEl)?.hide();
   });
 }
 
