@@ -5,7 +5,7 @@ import '../../../common/css/custom.css';
 import '../css/main.css';
 import api from '../../../common/js/api.js';
 import { bsToastError } from '../../../common/js/bsToast.js';
-import { ready } from '../../../common/js/dom.js';
+import { $, ready } from '../../../common/js/dom.js';
 
 const appState = {
   user: null,
@@ -38,7 +38,8 @@ ready(async () => {
     return;
   }
 
-  document.title = `${appState.projectName} > ${appState.modelName}`;
+  document.title = `SQL Client - ${appState.projectName} > ${appState.modelName}`;
+  $('#status-text').textContent = `${appState.projectName} > ${appState.modelName}`;
 
   let user;
   try {

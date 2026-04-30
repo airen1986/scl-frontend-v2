@@ -10,37 +10,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-2">
       <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="./">
-          <img src="scc.svg" alt="Logo" width="24" height="24" />
-          <span class="fs-5 fw-bold text-dark ms-3">SQLite Client</span>
-        </a>
-
-        <div class="d-flex align-items-center gap-2">
-          <span id="status-text" class="text-muted text-sm me-2"></span>
-          <label class="btn btn-dark btn-sm mb-0" title="Upload database files">
-            <i class="fa-solid fa-upload me-1" aria-hidden="true"></i>
-            Upload DB
-            <input type="file" id="db-upload" multiple accept=".db,.sqlite,.sqlite3" hidden />
-          </label>
-          <a
-            class="btn btn-outline-dark btn-sm"
-            href="https://github.com/airen1986/sqlite-client"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="View GitHub repository"
-          >
-            <i class="fa-brands fa-github me-1" aria-hidden="true"></i>
-            GitHub
-          </a>
-          <button
-            id="settings-btn"
-            class="btn btn-outline-dark btn-sm"
-            title="Settings"
-            data-bs-toggle="modal"
-            data-bs-target="#settingsModal"
-          >
-            <i class="fa-solid fa-gear" aria-hidden="true"></i>
-          </button>
+        <h5 class="mb-0 ms-0" id="status-text" aria-live="polite"></h5>
         </div>
       </div>
     </nav>
