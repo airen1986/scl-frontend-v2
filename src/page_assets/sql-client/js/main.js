@@ -5,49 +5,30 @@ import '../../../common/css/custom.css';
 import '../css/main.css';
 import api from '../../../common/js/api.js';
 import { bsToastError } from '../../../common/js/bsToast.js';
-import { $, ready } from '../../../common/js/dom.js';
-
-const appState = {
-  user: null,
-  modelName: '',
-  projectName: '',
-};
+import { ready } from '../../../common/js/dom.js';
+import { initApp } from './app.js';
 
 ready(async () => {
   const params = new URLSearchParams(window.location.search);
 
   const projectName = params.get('project');
-  if (projectName) {
-    appState.projectName = projectName;
-  } else {
-    bsToastError(
-      'No project specified',
-      'Please specify a project in the URL, e.g. <code>?project=my_project</code>'
-    );
+  if (!projectName) {
+    bsToastError('No project specified. Please provide ?project=name in the URL.');
     return;
   }
 
   const modelName = params.get('model');
-  if (modelName) {
-    appState.modelName = modelName;
-  } else {
-    bsToastError(
-      'No model specified',
-      'Please specify a model in the URL, e.g. <code>?model=my_model</code>'
-    );
+  if (!modelName) {
+    bsToastError('No model specified. Please provide ?model=name in the URL.');
     return;
   }
 
-  document.title = `SQL Client - ${appState.projectName} > ${appState.modelName}`;
-  $('#status-text').textContent = `${appState.projectName} > ${appState.modelName}`;
+  document.title = `SQL Client - ${projectName} > ${modelName}`;
+  document.getElementById('project-model-name').textContent = `${projectName} > ${modelName}`;
 
-  let user;
   try {
-    user = await api.post('/auth/me', {}, { silent: true });
-    if (user && user.role_name) {
-      appState.user = user;
-      sessionStorage.setItem('user', JSON.stringify(user));
-    } else {
+    const user = await api.post('/auth/me', {}, { silent: true });
+    if (!user || !user.role_name) {
       window.location.href = '/login.html';
       return;
     }
@@ -55,4 +36,6 @@ ready(async () => {
     window.location.href = '/login.html';
     return;
   }
+
+  await initApp({ projectName, modelName });
 });
