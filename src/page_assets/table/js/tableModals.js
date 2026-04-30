@@ -167,10 +167,12 @@ function initSelectColumnsModal(appState) {
         item.previousElementSibling?.focus();
       } else if (e.key === ' ') {
         e.preventDefault();
-        for (const sib of list.querySelectorAll('.col-select-item.active')) {
-          if (sib !== item) {
-            sib.classList.remove('active');
-            sib.setAttribute('aria-selected', 'false');
+        if (!e.ctrlKey && !e.metaKey) {
+          for (const sib of list.querySelectorAll('.col-select-item.active')) {
+            if (sib !== item) {
+              sib.classList.remove('active');
+              sib.setAttribute('aria-selected', 'false');
+            }
           }
         }
         item.classList.toggle('active');
