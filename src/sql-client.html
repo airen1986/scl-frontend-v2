@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supply Chain Lite - SQLite Client</title>
+    <link rel="icon" type="image/svg+xml" href="scc.svg" />
+  </head>
+  <body class="min-vh-100 d-flex flex-column">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-2">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="./">
+          <img src="scc.svg" alt="Logo" width="24" height="24" />
+          <span class="fs-5 fw-bold text-dark ms-3">SQLite Client</span>
+        </a>
+
+        <div class="d-flex align-items-center gap-2">
+          <span id="status-text" class="text-muted text-sm me-2"></span>
+          <label class="btn btn-dark btn-sm mb-0" title="Upload database files">
+            <i class="fa-solid fa-upload me-1" aria-hidden="true"></i>
+            Upload DB
+            <input type="file" id="db-upload" multiple accept=".db,.sqlite,.sqlite3" hidden />
+          </label>
+          <a
+            class="btn btn-outline-dark btn-sm"
+            href="https://github.com/airen1986/sqlite-client"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View GitHub repository"
+          >
+            <i class="fa-brands fa-github me-1" aria-hidden="true"></i>
+            GitHub
+          </a>
+          <button
+            id="settings-btn"
+            class="btn btn-outline-dark btn-sm"
+            title="Settings"
+            data-bs-toggle="modal"
+            data-bs-target="#settingsModal"
+          >
+            <i class="fa-solid fa-gear" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div id="scl-layout" class="d-flex flex-grow-1 overflow-hidden">
+      <!-- Sidebar -->
+      <aside id="scl-sidebar" class="border-end bg-white">
+        <!-- Databases -->
+        <div class="p-3 border-bottom">
+          <h6
+            class="text-uppercase text-muted fw-bold mb-2"
+            style="font-size: 0.7rem; letter-spacing: 1px"
+          >
+            Databases
+          </h6>
+          <ul id="db-list" class="list-group list-group-flush"></ul>
+          <div id="db-empty" class="text-muted fst-italic text-sm">
+            No databases. Upload a .db file.
+          </div>
+        </div>
+
+        <!-- Objects (Tables / Views) -->
+        <div id="objects-section" class="p-3 d-none">
+          <div class="accordion" id="objectsAccordion">
+            <!-- Tables -->
+            <div class="accordion-item border-0">
+              <h2 class="accordion-header">
+                <button
+                  class="accordion-button py-2 px-0 bg-transparent fw-bold"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapseTablesObj"
+                  aria-expanded="true"
+                  style="font-size: 0.7rem; letter-spacing: 1px"
+                >
+                  TABLES
+                </button>
+              </h2>
+              <div id="collapseTablesObj" class="accordion-collapse collapse show">
+                <div class="accordion-body p-0">
+                  <ul id="table-list" class="list-group list-group-flush"></ul>
+                </div>
+              </div>
+            </div>
+            <!-- Views -->
+            <div id="objects-views" class="accordion-item border-0 d-none">
+              <h2 class="accordion-header">
+                <button
+                  class="accordion-button collapsed py-2 px-0 bg-transparent fw-bold"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapseViewsObj"
+                  aria-expanded="false"
+                  style="font-size: 0.7rem; letter-spacing: 1px"
+                >
+                  VIEWS
+                </button>
+              </h2>
+              <div id="collapseViewsObj" class="accordion-collapse collapse">
+                <div class="accordion-body p-0">
+                  <ul id="view-list" class="list-group list-group-flush"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main id="scl-main" class="d-flex flex-column flex-grow-1 overflow-hidden">
+        <!-- SQL Editor -->
+        <div id="editor-panel" class="border-bottom">
+          <!-- Editor Tabs -->
+          <div id="editor-tabs-bar" class="d-flex align-items-end bg-white border-bottom">
+            <ul id="editor-tabs" class="nav nav-tabs border-0 flex-nowrap mb-0"></ul>
+            <button
+              id="add-tab-btn"
+              class="btn btn-sm btn-outline-dark ms-1 my-1 flex-shrink-0"
+              title="New tab"
+            >
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="d-flex align-items-center gap-2 px-3 py-2 bg-white border-bottom">
+            <button id="run-btn" class="btn btn-primary btn-sm" title="Execute query (Ctrl+Enter)">
+              <i class="fa-solid fa-play me-1" aria-hidden="true"></i>
+              Run
+            </button>
+            <button id="prompt-btn" class="btn btn-dark btn-sm" title="Open prompt (Ctrl+I)">
+              <i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i>
+              Prompt
+            </button>
+            <button id="clear-btn" class="btn btn-dark btn-sm" title="Clear editor">
+              <i class="fa-solid fa-eraser me-1" aria-hidden="true"></i>
+              Clear
+            </button>
+          </div>
+          <textarea
+            id="sql-editor"
+            class="form-control scl-editor-textarea"
+            placeholder="Enter SQL query..."
+            spellcheck="false"
+            rows="6"
+          ></textarea>
+        </div>
+
+        <!-- Results / DDL / History Tabs -->
+        <div id="results-panel" class="d-flex flex-column flex-grow-1 overflow-hidden">
+          <ul class="nav nav-tabs px-3 pt-2 bg-white" id="panelTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="results-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#tab-results"
+                type="button"
+                role="tab"
+              >
+                Results
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="ddl-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#tab-ddl"
+                type="button"
+                role="tab"
+              >
+                DDL
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="history-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#tab-history"
+                type="button"
+                role="tab"
+              >
+                History
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content flex-grow-1 overflow-hidden">
+            <!-- Results Tab -->
+            <div class="tab-pane fade show active scl-tab-pane" id="tab-results" role="tabpanel">
+              <div
+                id="results-toolbar"
+                class="d-none align-items-center gap-2 px-3 py-2 bg-white border-bottom"
+              >
+                <button
+                  id="copy-results-btn"
+                  class="btn btn-dark btn-sm"
+                  title="Copy (tab-separated)"
+                >
+                  <i class="fa-regular fa-copy me-1" aria-hidden="true"></i>
+                  Copy
+                </button>
+                <button id="export-csv-btn" class="btn btn-dark btn-sm" title="Export as CSV">
+                  <i class="fa-solid fa-file-csv me-1" aria-hidden="true"></i>
+                  CSV
+                </button>
+                <span id="row-count" class="ms-auto text-muted text-sm"></span>
+              </div>
+              <div id="results-container" class="flex-grow-1 overflow-auto">
+                <div id="results-placeholder" class="text-center text-muted fst-italic p-4">
+                  Run a query to see results
+                </div>
+                <div id="results-table-wrap" class="d-none h-100 overflow-auto">
+                  <table
+                    id="results-table"
+                    class="table table-hover table-sm table-bordered mb-0 scl-results-table"
+                  >
+                    <thead id="results-thead"></thead>
+                    <tbody id="results-tbody"></tbody>
+                  </table>
+                </div>
+                <pre id="results-message" class="d-none m-0 p-3 text-sm"></pre>
+              </div>
+            </div>
+
+            <!-- DDL Tab -->
+            <div class="tab-pane fade scl-tab-pane" id="tab-ddl" role="tabpanel">
+              <div class="d-flex align-items-center gap-2 px-3 py-2 bg-white border-bottom">
+                <strong id="ddl-object-name" class="text-primary font-monospace"></strong>
+                <button
+                  id="ddl-query-btn"
+                  class="btn btn-dark btn-sm ms-auto"
+                  title="SELECT first 100 rows in a new tab"
+                >
+                  <i class="fa-solid fa-play me-1" aria-hidden="true"></i>
+                  Top 1000
+                </button>
+                <button id="ddl-count-btn" class="btn btn-dark btn-sm" title="Get record count">
+                  <i class="fa-solid fa-hashtag me-1" aria-hidden="true"></i>
+                  Count
+                </button>
+                <button
+                  id="ddl-export-csv-btn"
+                  class="btn btn-dark btn-sm"
+                  title="Export entire table to CSV"
+                >
+                  <i class="fa-solid fa-file-csv me-1" aria-hidden="true"></i>
+                  Export CSV
+                </button>
+                <button id="ddl-copy-btn" class="btn btn-dark btn-sm" title="Copy DDL">
+                  <i class="fa-regular fa-copy me-1" aria-hidden="true"></i>
+                  Copy DDL
+                </button>
+              </div>
+              <div id="ddl-container" class="flex-grow-1 overflow-auto">
+                <pre
+                  id="ddl-code"
+                  class="m-0 p-3 bg-white font-monospace text-sm"
+                  style="white-space: pre-wrap"
+                ></pre>
+              </div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="tab-pane fade scl-tab-pane" id="tab-history" role="tabpanel">
+              <div id="history-container" class="flex-grow-1 overflow-auto">
+                <div id="history-empty" class="text-center text-muted fst-italic p-4">
+                  No queries yet.
+                </div>
+                <div id="history-table-wrap" class="d-none h-100 overflow-auto">
+                  <table id="history-table" class="table table-hover table-sm mb-0">
+                    <thead>
+                      <tr>
+                        <th style="width: 120px">Database</th>
+                        <th style="min-width: 200px">Query</th>
+                        <th style="width: 180px">Status</th>
+                        <th style="width: 130px">Time</th>
+                        <th style="width: 100px" class="text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="history-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Settings Modal (Bootstrap) -->
+    <div
+      class="modal fade"
+      id="settingsModal"
+      tabindex="-1"
+      aria-labelledby="settingsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="settingsModalLabel">Settings</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="text-to-sql-provider-input" class="form-label fw-bold">
+                Text-to-SQL Provider
+              </label>
+              <select id="text-to-sql-provider-input" class="form-select">
+                <option value="chatgpt">ChatGPT</option>
+                <option value="claude">Claude</option>
+                <option value="gemini">Gemini</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="text-to-sql-model-input" class="form-label fw-bold">Model</label>
+              <input
+                type="text"
+                class="form-control"
+                id="text-to-sql-model-input"
+                placeholder="gpt-4o-mini"
+              />
+            </div>
+            <div class="mb-3">
+              <label for="text-to-sql-api-key-input" class="form-label fw-bold">API Key</label>
+              <input
+                type="password"
+                class="form-control"
+                id="text-to-sql-api-key-input"
+                placeholder="sk-..."
+              />
+            </div>
+            <div class="mb-0 d-none" id="text-to-sql-custom-endpoint-group">
+              <label for="text-to-sql-custom-endpoint-input" class="form-label fw-bold">
+                Custom Endpoint
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="text-to-sql-custom-endpoint-input"
+                placeholder="https://openrouter.ai/api/v1/chat/completions"
+              />
+              <label for="text-to-sql-custom-auth-type-input" class="form-label fw-bold mt-3">
+                Auth Type
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="text-to-sql-custom-auth-type-input"
+                placeholder="Bearer"
+              />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button type="button" class="btn btn-dark" id="save-settings-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="page_assets/sql-client/js/main.js"></script>
+  </body>
+</html>

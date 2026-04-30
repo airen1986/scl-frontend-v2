@@ -1,0 +1,375 @@
+/* SQLite client app layout */
+
+#scl-layout {
+  height: calc(100vh - 56px);
+}
+
+/* Sidebar */
+#scl-sidebar {
+  width: 280px;
+  min-width: 280px;
+  overflow-y: auto;
+}
+
+#scl-sidebar .list-group-item {
+  border: none;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+
+#scl-sidebar .list-group-item:hover {
+  background-color: rgb(243, 241, 236);
+}
+
+#scl-sidebar .list-group-item.active {
+  background-color: var(--bs-heading-color);
+  color: #fff;
+  border-color: var(--bs-heading-color);
+}
+
+#scl-sidebar .obj-item {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8rem;
+}
+
+#scl-sidebar .db-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+#scl-sidebar .db-download,
+#scl-sidebar .db-delete {
+  visibility: hidden;
+  background: none;
+  border: none;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 0.9rem;
+}
+
+#scl-sidebar .db-download:hover,
+#scl-sidebar .db-delete:hover {
+  color: var(--bs-danger);
+}
+
+#scl-sidebar .db-download:hover {
+  color: var(--bs-primary);
+}
+
+#scl-sidebar .list-group-item:hover .db-download,
+#scl-sidebar .list-group-item:hover .db-delete {
+  visibility: visible;
+}
+
+/* Editor tabs */
+#editor-tabs-bar {
+  padding-left: 0.5rem;
+}
+
+#editor-tabs-bar #editor-tabs {
+  gap: 2px;
+  scrollbar-width: thin;
+}
+
+#editor-tabs-bar #editor-tabs .nav-item {
+  flex-shrink: 0;
+}
+
+.editor-tab-btn {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 0.375rem 0.375rem 0 0;
+  white-space: nowrap;
+  position: relative;
+  padding-right: 1.5rem;
+}
+
+.editor-tab-btn.active {
+  font-weight: 600;
+}
+
+.editor-tab-close {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.4;
+  cursor: pointer;
+}
+
+.editor-tab-close:hover {
+  opacity: 1;
+  color: var(--bs-danger);
+}
+
+/* SQL editor */
+.scl-editor-textarea {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  resize: vertical;
+  border: none;
+  border-radius: 0;
+  min-height: 100px;
+  max-height: 320px;
+  background-color: var(--bs-body-bg);
+}
+
+.scl-editor-textarea:focus {
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.scl-editor-textarea .cm-editor {
+  min-height: 100px;
+  max-height: 320px;
+  border: none;
+  border-radius: 0;
+  background-color: var(--bs-body-bg);
+  cursor: text;
+  pointer-events: auto;
+}
+
+.scl-editor-textarea .cm-editor .cm-content {
+  caret-color: var(--bs-body-color);
+  cursor: text;
+  pointer-events: auto;
+}
+
+.scl-editor-textarea .cm-editor .cm-line {
+  cursor: text;
+  position: relative;
+  pointer-events: auto;
+}
+
+.scl-editor-textarea .cm-editor .cm-cursor {
+  border-left: 1.2px solid var(--bs-body-color);
+  margin-left: -0.6px;
+  pointer-events: none;
+}
+
+.scl-editor-textarea .cm-editor.cm-focused .cm-cursor {
+  border-left-color: var(--bs-primary);
+}
+
+.scl-editor-textarea .cm-scroller {
+  font-family: var(--bs-font-monospace);
+  line-height: 1.6;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.scl-editor-textarea .cm-tok-keyword {
+  color: var(--bs-primary);
+  font-weight: 600;
+}
+
+.scl-editor-textarea .cm-tok-string {
+  color: var(--bs-success);
+}
+
+.scl-editor-textarea .cm-tok-number,
+.scl-editor-textarea .cm-tok-atom {
+  color: var(--bs-info);
+}
+
+.scl-editor-textarea .cm-tok-comment {
+  color: var(--bs-secondary-color);
+  font-style: italic;
+}
+
+.scl-editor-textarea .cm-tok-operator {
+  color: var(--bs-danger);
+}
+
+.scl-editor-textarea .cm-tok-name,
+.scl-editor-textarea .cm-tok-type {
+  color: var(--bs-emphasis-color);
+}
+
+.scl-editor-textarea .cm-tooltip-autocomplete {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  background: var(--bs-body-bg);
+  box-shadow: var(--bs-box-shadow);
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8rem;
+}
+
+.scl-editor-textarea .cm-tooltip-autocomplete ul li {
+  padding: 0.25rem 0.5rem;
+}
+
+.scl-editor-textarea .cm-tooltip-autocomplete ul li[aria-selected='true'] {
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+}
+
+/* Results table */
+.scl-results-table {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8rem;
+}
+
+.scl-results-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  white-space: nowrap;
+  background-color: #f8f9fa;
+  box-shadow: inset 0 -2px 0 var(--bs-heading-color), inset 0 2px 0 var(--bs-heading-color);
+}
+
+.scl-results-table thead tr {
+  border: 0;
+}
+
+.scl-results-table tbody tr:first-child {
+  border-top: 0;
+}
+
+.scl-results-table td {
+  white-space: pre;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Text-to-SQL inline popup (Ctrl+I) */
+.scl-txt2sql-popup {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 320px;
+  max-width: 460px;
+  padding: 0.4rem 0.5rem;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--bs-box-shadow);
+}
+
+.scl-txt2sql-popup .scl-txt2sql-icon {
+  color: var(--bs-secondary-color);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.scl-txt2sql-popup .scl-txt2sql-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+  min-width: 0;
+}
+
+.scl-txt2sql-popup .scl-txt2sql-input::placeholder {
+  color: var(--bs-secondary-color);
+}
+
+.scl-txt2sql-popup .scl-txt2sql-submit {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bs-emphasis-color);
+  color: var(--bs-body-bg);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition: opacity 0.15s;
+}
+
+.scl-txt2sql-popup .scl-txt2sql-submit:hover {
+  opacity: 0.8;
+}
+
+.scl-txt2sql-popup .scl-txt2sql-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* DDL code */
+#ddl-code {
+  line-height: 1.6;
+  font-size: 0.8rem;
+  min-height: 100%;
+}
+
+/* History table */
+#history-table {
+  font-size: 0.8rem;
+}
+
+#history-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  white-space: nowrap;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background-color: #f8f9fa;
+}
+
+#history-table .hist-sql-cell {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+#history-table .hist-status-cell {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+#history-table .hist-status-cell.text-success {
+  color: var(--bs-success) !important;
+}
+
+#history-table .hist-status-cell.text-danger {
+  color: var(--bs-danger) !important;
+}
+
+#history-table .hist-time-cell {
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+}
+
+/* Results message (error/success) */
+#results-message {
+  font-family: var(--bs-font-monospace);
+  white-space: pre-wrap;
+}
+
+#results-message.text-danger {
+  color: var(--bs-danger) !important;
+}
+
+/* Tab content panel: inactive tabs still need display:none from Bootstrap */
+.scl-tab-pane {
+  height: 100%;
+}
+
+.scl-tab-pane.show.active {
+  display: flex !important;
+  flex-direction: column;
+}
