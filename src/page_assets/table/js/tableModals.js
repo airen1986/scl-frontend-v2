@@ -27,6 +27,9 @@ function createColumnItem(colName) {
   div.className = 'col-select-item px-2 py-1 small';
   div.dataset.colName = colName;
   div.textContent = colName;
+  div.tabIndex = 0;
+  div.setAttribute('role', 'option');
+  div.setAttribute('aria-selected', 'false');
   return div;
 }
 
@@ -41,6 +44,7 @@ function moveItems(fromList, toList, selectedOnly) {
   const makeDraggable = toList.id === 'selectedColumnsList';
   for (const item of [...fromList.querySelectorAll(selector)]) {
     item.classList.remove('active');
+    item.setAttribute('aria-selected', 'false');
     item.draggable = makeDraggable;
     toList.appendChild(item);
   }
@@ -58,6 +62,13 @@ function initSelectColumnsModal(appState) {
   const availableList = document.getElementById('availableColumnsList');
   const selectedList = document.getElementById('selectedColumnsList');
   if (!modalEl || !availableList || !selectedList) return;
+
+  availableList.setAttribute('role', 'listbox');
+  availableList.setAttribute('aria-multiselectable', 'true');
+  availableList.setAttribute('aria-label', 'Available Columns');
+  selectedList.setAttribute('role', 'listbox');
+  selectedList.setAttribute('aria-multiselectable', 'true');
+  selectedList.setAttribute('aria-label', 'Selected Columns');
 
   modalEl.addEventListener('show.bs.modal', async () => {
     availableList.innerHTML = '<div class="text-center py-3"><small>Loading…</small></div>';
@@ -97,10 +108,14 @@ function initSelectColumnsModal(appState) {
       if (!item) return;
       if (!e.ctrlKey && !e.metaKey) {
         for (const sib of list.querySelectorAll('.col-select-item.active')) {
-          if (sib !== item) sib.classList.remove('active');
+          if (sib !== item) {
+            sib.classList.remove('active');
+            sib.setAttribute('aria-selected', 'false');
+          }
         }
       }
       item.classList.toggle('active');
+      item.setAttribute('aria-selected', item.classList.contains('active') ? 'true' : 'false');
     });
   }
 
@@ -108,6 +123,7 @@ function initSelectColumnsModal(appState) {
     const item = e.target.closest('.col-select-item');
     if (item) {
       item.classList.remove('active');
+      item.setAttribute('aria-selected', 'false');
       item.draggable = true;
       selectedList.appendChild(item);
     }
@@ -116,10 +132,61 @@ function initSelectColumnsModal(appState) {
     const item = e.target.closest('.col-select-item');
     if (item) {
       item.classList.remove('active');
+      item.setAttribute('aria-selected', 'false');
       item.draggable = false;
       availableList.appendChild(item);
     }
   });
+
+  // Keyboard: Arrow keys navigate focus; Space toggles selection; Enter moves item
+  // to the other list; Ctrl+Arrow reorders within selectedList.
+  for (const [list, otherList] of [
+    [availableList, selectedList],
+    [selectedList, availableList],
+  ]) {
+    list.addEventListener('keydown', (e) => {
+      const item = e.target.closest('.col-select-item');
+      if (!item || !list.contains(item)) return;
+
+      if (e.ctrlKey && list === selectedList && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        if (e.key === 'ArrowUp' && item.previousElementSibling) {
+          list.insertBefore(item, item.previousElementSibling);
+        } else if (e.key === 'ArrowDown' && item.nextElementSibling) {
+          list.insertBefore(item.nextElementSibling, item);
+        }
+        item.focus();
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        item.nextElementSibling?.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        item.previousElementSibling?.focus();
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        if (!e.ctrlKey && !e.metaKey) {
+          for (const sib of list.querySelectorAll('.col-select-item.active')) {
+            if (sib !== item) {
+              sib.classList.remove('active');
+              sib.setAttribute('aria-selected', 'false');
+            }
+          }
+        }
+        item.classList.toggle('active');
+        item.setAttribute('aria-selected', item.classList.contains('active') ? 'true' : 'false');
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        item.classList.remove('active');
+        item.setAttribute('aria-selected', 'false');
+        item.draggable = otherList === selectedList;
+        otherList.appendChild(item);
+        item.focus();
+      }
+    });
+  }
 
   let dragItem = null;
 
@@ -330,8 +397,11 @@ function initFormatColumnBtn(appState) {
     const type = columnTypeSelect.value;
     const isNumeric = type === 'REAL' || type === 'INTEGER';
     aggregationOptions.classList.toggle('d-none', !isNumeric);
+    aggregationOptions.setAttribute('aria-hidden', String(!isNumeric));
     realOptions.classList.toggle('d-none', type !== 'REAL');
+    realOptions.setAttribute('aria-hidden', String(type !== 'REAL'));
     lovOptions.classList.toggle('d-none', type !== 'LOV');
+    lovOptions.setAttribute('aria-hidden', String(type !== 'LOV'));
   }
 
   columnTypeSelect.addEventListener('change', toggleSections);

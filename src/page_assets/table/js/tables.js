@@ -104,7 +104,7 @@ async function getTableHeaders(appState) {
     head1.id = 'sclTableHead1';
 
     head1.innerHTML =
-      '<th style="width: 40px"><input type="checkbox" class="form-check-input" /></th>';
+      '<th style="width: 40px"><input type="checkbox" class="form-check-input" aria-label="Select all rows" /></th>';
     for (const [colName] of headers) {
       const th = document.createElement('th');
       th.style.minWidth = '80px';
@@ -150,7 +150,9 @@ async function getTableHeaders(appState) {
     oldhead2.replaceWith(head2);
     head2.id = 'sclTableHead2';
     head2.innerHTML = '<th></th>';
+    let i = 0;
     for (const [colName] of headers) {
+      i += 1;
       const th = document.createElement('th');
       th.style.minWidth = '80px';
       // th.style.overflow = 'hidden';
@@ -164,6 +166,7 @@ async function getTableHeaders(appState) {
       input.dataset.col = colName; // Safe: dataset escapes automatically
       input.value = appState.textFilters?.[colName] ?? '';
       input.style.minWidth = '0';
+      input.setAttribute('aria-label', `Filter ${colName}`);
 
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -173,6 +176,7 @@ async function getTableHeaders(appState) {
       btn.setAttribute('data-bs-toggle', 'dropdown');
       btn.setAttribute('data-bs-auto-close', 'outside');
       btn.setAttribute('aria-expanded', 'false');
+      btn.dataset.colIndex = String(i); // 1-based index to match columnNames
       updateFilterIcon(btn, colName in (appState.selectFilters ?? {}));
 
       const dropdown = document.createElement('div');
@@ -192,6 +196,13 @@ async function getTableHeaders(appState) {
                         <div class="dropdown-item d-flex px-2 py-0 clearOKBtn">
                         </div>`;
       dropdown.appendChild(form1);
+      const saInput = form1.querySelector('.selectAll');
+      if (saInput) {
+        const saId = `filter-select-all-${colName.replace(/\W/g, '_')}-${i}`;
+        saInput.id = saId;
+        const saLabel = saInput.closest('.form-check')?.querySelector('label');
+        if (saLabel) saLabel.htmlFor = saId;
+      }
       div.append(input, btn, dropdown);
       th.appendChild(div);
       head2.appendChild(th);
@@ -235,7 +246,8 @@ async function getTableHeaders(appState) {
       populateFilterDropdown(
         currentButton.nextElementSibling,
         currentButton.previousElementSibling.dataset.col,
-        appState
+        appState,
+        Number(currentButton.dataset.colIndex)
       );
     });
 
@@ -336,6 +348,11 @@ function refreshSortIcons(appState) {
     const colName = appState.columnNames[i][0];
     const dir = sortMap.get(colName);
     icon.className = dir ? SORT_ICON_MAP[dir] : SORT_ICON_DEFAULT;
+    const sortBtn = th.querySelector('.scl-sort-btn');
+    if (sortBtn) {
+      const dirLabel = dir === 'ASC' ? ', ascending' : dir === 'DESC' ? ', descending' : '';
+      sortBtn.setAttribute('aria-label', `Sort by ${colName}${dirLabel}`);
+    }
   }
 }
 
@@ -473,6 +490,7 @@ async function fetchTableData(appState) {
       }
 
       if (hasRowId) {
+        tr.tabIndex = 0;
         // Inline edit: dblclick → edit mode; keydown → save / cancel / tab
         tr.addEventListener('dblclick', (e) => {
           if (e.target.closest('input[type="checkbox"]')) return;
@@ -481,6 +499,12 @@ async function fetchTableData(appState) {
         });
 
         tr.addEventListener('keydown', (e) => {
+          // Enter on the focused row itself (not an input inside it) starts editing
+          if (e.key === 'Enter' && e.target === tr && !activeEdit) {
+            e.preventDefault();
+            startEditing(tr, appState);
+            return;
+          }
           if (!activeEdit || activeEdit.tr !== tr) return;
           const input = e.target.closest('.scl-inline-edit');
           if (!input) return;
@@ -576,8 +600,9 @@ function initRefreshDataBtn(appState) {
  * @param {HTMLElement} dropdown - The dropdown menu element for the column's filter (contains `.lovValuesFieldset`, `.selectAll`, and `.clearOKBtn`).
  * @param {string} colName - The column name whose distinct values should be loaded and edited.
  * @param {Object} appState - Application state object (reads/writes properties such as `tableName`, `projectName`, `modelName`, `pageSize`, `selectFilters`, `textFilters`, and `currentPage`).
+ * @param {number} i - Index of the column for unique ID generation.
  */
-async function populateFilterDropdown(dropdown, colName, appState) {
+async function populateFilterDropdown(dropdown, colName, appState, i) {
   const fieldset = dropdown.querySelector('.lovValuesFieldset');
   const selectAllCb = dropdown.querySelector('.selectAll');
   const toggleButton = dropdown.previousElementSibling;
@@ -623,11 +648,15 @@ async function populateFilterDropdown(dropdown, colName, appState) {
     const cb = document.createElement('input');
     cb.className = 'form-check-input lov-cb';
     cb.type = 'checkbox';
-    cb.dataset.rawIndex = String(rawValues.push(val) - 1);
+    const rawIndex = rawValues.push(val) - 1;
+    cb.dataset.rawIndex = String(rawIndex);
     if (activeSet.has(val)) cb.checked = true;
+    const cbId = `lov-cb-${colName.replace(/\W/g, '_')}-${rawIndex}-${i}`;
+    cb.id = cbId;
     const label = document.createElement('label');
     label.className = 'form-check-label';
     label.textContent = val !== null ? formatCellValue(val, dataType, fmt).text : '(blank)';
+    label.htmlFor = cbId;
     wrapper.append(cb, label);
     bindDropdownItemToggle(a, cb);
     a.appendChild(wrapper);

@@ -6,537 +6,582 @@
     <title>Forecast Orders</title>
   </head>
   <body class="min-vh-100 d-flex flex-column">
-    <div
-      id="pageLoader"
-      class="page-loader d-none"
-      role="status"
-      aria-live="polite"
-      aria-hidden="true"
-    >
+    <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
+    <div id="pageLoader" class="page-loader d-none" role="status" aria-live="polite">
       <div class="page-loader__content text-center">
         <div class="spinner-border text-dark" aria-hidden="true"></div>
         <div class="mt-2 small text-body-secondary">Loading table data...</div>
       </div>
     </div>
 
-    <!-- Table Title and Refresh -->
+    <main id="main-content" class="flex-fill d-flex flex-column" tabindex="-1">
+      <!-- Table Title and Refresh -->
 
-    <div class="d-flex justify-content-between align-items-center my-2 mx-1">
-      <h5 class="mb-0" id="tableDisplayName"></h5>
-    </div>
+      <div class="d-flex justify-content-between align-items-center my-2 mx-1">
+        <h5 class="mb-0" id="tableDisplayName" aria-live="polite"></h5>
+      </div>
 
-    <!-- <div class="flex-fill d-flex">
+      <!-- <div class="flex-fill d-flex">
 
         </div> -->
-    <!-- Table -->
-    <div id="sclTableDiv" class="flex-fill d-flex align-items-start mx-1" style="overflow-y: auto">
-      <table class="table table-hover table-sm table-bordered mb-0 scl-table">
-        <thead class="scl-thead">
-          <tr id="sclTableHead1" class="head1"></tr>
-          <!-- Filter Row -->
-          <tr id="sclTableHead2" class="head2"></tr>
-        </thead>
-        <tbody class="scl-tbody" id="sclTableBody"></tbody>
-        <!-- Summary Row (sticky at bottom) -->
-        <tfoot class="scl-tfoot">
-          <tr id="sclTableFoot" class="scl-summary-row d-none"></tr>
-        </tfoot>
-      </table>
-    </div>
-
-    <!-- Toolbar and Pagination -->
-    <div class="d-flex justify-content-between align-items-center my-2 mx-1">
-      <!-- Action Buttons -->
-      <div class="btn-group">
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="deleteRowsBtn"
-          title="Delete"
-          aria-label="Delete Rows"
+      <!-- Table -->
+      <div
+        id="sclTableDiv"
+        class="flex-fill d-flex align-items-start mx-1"
+        style="overflow-y: auto"
+        role="region"
+        aria-label="Table data"
+        aria-live="polite"
+      >
+        <table
+          class="table table-hover table-sm table-bordered mb-0 scl-table"
+          aria-labelledby="tableDisplayName"
         >
-          <i class="fa-solid fa-trash-alt"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          title="Download Excel"
-          id="downloadExcelBtn"
-          aria-label="Download Excel"
-        >
-          <i class="fa-solid fa-download"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          title="Upload Excel"
-          id="uploadExcelBtn"
-          aria-label="Upload Excel"
-          data-bs-target="#uploadExcelModal"
-          data-bs-toggle="modal"
-        >
-          <i class="fa-solid fa-upload"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="addColumnBtn"
-          title="Add New Column"
-          aria-label="Add New Column"
-        >
-          <i class="fa-solid fa-circle-plus"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="removeColumnBtn"
-          title="Remove Column"
-          aria-label="Remove Column"
-        >
-          <i class="fa-solid fa-circle-minus"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="formatColumnBtn"
-          title="Format Columns"
-          aria-label="Format Columns"
-        >
-          <i class="fa-solid fa-brush"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="increaseDecimalBtn"
-          title="Increase Decimal"
-          aria-label="Increase Decimal"
-        >
-          <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="decreaseDecimalBtn"
-          title="Decrease Decimal"
-          aria-label="Decrease Decimal"
-        >
-          <i class="fa-solid fa-chevron-right"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="updateColumnBtn"
-          title="Update Column"
-          aria-label="Update Column"
-        >
-          <i class="fa-solid fa-pencil-alt"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="addRowBtn"
-          title="Add New Row"
-          aria-label="Add New Row"
-          aria-pressed="false"
-        >
-          <i class="fa-solid fa-plus"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="refreshDataBtn"
-          title="Refresh Data"
-          aria-label="Refresh Data"
-        >
-          <i class="fa-solid fa-refresh"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          title="Columns"
-          id="selectTableColumns"
-          data-bs-toggle="modal"
-          data-bs-target="#selectColumnsModal"
-        >
-          <i class="fa-solid fa-columns"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="showSummaryBtn"
-          title="Show Summary"
-          aria-label="Show Summary"
-          aria-pressed="false"
-        >
-          <i class="fa-solid fa-sum"></i>
-        </button>
-        <button
-          class="btn btn-sm btn-outline-dark"
-          id="copyRowsBtn"
-          title="Copy Rows"
-          aria-label="Copy Rows"
-          aria-pressed="false"
-        >
-          <i class="fa-solid fa-copy"></i>
-        </button>
+          <thead class="scl-thead">
+            <tr id="sclTableHead1" class="head1"></tr>
+            <!-- Filter Row -->
+            <tr id="sclTableHead2" class="head2"></tr>
+          </thead>
+          <tbody class="scl-tbody" id="sclTableBody"></tbody>
+          <!-- Summary Row (sticky at bottom) -->
+          <tfoot class="scl-tfoot">
+            <tr id="sclTableFoot" class="scl-summary-row d-none"></tr>
+          </tfoot>
+        </table>
       </div>
 
-      <!-- Select Columns Modal -->
-      <div
-        class="modal fade"
-        id="selectColumnsModal"
-        tabindex="-1"
-        aria-labelledby="selectColumnsLabel"
-        aria-hidden="true"
-        data-bs-backdrop="static"
-        data-bs-keyboard="false"
-      >
-        <div class="modal-dialog modal-md modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="selectColumnsLabel">Select Columns</h5>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body p-2">
-              <div class="row flex-fill">
-                <!-- Available Columns -->
-                <div class="col-5 flex-fill d-flex flex-column" style="min-width: 0">
-                  <label class="form-label fw-semibold small mb-1 text-center">
-                    Available Columns
-                  </label>
-                  <div class="border rounded col-select-list" id="availableColumnsList"></div>
-                </div>
-                <!-- Transfer Buttons -->
-                <div class="col-2 d-flex flex-column justify-content-center gap-1">
-                  <button
-                    class="btn btn-sm btn-outline-dark"
-                    id="moveToSelectedBtn"
-                    title="Move to selected"
-                  >
-                    <i class="fa-solid fa-chevron-right"></i>
-                  </button>
-                  <button
-                    class="btn btn-sm btn-outline-dark"
-                    id="moveAllToSelectedBtn"
-                    title="Move all to selected"
-                  >
-                    <i class="fa-solid fa-angle-double-right"></i>
-                  </button>
-                  <button
-                    class="btn btn-sm btn-outline-dark"
-                    id="moveToAvailableBtn"
-                    title="Move to available"
-                  >
-                    <i class="fa-solid fa-chevron-left"></i>
-                  </button>
-                  <button
-                    class="btn btn-sm btn-outline-dark"
-                    id="moveAllToAvailableBtn"
-                    title="Move all to available"
-                  >
-                    <i class="fa-solid fa-angle-double-left"></i>
-                  </button>
-                </div>
-                <!-- Selected Columns -->
-                <div class="col-5 flex-fill d-flex flex-column" style="min-width: 0">
-                  <label class="form-label fw-semibold small mb-1 text-center">
-                    Selected Columns
-                  </label>
-                  <div class="border rounded col-select-list" id="selectedColumnsList"></div>
+      <!-- Toolbar and Pagination -->
+      <div class="d-flex justify-content-between align-items-center my-2 mx-1">
+        <!-- Action Buttons -->
+        <div class="btn-group" role="group" aria-label="Table actions">
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="deleteRowsBtn"
+            title="Delete"
+            aria-label="Delete Rows"
+          >
+            <i class="fa-solid fa-trash-alt"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            title="Download Excel"
+            id="downloadExcelBtn"
+            aria-label="Download Excel"
+          >
+            <i class="fa-solid fa-download"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            title="Upload Excel"
+            id="uploadExcelBtn"
+            aria-label="Upload Excel"
+            data-bs-target="#uploadExcelModal"
+            data-bs-toggle="modal"
+          >
+            <i class="fa-solid fa-upload"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="addColumnBtn"
+            title="Add New Column"
+            aria-label="Add New Column"
+          >
+            <i class="fa-solid fa-circle-plus"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="removeColumnBtn"
+            title="Remove Column"
+            aria-label="Remove Column"
+          >
+            <i class="fa-solid fa-circle-minus"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="formatColumnBtn"
+            title="Format Columns"
+            aria-label="Format Columns"
+          >
+            <i class="fa-solid fa-brush"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="increaseDecimalBtn"
+            title="Increase Decimal"
+            aria-label="Increase Decimal"
+          >
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="decreaseDecimalBtn"
+            title="Decrease Decimal"
+            aria-label="Decrease Decimal"
+          >
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="updateColumnBtn"
+            title="Update Column"
+            aria-label="Update Column"
+          >
+            <i class="fa-solid fa-pencil-alt"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="addRowBtn"
+            title="Add New Row"
+            aria-label="Add New Row"
+            aria-pressed="false"
+          >
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="refreshDataBtn"
+            title="Refresh Data"
+            aria-label="Refresh Data"
+          >
+            <i class="fa-solid fa-refresh"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            title="Columns"
+            aria-label="Columns"
+            id="selectTableColumns"
+            data-bs-toggle="modal"
+            data-bs-target="#selectColumnsModal"
+          >
+            <i class="fa-solid fa-columns"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="showSummaryBtn"
+            title="Show Summary"
+            aria-label="Show Summary"
+            aria-pressed="false"
+          >
+            <i class="fa-solid fa-sum"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-dark"
+            id="copyRowsBtn"
+            title="Copy Rows"
+            aria-label="Copy Rows"
+            aria-pressed="false"
+          >
+            <i class="fa-solid fa-copy"></i>
+          </button>
+        </div>
+
+        <!-- Select Columns Modal -->
+        <div
+          class="modal fade"
+          id="selectColumnsModal"
+          tabindex="-1"
+          aria-labelledby="selectColumnsLabel"
+          aria-hidden="true"
+          data-bs-backdrop="static"
+        >
+          <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="selectColumnsLabel">Select Columns</h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body p-2">
+                <div class="row flex-fill">
+                  <!-- Available Columns -->
+                  <div class="col-5 flex-fill d-flex flex-column" style="min-width: 0">
+                    <label class="form-label fw-semibold small mb-1 text-center">
+                      Available Columns
+                    </label>
+                    <div class="border rounded col-select-list" id="availableColumnsList"></div>
+                  </div>
+                  <!-- Transfer Buttons -->
+                  <div class="col-2 d-flex flex-column justify-content-center gap-1">
+                    <button
+                      class="btn btn-sm btn-outline-dark"
+                      id="moveToSelectedBtn"
+                      title="Move to selected"
+                      aria-label="Move selected columns to selected"
+                    >
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-dark"
+                      id="moveAllToSelectedBtn"
+                      title="Move all to selected"
+                      aria-label="Move all columns to selected"
+                    >
+                      <i class="fa-solid fa-angle-double-right"></i>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-dark"
+                      id="moveToAvailableBtn"
+                      title="Move to available"
+                      aria-label="Move selected columns to available"
+                    >
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-dark"
+                      id="moveAllToAvailableBtn"
+                      title="Move all to available"
+                      aria-label="Move all columns to available"
+                    >
+                      <i class="fa-solid fa-angle-double-left"></i>
+                    </button>
+                  </div>
+                  <!-- Selected Columns -->
+                  <div class="col-5 flex-fill d-flex flex-column" style="min-width: 0">
+                    <label class="form-label fw-semibold small mb-1 text-center">
+                      Selected Columns
+                    </label>
+                    <div class="border rounded col-select-list" id="selectedColumnsList"></div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-secondary"
-                data-bs-dismiss="modal"
-                id="CancelSelectColumnsBtn"
-              >
-                Cancel
-              </button>
-              <button type="button" class="btn btn-dark ms-auto" id="submitSelectColumnsBtn">
-                OK
-              </button>
+              <div class="modal-footer">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                  id="CancelSelectColumnsBtn"
+                >
+                  Cancel
+                </button>
+                <button type="button" class="btn btn-dark ms-auto" id="submitSelectColumnsBtn">
+                  OK
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Add Column Modal -->
-      <div
-        class="modal fade"
-        id="addColumnModal"
-        tabindex="-1"
-        aria-labelledby="addColumnLabel"
-        aria-hidden="true"
-        data-bs-backdrop="static"
-        data-bs-keyboard="false"
-      >
-        <div class="modal-dialog modal-md modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="addColumnLabel">Add Column</h5>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-3">
-                <label for="addColumnName" class="form-label">Column Name</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="addColumnName"
-                  placeholder="Enter column name"
-                />
+        <!-- Add Column Modal -->
+        <div
+          class="modal fade"
+          id="addColumnModal"
+          tabindex="-1"
+          aria-labelledby="addColumnLabel"
+          aria-hidden="true"
+          data-bs-backdrop="static"
+        >
+          <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="addColumnLabel">Add Column</h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
               </div>
-              <div class="mb-0">
-                <label for="addColumnDataType" class="form-label">Data Type</label>
-                <select class="form-select" id="addColumnDataType">
-                  <option value="TEXT">TEXT</option>
-                  <option value="NUMERIC">NUMERIC</option>
-                  <option value="INTEGER">INTEGER</option>
-                </select>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                Cancel
-              </button>
-              <button type="button" class="btn btn-dark ms-auto" id="submitAddColumnBtn">OK</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Format Column Modal -->
-      <div
-        class="modal fade"
-        id="formatColumnModal"
-        tabindex="-1"
-        aria-labelledby="formatColumnLabel"
-        aria-hidden="true"
-        data-bs-backdrop="static"
-        data-bs-keyboard="false"
-      >
-        <div class="modal-dialog modal-md modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="formatColumnLabel">
-                <span>Format Column:</span>
-                <span id="formatColumnTitleName"></span>
-              </h5>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-3">
-                <label for="formatColumnType" class="form-label">Column Type</label>
-                <select class="form-select" id="formatColumnType">
-                  <option value="REAL">REAL</option>
-                  <option value="INTEGER">INTEGER</option>
-                  <option value="TEXT">TEXT</option>
-                  <option value="LOV">LOV</option>
-                  <option value="DATE">DATE</option>
-                  <option value="DATETIME">DATETIME</option>
-                </select>
-              </div>
-              <!-- Numeric aggregation (REAL / INTEGER) -->
-              <div id="formatAggregationOptions">
+              <div class="modal-body">
                 <div class="mb-3">
-                  <label for="formatAggregation" class="form-label">Aggregation</label>
-                  <select class="form-select" id="formatAggregation">
-                    <option value="">None</option>
-                    <option value="SUM">SUM</option>
-                    <option value="AVG">AVG</option>
-                    <option value="MIN">MIN</option>
-                    <option value="MAX">MAX</option>
-                    <option value="COUNT">COUNT</option>
-                    <option value="MEDIAN">MEDIAN</option>
-                  </select>
-                </div>
-              </div>
-              <!-- REAL options -->
-              <div id="formatRealOptions">
-                <div class="mb-3">
-                  <label for="formatRealPrefix" class="form-label">Currency</label>
+                  <label for="addColumnName" class="form-label">Column Name</label>
                   <input
                     type="text"
                     class="form-control"
-                    id="formatRealPrefix"
-                    placeholder="e.g. USD, INR, €, ¥"
+                    id="addColumnName"
+                    placeholder="Enter column name"
                   />
                 </div>
-                <div class="mb-3">
-                  <label for="formatRealSeparator" class="form-label">Thousand Separator</label>
-                  <select class="form-select" id="formatRealSeparator">
-                    <option value="YES">YES</option>
-                    <option value="NO">NO</option>
+                <div class="mb-0">
+                  <label for="addColumnDataType" class="form-label">Data Type</label>
+                  <select class="form-select" id="addColumnDataType">
+                    <option value="TEXT">TEXT</option>
+                    <option value="NUMERIC">NUMERIC</option>
+                    <option value="INTEGER">INTEGER</option>
                   </select>
                 </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                  Cancel
+                </button>
+                <button type="button" class="btn btn-dark ms-auto" id="submitAddColumnBtn">
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Format Column Modal -->
+        <div
+          class="modal fade"
+          id="formatColumnModal"
+          tabindex="-1"
+          aria-labelledby="formatColumnLabel"
+          aria-hidden="true"
+          data-bs-backdrop="static"
+        >
+          <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="formatColumnLabel">
+                  <span>Format Column:</span>
+                  <span id="formatColumnTitleName"></span>
+                </h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
                 <div class="mb-3">
-                  <label for="formatRealDecimals" class="form-label">Decimal Places</label>
+                  <label for="formatColumnType" class="form-label">Column Type</label>
+                  <select class="form-select" id="formatColumnType">
+                    <option value="REAL">REAL</option>
+                    <option value="INTEGER">INTEGER</option>
+                    <option value="TEXT">TEXT</option>
+                    <option value="LOV">LOV</option>
+                    <option value="DATE">DATE</option>
+                    <option value="DATETIME">DATETIME</option>
+                  </select>
+                </div>
+                <!-- Numeric aggregation (REAL / INTEGER) -->
+                <div id="formatAggregationOptions">
+                  <div class="mb-3">
+                    <label for="formatAggregation" class="form-label">Aggregation</label>
+                    <select class="form-select" id="formatAggregation">
+                      <option value="">None</option>
+                      <option value="SUM">SUM</option>
+                      <option value="AVG">AVG</option>
+                      <option value="MIN">MIN</option>
+                      <option value="MAX">MAX</option>
+                      <option value="COUNT">COUNT</option>
+                      <option value="MEDIAN">MEDIAN</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- REAL options -->
+                <div id="formatRealOptions">
+                  <div class="mb-3">
+                    <label for="formatRealPrefix" class="form-label">Currency</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="formatRealPrefix"
+                      placeholder="e.g. USD, INR, €, ¥"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label for="formatRealSeparator" class="form-label">Thousand Separator</label>
+                    <select class="form-select" id="formatRealSeparator">
+                      <option value="YES">YES</option>
+                      <option value="NO">NO</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label for="formatRealDecimals" class="form-label">Decimal Places</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="formatRealDecimals"
+                      min="0"
+                      max="10"
+                      value="2"
+                    />
+                  </div>
+                </div>
+                <!-- LOV options -->
+                <div id="formatLovOptions" class="d-none">
+                  <div class="mb-3">
+                    <label for="formatLovValues" class="form-label">Options (one per line)</label>
+                    <textarea
+                      class="form-control"
+                      id="formatLovValues"
+                      rows="5"
+                      placeholder="Option 1&#10;Option 2&#10;Option 3"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                  Cancel
+                </button>
+                <button type="button" class="btn btn-dark ms-auto" id="submitFormatColumnBtn">
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Excel Modal -->
+        <div
+          class="modal fade"
+          id="uploadExcelModal"
+          tabindex="-1"
+          data-bs-backdrop="static"
+          aria-labelledby="uploadExcelLabel"
+          aria-hidden="true"
+        >
+          <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="uploadExcelLabel">Upload Excel</h5>
+                <button
+                  class="btn-close"
+                  type="button"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                <!-- ✅ NEW: Model name (disabled, JS populated) -->
+                <div class="mb-3">
+                  <label class="form-label" for="uploadModelName">Model Name</label>
+                  <input type="text" class="form-control" id="uploadModelName" disabled />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label" for="uploadTableName">Table Name</label>
+                  <input type="text" class="form-control" id="uploadTableName" disabled />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label" for="uploadExcelFile">Excel File (.xlsx)</label>
                   <input
-                    type="number"
+                    type="file"
                     class="form-control"
-                    id="formatRealDecimals"
-                    min="0"
-                    max="10"
-                    value="2"
+                    id="uploadExcelFile"
+                    accept=".xlsx,.xls"
                   />
                 </div>
-              </div>
-              <!-- LOV options -->
-              <div id="formatLovOptions" class="d-none">
-                <div class="mb-3">
-                  <label for="formatLovValues" class="form-label">Options (one per line)</label>
-                  <textarea
-                    class="form-control"
-                    id="formatLovValues"
-                    rows="5"
-                    placeholder="Option 1&#10;Option 2&#10;Option 3"
-                  ></textarea>
+
+                <div class="form-text text-muted">
+                  Only Excel files with the
+                  <code>.xlsx</code>
+                  or
+                  <code>.xls</code>
+                  extension are supported. Please ensure your file is in the correct format before
+                  uploading.
                 </div>
               </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                Cancel
-              </button>
-              <button type="button" class="btn btn-dark ms-auto" id="submitFormatColumnBtn">
-                OK
-              </button>
+
+              <div class="modal-footer">
+                <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-dark" id="submitUploadExcelBtn">Upload</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Upload Excel Modal -->
-      <div
-        class="modal fade"
-        id="uploadExcelModal"
-        tabindex="-1"
-        data-bs-backdrop="static"
-        data-bs-keyboard="false"
-        aria-labelledby="uploadExcelLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-md modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="uploadExcelLabel">Upload Excel</h5>
-              <button
-                class="btn-close"
-                type="button"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <!-- ✅ NEW: Model name (disabled, JS populated) -->
-              <div class="mb-3">
-                <label class="form-label" for="uploadModelName">Model Name</label>
-                <input type="text" class="form-control" id="uploadModelName" disabled />
+        <!-- Update Column Modal -->
+        <div
+          class="modal fade"
+          id="updateColumnModal"
+          tabindex="-1"
+          aria-labelledby="updateColumnLabel"
+          aria-hidden="true"
+          data-bs-backdrop="static"
+        >
+          <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="updateColumnLabel">
+                  <span>Update Column:</span>
+                  <span id="updateColumnTitleName"></span>
+                </h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
               </div>
-
-              <div class="mb-3">
-                <label class="form-label" for="uploadTableName">Table Name</label>
-                <input type="text" class="form-control" id="uploadTableName" disabled />
+              <div class="modal-body">
+                <div class="mb-0" id="updateColumnInputContainer"></div>
               </div>
-
-              <div class="mb-3">
-                <label class="form-label" for="uploadExcelFile">Excel File (.xlsx)</label>
-                <input type="file" class="form-control" id="uploadExcelFile" accept=".xlsx,.xls" />
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                  Cancel
+                </button>
+                <button type="button" class="btn btn-dark ms-auto" id="submitUpdateColumnBtn">
+                  Update
+                </button>
               </div>
-
-              <div class="form-text text-muted">
-                Only Excel files with the
-                <code>.xlsx</code>
-                or
-                <code>.xls</code>
-                extension are supported. Please ensure your file is in the correct format before
-                uploading.
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
-              <button class="btn btn-dark" id="submitUploadExcelBtn">Upload</button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Update Column Modal -->
-      <div
-        class="modal fade"
-        id="updateColumnModal"
-        tabindex="-1"
-        aria-labelledby="updateColumnLabel"
-        aria-hidden="true"
-        data-bs-backdrop="static"
-        data-bs-keyboard="false"
-      >
-        <div class="modal-dialog modal-md modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="updateColumnLabel">
-                <span>Update Column:</span>
-                <span id="updateColumnTitleName"></span>
-              </h5>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-0" id="updateColumnInputContainer"></div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                Cancel
-              </button>
-              <button type="button" class="btn btn-dark ms-auto" id="submitUpdateColumnBtn">
-                Update
-              </button>
-            </div>
+        <!-- Pagination -->
+        <div class="d-flex align-items-center gap-2">
+          <div
+            class="d-flex align-items-center gap-2"
+            id="paginationControls"
+            role="group"
+            aria-label="Pagination"
+          >
+            <button
+              id="paginationFirstBtn"
+              type="button"
+              class="btn btn-sm btn-outline-dark"
+              aria-label="Go to first page"
+              aria-controls="sclTableBody"
+            >
+              <i class="fas fa-chevron-left" aria-hidden="true"></i>
+              <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            </button>
+            <button
+              id="paginationPrevBtn"
+              type="button"
+              class="btn btn-sm btn-outline-dark"
+              aria-label="Go to previous page"
+              aria-controls="sclTableBody"
+            >
+              <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            </button>
+            <label class="text-muted mb-0" for="paginationPageInput">Page</label>
+            <input
+              id="paginationPageInput"
+              type="text"
+              class="form-control form-control-sm"
+              value="1"
+              style="width: 50px"
+              inputmode="numeric"
+              aria-describedby="paginationTotalPages paginationInfo"
+              aria-controls="sclTableBody"
+            />
+            <span class="text-muted" id="paginationTotalPages">of 1</span>
+            <button
+              id="paginationNextBtn"
+              type="button"
+              class="btn btn-sm btn-outline-dark"
+              aria-label="Go to next page"
+              aria-controls="sclTableBody"
+            >
+              <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </button>
+            <button
+              id="paginationLastBtn"
+              type="button"
+              class="btn btn-sm btn-outline-dark"
+              aria-label="Go to last page"
+              aria-controls="sclTableBody"
+            >
+              <i class="fas fa-chevron-right" aria-hidden="true"></i>
+              <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </button>
           </div>
+          <span class="text-muted mx-2" id="paginationInfo" aria-live="polite"></span>
         </div>
       </div>
-
-      <!-- Pagination -->
-      <div class="d-flex align-items-center gap-2">
-        <div class="d-flex align-items-center gap-2" id="paginationControls">
-          <button id="paginationFirstBtn" class="btn btn-sm btn-outline-dark">
-            <i class="fas fa-chevron-left"></i>
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button id="paginationPrevBtn" class="btn btn-sm btn-outline-dark">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <span class="text-muted">Page</span>
-          <input
-            id="paginationPageInput"
-            type="text"
-            class="form-control form-control-sm"
-            value="1"
-            style="width: 50px"
-          />
-          <span class="text-muted" id="paginationTotalPages">of 1</span>
-          <button id="paginationNextBtn" class="btn btn-sm btn-outline-dark">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-          <button id="paginationLastBtn" class="btn btn-sm btn-outline-dark">
-            <i class="fas fa-chevron-right"></i>
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </div>
-        <span class="text-muted mx-2" id="paginationInfo"></span>
-      </div>
-    </div>
-
+    </main>
     <script type="module" src="page_assets/table/js/main.js"></script>
   </body>
 </html>

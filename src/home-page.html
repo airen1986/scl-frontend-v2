@@ -13,8 +13,8 @@
 
         <div class="d-flex align-items-center">
           <div class="flex-shrink-0 d-flex align-items-center">
-            <img src="/summence_bw.png" alt="SupplyChainLite Logo" width="36" height="36" />
-            <h1 class="fs-5 fw-bold text-dark ms-3 mt-2">SupplyChainLite</h1>
+            <img src="/summence_bw.png" alt="" width="36" height="36" />
+            <h1 class="fs-5 fw-bold text-dark ms-3 mt-2 mb-0">SupplyChainLite</h1>
           </div>
         </div>
 
@@ -295,6 +295,7 @@
                 <span
                   id="notificationDot"
                   class="position-absolute"
+                  aria-hidden="true"
                   style="
                     width: 10px;
                     height: 10px;
@@ -320,6 +321,7 @@
               href="#"
               role="button"
               id="userDropdown"
+              aria-label="User menu"
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
@@ -354,7 +356,7 @@
     </nav>
 
     <!-- Main Content -->
-    <div class="container mt-5 flex-fill d-flex">
+    <main class="container mt-5 flex-fill d-flex">
       <!-- Sample Cards -->
       <div class="row flex-fill">
         <div class="col-md-3 mb-3" id="modelListContainer">
@@ -379,13 +381,13 @@
           </div>
         </div>
       </div>
-    </div>
+    </main>
 
     <!-- Footer -->
     <footer class="bg-dark text-center py-2 mt-1 border-top">
       <div class="container">
         <div class="d-flex align-items-center justify-content-center mb-2">
-          <img src="/summence_bw.png" alt="SupplyChainLite Logo" width="32" height="32" />
+          <img src="/summence_bw.png" alt="" width="32" height="32" />
         </div>
         <p class="text-white mb-0">Supply Chain Lite</p>
       </div>
@@ -508,7 +510,9 @@
                   id="upload_model_with_sample_data"
                   required
                 />
-                <label class="form-check-label">upload model with sample data</label>
+                <label class="form-check-label" for="upload_model_with_sample_data">
+                  Upload model with sample data
+                </label>
               </div>
             </form>
           </div>
@@ -534,14 +538,20 @@
       class="modal fade"
       id="addExistingModelModal"
       tabindex="-1"
+      aria-labelledby="addExistingModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Add Existing Models</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="addExistingModelLabel">Add Existing Models</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body" style="max-height: 60vh; overflow-y: auto">
@@ -568,28 +578,34 @@
       class="modal fade"
       id="renameModelModal"
       tabindex="-1"
+      aria-labelledby="renameModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Rename Model</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="renameModelLabel">Rename Model</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="RenameProjectName" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="RenameProjectName" disabled />
             </div>
             <div class="mb-3">
-              <label class="form-label">Current Model Name</label>
+              <label for="currentModelName" class="form-label">Current Model Name</label>
               <input type="text" class="form-control" id="currentModelName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">New Model Name</label>
+              <label for="newModelName" class="form-label">New Model Name</label>
               <input
                 type="text"
                 class="form-control"
@@ -612,33 +628,39 @@
       class="modal fade"
       id="saveAsModelModal"
       tabindex="-1"
+      aria-labelledby="saveAsModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Save Model As</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="saveAsModelLabel">Save Model As</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <!-- Target project -->
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="saveAsTargetProject" class="form-label">Current Project</label>
               <select class="form-select" id="saveAsTargetProject">
                 <option disabled selected value="">Select project</option>
               </select>
             </div>
             <!-- Existing model (readonly) -->
             <div class="mb-3">
-              <label class="form-label">Existing Model</label>
+              <label for="saveAsExistingModelName" class="form-label">Existing Model</label>
               <input type="text" class="form-control" id="saveAsExistingModelName" disabled />
             </div>
 
             <!-- New model name -->
             <div>
-              <label class="form-label">New Model Name</label>
+              <label for="saveAsNewModelName" class="form-label">New Model Name</label>
               <input
                 type="text"
                 class="form-control"
@@ -661,38 +683,44 @@
       class="modal fade"
       id="acceptModelModal"
       tabindex="-1"
+      aria-labelledby="acceptModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Accept Model</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="acceptModelLabel">Accept Model</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <!-- Target project -->
             <div class="mb-3">
-              <label class="form-label">From User</label>
+              <label for="acceptFromUser" class="form-label">From User</label>
               <input type="text" class="form-control" id="acceptFromUser" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model Name</label>
+              <label for="acceptModelName" class="form-label">Model Name</label>
               <input type="text" class="form-control" id="acceptModelName" disabled />
               <input type="hidden" id="acceptProjectName" />
               <input type="hidden" id="acceptNotificationId" />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="acceptCurrentProject" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="acceptCurrentProject" disabled />
             </div>
 
             <!-- New model name -->
             <div class="mb-3">
-              <label class="form-label">New Model Name</label>
+              <label for="acceptNewModelName" class="form-label">New Model Name</label>
               <input
                 type="text"
                 class="form-control"
@@ -703,7 +731,7 @@
 
             <div class="form-check">
               <input class="form-check-input" type="checkbox" id="acceptSaveCopy" required="" />
-              <label class="form-check-label">Save As copy</label>
+              <label class="form-check-label" for="acceptSaveCopy">Save As copy</label>
             </div>
           </div>
 
@@ -720,30 +748,38 @@
       class="modal fade"
       id="deleteModelModal"
       tabindex="-1"
+      aria-labelledby="deleteModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Delete Model</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="deleteModelLabel">Delete Model</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="DeleteProjectName" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="DeleteProjectName" disabled />
             </div>
             <!-- Actual model name (auto-filled, readonly) -->
             <div class="mb-3">
-              <label class="form-label">Model to be deleted</label>
+              <label for="deleteModelActualName" class="form-label">Model to be deleted</label>
               <input type="text" class="form-control" id="deleteModelActualName" disabled />
             </div>
 
             <!-- User must type model name -->
             <div class="mb-3">
-              <label class="form-label">Type model name to confirm</label>
+              <label for="deleteModelConfirmInput" class="form-label">
+                Type model name to confirm
+              </label>
               <input
                 type="text"
                 class="form-control"
@@ -776,23 +812,29 @@
       class="modal fade"
       id="downloadModelModal"
       tabindex="-1"
+      aria-labelledby="downloadModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Download Model</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="downloadModelLabel">Download Model</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="downloadProjectName" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="downloadProjectName" disabled />
             </div>
             <div class="mb-3">
-              <label class="form-label">Model</label>
+              <label for="downloadModelName" class="form-label">Model</label>
               <input type="text" class="form-control" id="downloadModelName" disabled />
             </div>
 
@@ -816,30 +858,36 @@
       class="modal fade"
       id="uploadModelModal"
       tabindex="-1"
+      aria-labelledby="uploadModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Upload Model</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="uploadModelLabel">Upload Model</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="uploadProjectName" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="uploadProjectName" disabled />
             </div>
 
             <!-- ✅ NEW: Model name (disabled, JS populated) -->
             <div class="mb-3">
-              <label class="form-label">Model Name</label>
+              <label for="uploadModelName" class="form-label">Model Name</label>
               <input type="text" class="form-control" id="uploadModelName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model File (.db)</label>
+              <label for="uploadModelFile" class="form-label">Model File (.db)</label>
               <input type="file" class="form-control" id="uploadModelFile" accept=".db" />
             </div>
 
@@ -863,29 +911,35 @@
       class="modal fade"
       id="uploadExcelModal"
       tabindex="-1"
+      aria-labelledby="uploadExcelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Upload Excel</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="uploadExcelLabel">Upload Excel</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="uploadExcelProjectName" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="uploadExcelProjectName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model</label>
+              <label for="uploadExcelModelName" class="form-label">Model</label>
               <input type="text" class="form-control" id="uploadExcelModelName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Excel File (.xlsx)</label>
+              <label for="uploadExcelFile" class="form-label">Excel File (.xlsx)</label>
               <input type="file" class="form-control" id="uploadExcelFile" accept=".xlsx,.xls" />
             </div>
 
@@ -912,6 +966,7 @@
       class="modal fade"
       id="uploadExcelActionsModal"
       tabindex="-1"
+      aria-labelledby="uploadExcelActionsModalTitle"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
@@ -921,7 +976,12 @@
             <h5 class="modal-title" id="uploadExcelActionsModalTitle">
               Upload Excel - Select Actions
             </h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
@@ -935,8 +995,8 @@
                 <table class="table table-hover table-sm table-bordered scl-table">
                   <thead class="scl-thead">
                     <tr>
-                      <th style="width: 60%">Sheet / Table Name</th>
-                      <th style="width: 40%">Action</th>
+                      <th scope="col" style="width: 60%">Sheet / Table Name</th>
+                      <th scope="col" style="width: 40%">Action</th>
                     </tr>
                   </thead>
                   <tbody class="scl-tbody" id="uploadExcelActionsTableBody"></tbody>
@@ -956,9 +1016,9 @@
                 >
                   <thead class="scl-thead">
                     <tr>
-                      <th style="width: 50%">Sheet / Table Name</th>
-                      <th style="width: 20%">Status</th>
-                      <th style="width: 30%">Details</th>
+                      <th scope="col" style="width: 50%">Sheet / Table Name</th>
+                      <th scope="col" style="width: 20%">Status</th>
+                      <th scope="col" style="width: 30%">Details</th>
                     </tr>
                   </thead>
                   <tbody class="scl-tbody" id="uploadExcelResultsTableBody"></tbody>
@@ -1000,17 +1060,22 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="vacuumDatabaseModalLabel">Vacuum Database</h5>
-            <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="vacuumDatabaseProjectName" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="vacuumDatabaseProjectName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model</label>
+              <label for="vacuumDatabaseModelName" class="form-label">Model</label>
               <input type="text" class="form-control" id="vacuumDatabaseModelName" disabled />
             </div>
 
@@ -1040,22 +1105,27 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="backupModelModalLabel">Backup Model</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="backupCurrentProject" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="backupCurrentProject" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model Name</label>
+              <label for="backupModelName" class="form-label">Model Name</label>
               <input type="text" class="form-control" id="backupModelName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Backup Comment</label>
+              <label for="backupUserComment" class="form-label">Backup Comment</label>
               <textarea
                 class="form-control"
                 id="backupUserComment"
@@ -1080,29 +1150,35 @@
       class="modal fade"
       id="restoreModelModal"
       tabindex="-1"
+      aria-labelledby="restoreModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Restore Model</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="restoreModelLabel">Restore Model</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="restoreCurrentProject" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="restoreCurrentProject" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model Name</label>
+              <label for="restoreModelName" class="form-label">Model Name</label>
               <input type="text" class="form-control" id="restoreModelName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Select Backup</label>
+              <label for="restoreBackupSelect" class="form-label">Select Backup</label>
               <select class="form-select" id="restoreBackupSelect">
                 <option disabled selected value="">Select backup</option>
               </select>
@@ -1122,31 +1198,37 @@
       class="modal fade"
       id="shareModelModal"
       tabindex="-1"
+      aria-labelledby="shareModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Share Model</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="shareModelLabel">Share Model</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <!-- Current Project -->
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="shareCurrentProject" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="shareCurrentProject" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model Name</label>
+              <label for="shareModelName" class="form-label">Model Name</label>
               <input type="text" class="form-control" id="shareModelName" disabled />
             </div>
 
             <!-- User Dropdown -->
             <div class="mb-3">
-              <label class="form-label">Share With</label>
+              <label for="shareWithUser" class="form-label">Share With</label>
               <input
                 type="email"
                 class="form-control"
@@ -1157,7 +1239,7 @@
 
             <!-- Access Level -->
             <div class="mb-3">
-              <label class="form-label">Access Level</label>
+              <label for="shareAccessLevel" class="form-label">Access Level</label>
               <select class="form-select" id="shareAccessLevel">
                 <option value="read">Read Only</option>
                 <option value="execute">Read & Execute</option>
@@ -1192,24 +1274,30 @@
       class="modal fade"
       id="manageAccessModal"
       tabindex="-1"
+      aria-labelledby="manageAccessLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Manage Access</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="manageAccessLabel">Manage Access</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="manageAccessCurrentProject" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="manageAccessCurrentProject" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model Name</label>
+              <label for="manageAccessModelName" class="form-label">Model Name</label>
               <input type="text" class="form-control" id="manageAccessModelName" disabled />
             </div>
 
@@ -1230,8 +1318,8 @@
                 >
                   <thead class="scl-thead">
                     <tr>
-                      <th style="width: 60%">User</th>
-                      <th style="width: 40%">Access Level</th>
+                      <th scope="col" style="width: 60%">User</th>
+                      <th scope="col" style="width: 40%">Access Level</th>
                     </tr>
                   </thead>
                   <tbody class="scl-tbody" id="manageAccessUserList"></tbody>
@@ -1274,24 +1362,30 @@
       class="modal fade"
       id="downloadExcelModal"
       tabindex="-1"
+      aria-labelledby="downloadExcelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Download Excel</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="downloadExcelLabel">Download Excel</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="downloadExcelModalProjectName" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="downloadExcelModalProjectName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model</label>
+              <label for="downloadExcelModalModelName" class="form-label">Model</label>
               <input type="text" class="form-control" id="downloadExcelModalModelName" disabled />
             </div>
 
@@ -1300,7 +1394,12 @@
                 <thead>
                   <tr>
                     <th scope="col" class="text-center" style="width: 40px">
-                      <input type="checkbox" class="form-check-input" id="selectAllTables" />
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="selectAllTables"
+                        aria-label="Select all table groups"
+                      />
                     </th>
                     <th scope="col" class="text-left">Table Groups</th>
                   </tr>
@@ -1325,29 +1424,35 @@
       class="modal fade"
       id="moveModelModal"
       tabindex="-1"
+      aria-labelledby="moveModelLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Move Model To Project</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="moveModelLabel">Move Model To Project</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Current Project</label>
+              <label for="moveModelModalProjectName" class="form-label">Current Project</label>
               <input type="text" class="form-control" id="moveModelModalProjectName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model</label>
+              <label for="moveModelName" class="form-label">Model</label>
               <input type="text" class="form-control" id="moveModelName" disabled />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Target Project</label>
+              <label for="targetProjectSelect" class="form-label">Target Project</label>
               <!-- ✅ JS will populate this -->
               <select class="form-select" id="targetProjectSelect">
                 <option disabled selected value="">Select project</option>
@@ -1368,19 +1473,25 @@
       class="modal fade"
       id="createProjectModal"
       tabindex="-1"
+      aria-labelledby="createProjectLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Create New Project</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="createProjectLabel">Create New Project</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
           <div class="modal-body">
             <form id="createProjectForm">
               <div class="mb-3">
-                <label class="form-label">Project Name</label>
+                <label for="createProjectName" class="form-label">Project Name</label>
                 <input type="text" class="form-control" id="createProjectName" required />
               </div>
               <div class="form-check mb-3">
@@ -1390,7 +1501,9 @@
                   id="createProjectOpenAfter"
                   required
                 />
-                <label class="form-check-label">Open This Project</label>
+                <label class="form-check-label" for="createProjectOpenAfter">
+                  Open This Project
+                </label>
               </div>
             </form>
           </div>
@@ -1407,19 +1520,25 @@
       class="modal fade"
       id="openProjectModal"
       tabindex="-1"
+      aria-labelledby="openProjectLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Open Project</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="openProjectLabel">Open Project</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
           <div class="modal-body">
             <form>
               <div class="mb-3">
-                <label class="form-label">Select Project</label>
+                <label for="openProjectSelect" class="form-label">Select Project</label>
                 <select class="form-select" id="openProjectSelect" required>
                   <option disabled selected>Select project</option>
                   <option>Project A</option>
@@ -1441,23 +1560,29 @@
       class="modal fade"
       id="renameProjectModal"
       tabindex="-1"
+      aria-labelledby="renameProjectLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Rename Project</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="renameProjectLabel">Rename Project</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
           <div class="modal-body">
             <form>
               <div class="mb-3">
-                <label class="form-label">Select Project</label>
+                <label for="renameProjectSelect" class="form-label">Select Project</label>
                 <select class="form-select" id="renameProjectSelect" required></select>
               </div>
               <div class="mb-3">
-                <label class="form-label">New Name</label>
+                <label for="renameProjectNewName" class="form-label">New Name</label>
                 <input type="text" class="form-control" id="renameProjectNewName" required />
               </div>
             </form>
@@ -1475,19 +1600,25 @@
       class="modal fade"
       id="deleteProjectModal"
       tabindex="-1"
+      aria-labelledby="deleteProjectLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Delete Project</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="deleteProjectLabel">Delete Project</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
           <div class="modal-body">
             <form>
               <div class="mb-3">
-                <label class="form-label">Select Project</label>
+                <label for="deleteProjectSelect" class="form-label">Select Project</label>
                 <select class="form-select" id="deleteProjectSelect" required></select>
               </div>
               <div class="mb-3">
@@ -1497,10 +1628,14 @@
                   id="deleteProjectConfirmCheckbox"
                   required
                 />
-                <label class="form-check-label">I understand this cannot be undone</label>
+                <label class="form-check-label" for="deleteProjectConfirmCheckbox">
+                  I understand this cannot be undone
+                </label>
               </div>
               <div class="mb-3">
-                <label class="form-label">Type project name to confirm</label>
+                <label for="deleteProjectConfirmName" class="form-label">
+                  Type project name to confirm
+                </label>
                 <input type="text" class="form-control" id="deleteProjectConfirmName" required />
               </div>
             </form>
@@ -1518,27 +1653,47 @@
       class="modal fade"
       id="changeProjectModal"
       tabindex="-1"
+      aria-labelledby="changeProjectLabel"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
       <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Change Project</h5>
-            <button class="btn-close" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title" id="changeProjectLabel">Change Project</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
           <div class="modal-body">
             <form>
               <div class="mb-3">
-                <label class="form-label">Select Modal</label>
-                <input type="text" class="form-control" value="Select Modal" disabled required />
+                <label for="changeProjectSelectedModel" class="form-label">Select Model</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="changeProjectSelectedModel"
+                  value="Select Model"
+                  disabled
+                  required
+                />
               </div>
               <div class="mb-3">
-                <label class="form-label">Current Project</label>
-                <input type="text" class="form-control" value="Current Project" disabled required />
+                <label for="changeProjectCurrentProject" class="form-label">Current Project</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="changeProjectCurrentProject"
+                  value="Current Project"
+                  disabled
+                  required
+                />
               </div>
               <div class="mb-3">
-                <label class="form-label">New Project</label>
+                <label for="newProjectName" class="form-label">New Project</label>
                 <select class="form-select" id="newProjectName" required></select>
               </div>
             </form>
