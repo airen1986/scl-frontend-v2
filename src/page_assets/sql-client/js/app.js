@@ -35,6 +35,7 @@ import {
 // ===== State =====
 let appState = null; // { projectName, modelName }
 let currentDdlObject = null;
+let isExecuting = false;
 
 // In-memory settings (no localStorage)
 const settings = {
@@ -161,9 +162,11 @@ async function showDdl(name) {
 // ===== Query Execution =====
 
 async function executeQuery(sqlOverride = null) {
+  if (isExecuting) return;
   const sql = (sqlOverride ?? getEditorValue()).trim();
   if (!sql) return;
 
+  isExecuting = true;
   showResultsLoader();
   setStatus('Executing...');
   runBtn.disabled = true;
@@ -199,6 +202,7 @@ async function executeQuery(sqlOverride = null) {
     await renderHistory();
   } finally {
     runBtn.disabled = false;
+    isExecuting = false;
   }
 }
 
