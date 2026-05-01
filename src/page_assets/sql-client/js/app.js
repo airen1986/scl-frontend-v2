@@ -110,8 +110,8 @@ async function refreshObjects() {
     dbList.innerHTML = '';
     const li = document.createElement('li');
     li.className = 'list-group-item active text-truncate';
-    li.textContent = `${appState.projectName} / ${appState.modelName}`;
-    li.title = `${appState.projectName} / ${appState.modelName}`;
+    li.textContent = `${appState.projectName} > ${appState.modelName}`;
+    li.title = `${appState.projectName} > ${appState.modelName}`;
     dbList.appendChild(li);
 
     objectsSection.classList.remove('d-none');
@@ -119,7 +119,7 @@ async function refreshObjects() {
     renderObjectList(viewList, views);
     objectsViewsSection.classList.toggle('d-none', views.length === 0);
 
-    setStatus(`Connected: ${appState.projectName} / ${appState.modelName}`);
+    setStatus(`Connected: ${appState.projectName} > ${appState.modelName}`);
   } catch (err) {
     setStatus('Failed to load objects: ' + err.message, true);
   }

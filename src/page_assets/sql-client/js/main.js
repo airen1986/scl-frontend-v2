@@ -24,7 +24,6 @@ ready(async () => {
   }
 
   document.title = `SQL Client - ${projectName} > ${modelName}`;
-  document.getElementById('project-model-name').textContent = `${projectName} > ${modelName}`;
 
   try {
     const user = await api.post('/auth/me', {}, { silent: true });

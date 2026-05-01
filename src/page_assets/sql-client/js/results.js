@@ -1,16 +1,12 @@
 /**
  * Results panel rendering, CSV export, and clipboard utilities.
  *
- * Handles the results table with chunked/lazy rendering for large datasets,
- * non-SELECT query messages, a loading indicator, and CSV/TSV export.
+ * Handles the results table, non-SELECT query messages, a loading indicator,
+ * and CSV/TSV export.
  */
-
-const RESULTS_CHUNK_SIZE = 500;
 
 let lastColumns = null;
 let lastRows = null;
-let renderedRowsCount = 0;
-let lazyRows = null;
 
 const resultsPlaceholder = document.getElementById('results-placeholder');
 const resultsTableWrap = document.getElementById('results-table-wrap');
@@ -19,13 +15,10 @@ const resultsTbody = document.getElementById('results-tbody');
 const resultsMessage = document.getElementById('results-message');
 const resultsToolbar = document.getElementById('results-toolbar');
 const rowCount = document.getElementById('row-count');
-const resultsContainer = document.getElementById('results-container');
 const copyResultsBtn = document.getElementById('copy-results-btn');
 const exportCsvBtn = document.getElementById('export-csv-btn');
 
 export function initResults() {
-  resultsContainer.addEventListener('scroll', onResultsScroll);
-
   copyResultsBtn.addEventListener('click', async () => {
     if (!lastColumns || !lastRows) return;
     await copyToClipboard(resultsToTSV(lastColumns, lastRows));
@@ -40,8 +33,6 @@ export function initResults() {
 export function renderResultsTable(columns, rows) {
   lastColumns = columns;
   lastRows = rows;
-  lazyRows = rows;
-  renderedRowsCount = 0;
 
   resultsPlaceholder.classList.add('d-none');
   resultsMessage.classList.add('d-none');
@@ -51,24 +42,7 @@ export function renderResultsTable(columns, rows) {
   rowCount.textContent = `${rows.length} row${rows.length !== 1 ? 's' : ''}`;
 
   resultsThead.innerHTML = '<tr>' + columns.map((c) => `<th>${esc(c)}</th>`).join('') + '</tr>';
-  resultsTbody.innerHTML = '';
-
-  renderNextChunk();
-  // Fill viewport if the first chunk doesn't fill it
-  while (
-    lazyRows &&
-    renderedRowsCount < lazyRows.length &&
-    resultsContainer.scrollHeight <= resultsContainer.clientHeight
-  ) {
-    renderNextChunk();
-  }
-}
-
-function renderNextChunk() {
-  if (!lazyRows || renderedRowsCount >= lazyRows.length) return;
-  const end = Math.min(renderedRowsCount + RESULTS_CHUNK_SIZE, lazyRows.length);
-  const html = lazyRows
-    .slice(renderedRowsCount, end)
+  resultsTbody.innerHTML = rows
     .map(
       (row) =>
         '<tr>' +
@@ -81,24 +55,11 @@ function renderNextChunk() {
         '</tr>'
     )
     .join('');
-  resultsTbody.insertAdjacentHTML('beforeend', html);
-  renderedRowsCount = end;
-}
-
-function onResultsScroll() {
-  if (!lazyRows || renderedRowsCount >= lazyRows.length) return;
-  const threshold = 150;
-  const atBottom =
-    resultsContainer.scrollTop + resultsContainer.clientHeight >=
-    resultsContainer.scrollHeight - threshold;
-  if (atBottom) renderNextChunk();
 }
 
 export function showMessage(text, isError = false) {
   lastColumns = null;
   lastRows = null;
-  lazyRows = null;
-  renderedRowsCount = 0;
   resultsPlaceholder.classList.add('d-none');
   resultsTableWrap.classList.add('d-none');
   resultsToolbar.classList.add('d-none');
@@ -111,8 +72,6 @@ export function showMessage(text, isError = false) {
 export function clearResults() {
   lastColumns = null;
   lastRows = null;
-  lazyRows = null;
-  renderedRowsCount = 0;
   resultsPlaceholder.className = 'text-center text-muted fst-italic p-4';
   resultsPlaceholder.textContent = 'Run a query to see results';
   resultsPlaceholder.classList.remove('d-none');
