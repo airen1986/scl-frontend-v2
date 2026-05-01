@@ -152,6 +152,19 @@ ready(async () => {
     userInfoActions.prepend(infoItem);
   }
 
+  // ── SQL Client ─────────────────────────────────────────────────────────
+  const sqlClientMenu = $('#sqlClientMenu');
+  if (sqlClientMenu) {
+    on(sqlClientMenu, 'click', (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams({
+        project: appState.currentProject || '',
+        model: appState.selected_model || '',
+      });
+      window.open(`/sql-client.html?${params.toString()}`, '_blank');
+    });
+  }
+
   // ── Logout ───────────────────────────────────────────────────────────
   const logoutBtn = $('#logoutBtn');
   if (logoutBtn) {
