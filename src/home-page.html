@@ -274,6 +274,42 @@
                         -->
               </ul>
             </li>
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link active dropdown-toggle"
+                href="#"
+                id="InputOutputFilesDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Files
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="InputOutputFilesDropdown">
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    id="inputFileUploadBtn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modelFilesModal"
+                  >
+                    Input files
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    id="outputFileUploadBtn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modelFilesModal"
+                  >
+                    Output Files
+                  </a>
+                </li>
+              </ul>
+            </li>
             <li class="nav-item">
               <a class="nav-link" href="#">Link1</a>
             </li>
@@ -1709,6 +1745,72 @@
           <div class="modal-footer">
             <button class="btn btn-secondary me-auto" data-bs-dismiss="modal">Cancel</button>
             <button class="btn btn-dark">Change</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Files Modal (Input / Output) -->
+    <div
+      class="modal fade"
+      id="modelFilesModal"
+      tabindex="-1"
+      aria-labelledby="modelFilesModalLabel"
+      aria-hidden="true"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modelFilesModalLabel">
+              <i
+                id="modelFilesModalIcon"
+                class="fa-solid fa-file-import me-2"
+                aria-hidden="true"
+              ></i>
+              <span id="modelFilesModalTitleText">Input Files</span>
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+
+          <div class="modal-body">
+            <!-- Loading state -->
+            <div id="modelFilesLoading" class="text-center py-4 d-none">
+              <span
+                class="spinner-border spinner-border-sm me-2"
+                role="status"
+                aria-hidden="true"
+              ></span>
+              Loading files…
+            </div>
+
+            <!-- Empty state -->
+            <div id="modelFilesEmpty" class="text-center text-muted fst-italic py-4 d-none">
+              No files found for this model.
+            </div>
+
+            <!-- Files table -->
+            <div id="modelFilesTableWrap" class="d-none">
+              <div class="table-responsive scl-table-div">
+                <table class="table table-sm table-bordered scl-table align-middle mb-0">
+                  <thead class="scl-thead" id="modelFilesTableHead"></thead>
+                  <tbody id="modelFilesTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Hidden file input for uploads -->
+            <input type="file" id="modelFilesHiddenUpload" class="d-none" />
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-dark" data-bs-dismiss="modal" aria-label="Close">Close</button>
           </div>
         </div>
       </div>
