@@ -232,16 +232,24 @@ function handleUpload(fileId, row, appState, els) {
 }
 
 /* ── Load & render ───────────────────────────────────────────────────────────── */
-
+let latestFilesRequestId = 0;
 async function loadFiles(appState, fileType) {
+  const requestId = ++latestFilesRequestId;
   const els = EL();
   showOnly(els.loading, els);
+
+  if (!appState.currentProject || !appState.selected_model) {
+    els.empty.textContent = 'No model selected.';
+    showOnly(els.empty, els);
+    return;
+  }
 
   try {
     const allFiles = await api.post('/models/list-files', {
       project_name: appState.currentProject,
       model_name: appState.selected_model,
     });
+    if (requestId !== latestFilesRequestId) return;
 
     const files = (allFiles.files || []).filter(
       (f) => f.file_type?.toLowerCase() === fileType?.toLowerCase()
@@ -257,6 +265,7 @@ async function loadFiles(appState, fileType) {
     renderTableBody(files, fileType, els);
     showOnly(els.tableWrap, els);
   } catch {
+    if (requestId !== latestFilesRequestId) return;
     showOnly(els.empty, els);
     els.empty.textContent = 'Failed to load files.';
   }
