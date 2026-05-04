@@ -8,6 +8,7 @@ import api from '@/common/js/api';
 import { initModels } from './models';
 import { initProjects } from './projects';
 import { initNotifications } from './notifications';
+import { initFiles } from './files';
 import {
   bsToastSuccess as toastSuccess,
   bsToastError as toastError,
@@ -116,6 +117,9 @@ ready(async () => {
 
   // ── Load notifications ─────────────────────────────────────────────────────
   void initNotifications();
+
+  // ── Init input files modal ──────────────────────────────────────────────────
+  initFiles(appState);
 
   // ── Display active project ───────────────────────────────────────────────
   const activeProjectDisplay = document.getElementById('activeProjectDisplay');

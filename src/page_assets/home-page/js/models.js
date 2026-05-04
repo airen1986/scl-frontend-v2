@@ -116,6 +116,7 @@ function updateModelActionVisibility(appState) {
   const excelUpload = document.getElementById('uploadExcelMenu');
   const vacuumDatabase = document.getElementById('vacuumDatabaseMenu');
   const manageAccess = document.getElementById('manageAccessMenu');
+  const sqlClientMenu = document.getElementById('sqlClientMenu');
 
   const isOwner = access === 'owner';
 
@@ -126,6 +127,7 @@ function updateModelActionVisibility(appState) {
   if (upload) upload.style.display = isOwner ? '' : 'none';
   if (excelUpload) excelUpload.style.display = isOwner ? '' : 'none';
   if (manageAccess) manageAccess.style.display = access === 'none' ? 'none' : '';
+  if (sqlClientMenu) sqlClientMenu.style.display = isOwner ? '' : 'none';
 }
 
 /* ── Add New Model Modal ───────────────────────────────────────────────────── */
