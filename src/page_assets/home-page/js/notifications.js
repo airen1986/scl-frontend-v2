@@ -88,7 +88,7 @@ export async function initNotifications() {
 
   const viewAll = document.createElement('li');
   viewAll.innerHTML =
-    '<a class="dropdown-item small text-muted" href="#">View all notifications</a>';
+    '<a class="dropdown-item small text-muted" href="/notifications.html">View all notifications</a>';
   list.appendChild(viewAll);
 }
 
