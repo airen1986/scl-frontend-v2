@@ -21,7 +21,7 @@ export async function initNotifications() {
 
   let notifications;
   try {
-    const data = await api.post('/models/get-notifications');
+    const data = await api.post('/notifications/get');
     notifications = data.notifications || [];
   } catch {
     list.innerHTML = '<li class="dropdown-item text-danger">Failed to load notifications</li>';
@@ -208,7 +208,7 @@ function openNotificationModal(notification) {
   const markRead = async () => {
     if (notification.is_read === 0) {
       try {
-        await api.post('/models/mark-notification-read', {
+        await api.post('/notifications/mark-read', {
           notification_id: notification_id,
         });
         toastSuccess('Notification marked as read', 400);
