@@ -1454,7 +1454,7 @@ function setupAcceptModel(appState) {
     rejectBtn.disabled = true;
 
     try {
-      await api.post('/models/accept', {
+      await api.post('/notifications/accept', {
         notification_id: notificationId,
         accept: true,
         model_name: newModelName,
@@ -1493,7 +1493,7 @@ function setupAcceptModel(appState) {
       rejectBtn.innerHTML =
         '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Rejecting…';
       try {
-        await api.post('/models/accept', {
+        await api.post('/notifications/accept', {
           notification_id: notificationId,
           accept: false,
         });
