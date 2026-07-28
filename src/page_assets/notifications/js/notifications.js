@@ -18,10 +18,24 @@ const tableState = {
   sortDirection: null,
   textFilters: {},
   selectFilters: {},
+  currentProject: null,
 };
+
+async function fetchCurrentProject() {
+  const data = await api.post('/projects/current', {});
+  tableState.currentProject = data.project_name || 'Default';
+}
 
 function getReadStatusLabel(notification) {
   return notification.is_read === 0 ? 'Unread' : 'Read';
+}
+
+function getNotificationStatusLabel(notification) {
+  if (notification.notification_type === 'model_share_request') {
+    if (notification.is_accepted === 1) return 'Accepted';
+    if (notification.is_accepted === -1) return 'Rejected';
+  }
+  return getReadStatusLabel(notification);
 }
 
 /** Escape a string for safe HTML insertion. */
@@ -230,9 +244,17 @@ function getLevelBadgeClass(level) {
  * Render the status badge for a notification.
  * The badge text is "Unread" or "Read" and the background color is driven by notification_level.
  */
+function getStatusBadgeClass(notification) {
+  if (notification.notification_type === 'model_share_request') {
+    if (notification.is_accepted === 1) return 'bg-success';
+    if (notification.is_accepted === -1) return 'bg-danger';
+  }
+  return getLevelBadgeClass(notification.notification_level);
+}
+
 function renderStatusBadge(notification) {
-  const label = getReadStatusLabel(notification);
-  const levelClass = getLevelBadgeClass(notification.notification_level);
+  const label = getNotificationStatusLabel(notification);
+  const levelClass = getStatusBadgeClass(notification);
   return `<span class="m-0 badge ${levelClass}">${escapeHtml(label)}</span>`;
 }
 
@@ -466,7 +488,7 @@ function getSortValue(notification, field) {
 }
 
 function getFilterValue(notification, column) {
-  if (column.field === 'is_read') return getReadStatusLabel(notification);
+  if (column.field === 'is_read') return getNotificationStatusLabel(notification);
   if (column.field) return String(notification[column.field] ?? '');
   if (column.label === 'Action') return 'Details';
   return '';
@@ -480,7 +502,14 @@ function getUniqueFilterValues(column) {
   ];
 
   if (column.field === 'is_read') {
-    return ['Read', 'Unread'].filter((value) => values.includes(value));
+    return values
+      .filter((value) => value)
+      .sort((first, second) =>
+        String(first).localeCompare(String(second), undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        })
+      );
   }
 
   return values.sort((first, second) =>
@@ -649,6 +678,27 @@ function openTaskDetails(notification) {
   window.open(`/task-details.html?${params.toString()}`, '_blank');
 }
 
+/** Mark a single notification as read via API and update local state. */
+async function markNotificationAsRead(notification) {
+  if (!notification || notification.is_read === 1) return;
+
+  try {
+    await api.post('/notifications/mark-read', {
+      notification_ids: [Number(notification.notification_id) || 0],
+    });
+    const rowNotification = tableState.notifications.find(
+      (item) => Number(item.notification_id) === Number(notification.notification_id)
+    );
+    if (rowNotification) {
+      rowNotification.is_read = 1;
+    }
+    renderNotifications(tableState.notifications);
+    bsToastSuccess('Notification marked as read.', 1500);
+  } catch {
+    // api.js already shows an error toast.
+  }
+}
+
 /** Populate and show the Accept Model modal for a model_share_request notification. */
 function openAcceptModelModal(notification) {
   const fromUserInput = $('#acceptFromUser');
@@ -661,20 +711,64 @@ function openAcceptModelModal(notification) {
   const submitBtn = $('#submitAcceptModelBtn');
   const rejectBtn = $('#submitRejectModelBtn');
 
+  const isAccepted = notification.is_accepted === 1;
+  const isRejected = notification.is_accepted === -1;
+  const isReadOnly = isAccepted || isRejected;
+
   if (fromUserInput) fromUserInput.value = notification.from_user_email || '';
   if (modelNameInput) modelNameInput.value = notification.model_name || '';
   if (projectNameHidden) projectNameHidden.value = notification.project_name || '';
   if (notificationIdHidden) notificationIdHidden.value = notification.notification_id || '';
-  if (currentProjectInput) currentProjectInput.value = notification.project_name || '';
+  if (currentProjectInput) currentProjectInput.value = tableState.currentProject || '';
   if (newModelNameInput) newModelNameInput.value = notification.model_name || '';
   if (saveCopyCheckbox) saveCopyCheckbox.checked = false;
+
+  const newModelNameWrapper = newModelNameInput?.closest('.mb-3');
+  const saveCopyWrapper = saveCopyCheckbox?.closest('.form-check');
+  const projectNameWrapper = $('#acceptProjectNameGroup');
+  const currentProjectWrapper = $('#acceptCurrentProjectGroup');
+  const modalTitle = $('#acceptModelLabel');
+  let statusMessage = $('#acceptModalStatusMessage');
+
+  if (!statusMessage && newModelNameWrapper) {
+    statusMessage = document.createElement('div');
+    statusMessage.id = 'acceptModalStatusMessage';
+    statusMessage.className = 'alert py-2 d-none';
+    newModelNameWrapper.parentNode.insertBefore(statusMessage, newModelNameWrapper);
+  }
+
+  if (isReadOnly) {
+    const statusText = isAccepted
+      ? 'This model share request has already been accepted.'
+      : 'This model share request has already been rejected.';
+    const statusClass = isAccepted ? 'alert-success' : 'alert-danger';
+    if (modalTitle) modalTitle.textContent = isAccepted ? 'Model Accepted' : 'Model Rejected';
+    if (statusMessage) {
+      statusMessage.textContent = statusText;
+      statusMessage.className = `alert ${statusClass} py-2`;
+    }
+    if (newModelNameWrapper) newModelNameWrapper.classList.add('d-none');
+    if (saveCopyWrapper) saveCopyWrapper.classList.add('d-none');
+    if (projectNameWrapper) projectNameWrapper.classList.remove('d-none');
+    if (currentProjectWrapper) currentProjectWrapper.classList.add('d-none');
+  } else {
+    if (modalTitle) modalTitle.textContent = 'Accept Model';
+    if (statusMessage) statusMessage.classList.add('d-none');
+    if (newModelNameWrapper) newModelNameWrapper.classList.remove('d-none');
+    if (saveCopyWrapper) saveCopyWrapper.classList.remove('d-none');
+    if (projectNameWrapper) projectNameWrapper.classList.add('d-none');
+    if (currentProjectWrapper) currentProjectWrapper.classList.remove('d-none');
+  }
+
   if (submitBtn) {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Accept';
+    submitBtn.textContent = isReadOnly ? 'OK' : 'Accept';
+    submitBtn.dataset.mode = isReadOnly ? 'close' : 'action';
   }
   if (rejectBtn) {
     rejectBtn.disabled = false;
-    rejectBtn.textContent = 'Reject';
+    rejectBtn.textContent = isReadOnly ? 'Cancel' : 'Reject';
+    rejectBtn.dataset.mode = isReadOnly ? 'close' : 'action';
   }
 
   const modalEl = $('#acceptModelModal');
@@ -685,7 +779,11 @@ function openAcceptModelModal(notification) {
 }
 
 /** Handle the Details button click based on notification_type. */
-function handleDetailsClick(notification) {
+async function handleDetailsClick(notification) {
+  if (notification.is_read === 0) {
+    await markNotificationAsRead(notification);
+  }
+
   if (notification.notification_type === 'task_update') {
     openTaskDetails(notification);
   } else if (notification.notification_type === 'model_share_request') {
@@ -696,25 +794,29 @@ function handleDetailsClick(notification) {
 }
 
 /**
- * Mark all selected notifications as read.
- * Calls /notifications/mark-read for each selected row and refreshes the table.
+ * Mark all selected unread notifications as read.
+ * Calls /notifications/mark-read for unread selected rows and refreshes the table.
  */
 async function markSelectedAsRead() {
-  const selectedRows = $$('#sclTableBody tr .row-checkbox:checked').map((cb) => cb.closest('tr'));
+  const selectedRows = $$('#sclTableBody tr .form-check-input:checked').map((cb) =>
+    cb.closest('tr')
+  );
   if (selectedRows.length === 0) {
     bsToastInfo('No notifications selected.');
     return;
   }
 
+  const unreadRows = selectedRows.filter((row) => Number(row.dataset.isRead) === 0);
+  if (unreadRows.length === 0) {
+    bsToastInfo('Selected notifications are already read.');
+    return;
+  }
+
+  const notification_ids = unreadRows.map((row) => Number(row.dataset.notificationId) || 0);
+
   try {
-    await Promise.all(
-      selectedRows.map((row) =>
-        api.post('/notifications/mark-read', {
-          notification_id: Number(row.dataset.notificationId) || 0,
-        })
-      )
-    );
-    bsToastSuccess('Selected notifications marked as read.', 2000);
+    await api.post('/notifications/mark-read', { notification_ids });
+    bsToastSuccess('Selected unread notifications marked as read.', 2000);
     await loadNotifications();
   } catch {
     // api.js already shows an error toast.
@@ -723,11 +825,18 @@ async function markSelectedAsRead() {
 
 /** Accept the model share request currently shown in the modal. */
 async function handleAcceptModel() {
+  const submitBtn = $('#submitAcceptModelBtn');
+  const mode = submitBtn?.dataset.mode;
+
+  if (mode === 'close') {
+    $('#acceptModelModal') && window.bootstrap?.Modal.getInstance($('#acceptModelModal'))?.hide();
+    return;
+  }
+
   const newModelNameInput = $('#acceptNewModelName');
-  const projectNameHidden = $('#acceptProjectName');
+  const projectNameHidden = $('#acceptCurrentProject');
   const notificationIdHidden = $('#acceptNotificationId');
   const saveCopyCheckbox = $('#acceptSaveCopy');
-  const submitBtn = $('#submitAcceptModelBtn');
   const rejectBtn = $('#submitRejectModelBtn');
 
   const newModelName = newModelNameInput?.value.trim();
@@ -774,9 +883,16 @@ async function handleAcceptModel() {
 
 /** Reject the model share request currently shown in the modal. */
 async function handleRejectModel() {
-  const notificationIdHidden = $('#acceptNotificationId');
-  const submitBtn = $('#submitAcceptModelBtn');
   const rejectBtn = $('#submitRejectModelBtn');
+  const submitBtn = $('#submitAcceptModelBtn');
+  const mode = rejectBtn?.dataset.mode;
+
+  if (mode === 'close') {
+    $('#acceptModelModal') && window.bootstrap?.Modal.getInstance($('#acceptModelModal'))?.hide();
+    return;
+  }
+
+  const notificationIdHidden = $('#acceptNotificationId');
   const notificationId = Number(notificationIdHidden?.value) || 0;
 
   if (!notificationId) {
@@ -840,27 +956,6 @@ function wireToolbarAndModal() {
   const markReadBtn = $('#markReadBtn');
   if (markReadBtn) on(markReadBtn, 'click', markSelectedAsRead);
 
-  const markUnreadBtn = $('#markUnreadBtn');
-  if (markUnreadBtn) {
-    on(markUnreadBtn, 'click', () => {
-      bsToastInfo('Mark as unread is not supported.');
-    });
-  }
-
-  const archiveBtn = $('#archiveBtn');
-  if (archiveBtn) {
-    on(archiveBtn, 'click', () => {
-      bsToastInfo('Archive is not supported.');
-    });
-  }
-
-  const deleteNotifBtn = $('#deleteNotifBtn');
-  if (deleteNotifBtn) {
-    on(deleteNotifBtn, 'click', () => {
-      bsToastInfo('Delete is not supported.');
-    });
-  }
-
   const refreshNotifBtn = $('#refreshNotifBtn');
   if (refreshNotifBtn) on(refreshNotifBtn, 'click', resetTableView);
 
@@ -906,5 +1001,6 @@ export async function initNotificationsTable() {
   populateTableHeaders();
   wireTableEvents();
   wireToolbarAndModal();
+  fetchCurrentProject();
   await loadNotifications();
 }

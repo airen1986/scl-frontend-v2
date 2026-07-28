@@ -211,7 +211,7 @@ function openNotificationModal(notification) {
     if (notification.is_read === 0) {
       try {
         await api.post('/notifications/mark-read', {
-          notification_id: notification_id,
+          notification_ids: [notification_id],
         });
         toastSuccess('Notification marked as read', 400);
         notification.is_read = 1;

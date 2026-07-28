@@ -83,11 +83,15 @@
               <div class="mb-3">
                 <label for="acceptModelName" class="form-label">Model Name</label>
                 <input type="text" class="form-control" id="acceptModelName" disabled />
-                <input type="hidden" id="acceptProjectName" />
                 <input type="hidden" id="acceptNotificationId" />
               </div>
 
-              <div class="mb-3">
+              <div class="mb-3 d-none" id="acceptProjectNameGroup">
+                <label for="acceptProjectName" class="form-label">Project Name</label>
+                <input type="text" class="form-control" id="acceptProjectName" disabled />
+              </div>
+
+              <div class="mb-3" id="acceptCurrentProjectGroup">
                 <label for="acceptCurrentProject" class="form-label">Current Project</label>
                 <input type="text" class="form-control" id="acceptCurrentProject" disabled />
               </div>
@@ -123,28 +127,12 @@
             <i class="fa-regular fa-envelope-open me-1" aria-hidden="true"></i>
             Read
           </button>
-          <button class="btn btn-sm btn-outline-dark" id="markUnreadBtn" title="Mark as Unread">
-            <i class="fa-regular fa-envelope me-1" aria-hidden="true"></i>
-            Unread
-          </button>
-          <button class="btn btn-sm btn-outline-dark" id="archiveBtn" title="Archive">
-            <i class="fa-solid fa-box-archive me-1" aria-hidden="true"></i>
-            Archive
-          </button>
-          <button class="btn btn-sm btn-outline-danger" id="deleteNotifBtn" title="Delete">
-            <i class="fa-solid fa-trash-alt me-1" aria-hidden="true"></i>
-            Delete
-          </button>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <button
-            class="btn btn-sm btn-outline-dark"
-            id="refreshNotifBtn"
-            title="Clear filters and sorting"
-          >
+          <button class="btn btn-sm btn-outline-dark" id="refreshNotifBtn" title="Refresh">
             <i class="fa-solid fa-rotate-right me-1" aria-hidden="true"></i>
             Refresh
           </button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
           <span class="text-muted mx-2" id="rowCountInfo" aria-live="polite">0 Rows</span>
         </div>
       </div>
