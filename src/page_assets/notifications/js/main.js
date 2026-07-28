@@ -41,11 +41,10 @@ function autosizeSclTable() {
 }
 
 const appState = {
-  user: null
+  user: null,
 };
 
 ready(async () => {
-
   document.title = `Notifications - Supply Chain Lite`;
 
   let user;
@@ -66,6 +65,7 @@ ready(async () => {
     return;
   }
 
+  await initNotificationsTable();
 
   autosizeSclTable();
   setStickyHead2();
@@ -73,7 +73,4 @@ ready(async () => {
     autosizeSclTable();
     setStickyHead2();
   });
-
-  await initNotificationsTable();
-
 });
