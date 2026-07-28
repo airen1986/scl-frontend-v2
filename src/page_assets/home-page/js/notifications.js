@@ -21,7 +21,9 @@ export async function initNotifications() {
 
   let notifications;
   try {
-    const data = await api.post('/notifications/get');
+    const data = await api.post('/notifications/get', {
+      get_all: false,
+    });
     notifications = data.notifications || [];
   } catch {
     list.innerHTML = '<li class="dropdown-item text-danger">Failed to load notifications</li>';
