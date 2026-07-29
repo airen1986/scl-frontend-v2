@@ -651,7 +651,7 @@ async function resetTableView() {
 
 /** Update the unread count badge and the total/filtered row count footer. */
 function updateCounts(notifications, totalRowCount = notifications.length) {
-  const unreadCount = notifications.filter((n) => n.is_read === 0).length;
+  const unreadCount = tableState.notifications.filter((n) => n.is_read === 0).length;
   const visibleRowCount = notifications.length;
 
   const unreadBadge = $('#unreadCountBadge');
@@ -780,16 +780,16 @@ function openAcceptModelModal(notification) {
 
 /** Handle the Details button click based on notification_type. */
 async function handleDetailsClick(notification) {
-  if (notification.is_read === 0) {
-    await markNotificationAsRead(notification);
-  }
-
   if (notification.notification_type === 'task_update') {
     openTaskDetails(notification);
   } else if (notification.notification_type === 'model_share_request') {
     openAcceptModelModal(notification);
   } else {
     bsToastInfo(notification.message || notification.title || 'Notification');
+  }
+
+  if (notification.is_read === 0) {
+    await markNotificationAsRead(notification);
   }
 }
 
@@ -940,15 +940,6 @@ function wireTableEvents() {
       return;
     }
   });
-
-  const selectAll = document.querySelector('thead input[type="checkbox"]');
-  if (selectAll) {
-    on(selectAll, 'change', () => {
-      $$('#sclTableBody .row-checkbox').forEach((cb) => {
-        cb.checked = selectAll.checked;
-      });
-    });
-  }
 }
 
 /** Wire the toolbar buttons and the accept/reject modal buttons. */
@@ -1001,6 +992,10 @@ export async function initNotificationsTable() {
   populateTableHeaders();
   wireTableEvents();
   wireToolbarAndModal();
-  fetchCurrentProject();
-  await loadNotifications();
+  await Promise.all([
+    fetchCurrentProject().catch(() => {
+      tableState.currentProject = 'Default';
+    }),
+    loadNotifications(),
+  ]);
 }
