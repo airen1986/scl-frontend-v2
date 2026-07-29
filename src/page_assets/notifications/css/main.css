@@ -1,7 +1,7 @@
 /*
- * main.css — styles specific to the table page only.
+ * main.css — styles specific to the notifications page only.
  *
- * Imported in src/page_assets/table/js/main.js.
+ * Imported in src/page_assets/notifications/js/main.js.
  * Do NOT import this file from any other page.
  */
  /* Results table */
@@ -35,6 +35,11 @@ td .form-check-input {
   vertical-align: middle;
 }
 
+th .form-check-input {
+  margin-top: 0;
+  vertical-align: middle;
+}
+
 .scl-table .dropdown-item input[type="checkbox"] {
   border-right: 2px solid var(--bs-heading-color);
 }
@@ -54,6 +59,17 @@ td .form-check-input {
   background-color: var(--bs-tertiary-bg);
   box-shadow: inset 0 -2px 0 var(--bs-heading-color), inset 0 2px 0 var(--bs-heading-color);
   cursor: pointer;
+}
+
+.scl-table .head1 th:first-child {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.scl-table .head1 th:first-child .form-check-input {
+  display: block;
+  margin-right: auto;
+  margin-left: auto;
 }
 
 .scl-table .head2 th {
@@ -83,6 +99,13 @@ td .form-check-input {
   border: 0;
 }
 
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  border-radius: 0.2rem;
+}
+
 .scl-table tbody tr:first-child {
   border-top: 0;
 }
@@ -90,7 +113,7 @@ td .form-check-input {
 .scl-table td {
   white-space: nowrap;
   line-height: 1.2;
-  max-width: 150px;
+  max-width: 400px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -107,32 +130,6 @@ td .form-check-input {
 
 .scl-table .form-check-input:not(:checked) {
   background-color: transparent;
-}
-
-.fa-sum::before {
-    content: "Σ";
-    font-family: sans-serif;
-    font-weight: 600;
-}
-
-/* Summary row: sticky at the bottom of the scrollable table body */
-.scl-table tfoot.scl-tfoot td {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background-color: var(--bs-tertiary-bg);
-  box-shadow: inset 0 2px 0 var(--bs-heading-color), inset 0 -2px 0 var(--bs-heading-color);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.scl-table tfoot.scl-tfoot .scl-summary-label {
-  text-align: center;
-}
-
-#showSummaryBtn.active {
-  background-color: var(--bs-heading-color);
-  color: var(--bs-body-bg);
 }
 
 .scl-table .scl-col-selected  {

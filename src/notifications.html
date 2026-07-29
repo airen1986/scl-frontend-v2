@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supply Chain Lite - Notifications</title>
+    <link rel="icon" type="image/svg+xml" href="scc.svg" />
+  </head>
+  <body class="min-vh-100 d-flex flex-column">
+    <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
+    <div id="pageLoader" class="page-loader d-none" role="status" aria-live="polite">
+      <div class="page-loader__content text-center">
+        <div class="spinner-border text-dark" aria-hidden="true"></div>
+        <div class="mt-2 small text-body-secondary">Loading table data...</div>
+      </div>
+    </div>
+
+    <main id="main-content" class="flex-fill d-flex flex-column" tabindex="-1">
+      <!-- Table Title and Refresh -->
+
+      <div class="d-flex justify-content-between align-items-center my-2 mx-1">
+        <h5 class="mb-0 d-flex align-items-center" id="notifDisplayName" aria-live="polite">
+          <i class="fa-solid fa-bell me-2" aria-hidden="true"></i>
+          <span>Notifications</span>
+          <span class="badge bg-danger ms-2" id="unreadCountBadge"></span>
+        </h5>
+        <a href="home-page.html" class="text-dark" aria-label="Go to home page">
+          <i class="fa-solid fa-home" aria-hidden="true"></i>
+        </a>
+      </div>
+
+      <!-- <div class="flex-fill d-flex">
+
+        </div> -->
+      <!-- Table -->
+      <div
+        id="sclTableDiv"
+        class="flex-fill d-flex align-items-start mx-1"
+        style="overflow-y: auto"
+        role="region"
+        aria-label="Notifications data"
+        aria-live="polite"
+      >
+        <table
+          class="table table-hover table-sm table-bordered mb-0 scl-table"
+          aria-labelledby="notifDisplayName"
+        >
+          <thead class="scl-thead">
+            <tr id="sclTableHead1" class="head1"></tr>
+            <!-- Filter Row -->
+            <tr id="sclTableHead2" class="head2"></tr>
+          </thead>
+          <tbody class="scl-tbody" id="sclTableBody"></tbody>
+        </table>
+      </div>
+      <div
+        class="modal fade"
+        id="acceptModelModal"
+        tabindex="-1"
+        aria-labelledby="acceptModelLabel"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false"
+      >
+        <div class="modal-dialog modal-md modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="acceptModelLabel">Accept Model</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+
+            <div class="modal-body">
+              <!-- Target project -->
+              <div class="mb-3">
+                <label for="acceptFromUser" class="form-label">From User</label>
+                <input type="text" class="form-control" id="acceptFromUser" disabled />
+              </div>
+
+              <div class="mb-3">
+                <label for="acceptModelName" class="form-label">Model Name</label>
+                <input type="text" class="form-control" id="acceptModelName" disabled />
+                <input type="hidden" id="acceptNotificationId" />
+              </div>
+
+              <div class="mb-3 d-none" id="acceptProjectNameGroup">
+                <label for="acceptProjectName" class="form-label">Project Name</label>
+                <input type="text" class="form-control" id="acceptProjectName" disabled />
+              </div>
+
+              <div class="mb-3" id="acceptCurrentProjectGroup">
+                <label for="acceptCurrentProject" class="form-label">Current Project</label>
+                <input type="text" class="form-control" id="acceptCurrentProject" disabled />
+              </div>
+
+              <!-- New model name -->
+              <div class="mb-3">
+                <label for="acceptNewModelName" class="form-label">New Model Name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="acceptNewModelName"
+                  placeholder="Enter new model name"
+                />
+              </div>
+
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="acceptSaveCopy" required="" />
+                <label class="form-check-label" for="acceptSaveCopy">Save As copy</label>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button class="btn btn-secondary me-auto" id="submitRejectModelBtn">Reject</button>
+              <button class="btn btn-dark" id="submitAcceptModelBtn" disabled>Accept</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Toolbar -->
+      <div class="d-flex justify-content-between align-items-center my-2 mx-1">
+        <div class="btn-group" role="group" aria-label="Notification actions">
+          <button class="btn btn-sm btn-outline-dark" id="markReadBtn" title="Mark as Read">
+            <i class="fa-regular fa-envelope-open me-1" aria-hidden="true"></i>
+            Read
+          </button>
+          <button class="btn btn-sm btn-outline-dark" id="refreshNotifBtn" title="Refresh">
+            <i class="fa-solid fa-rotate-right me-1" aria-hidden="true"></i>
+            Refresh
+          </button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted mx-2" id="rowCountInfo" aria-live="polite">0 Rows</span>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="page_assets/notifications/js/main.js"></script>
+  </body>
+</html>

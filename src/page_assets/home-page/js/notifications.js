@@ -90,7 +90,7 @@ export async function initNotifications() {
 
   const viewAll = document.createElement('li');
   viewAll.innerHTML =
-    '<a class="dropdown-item small text-muted" href="/notifications.html">View all notifications</a>';
+    '<a class="dropdown-item small text-muted" href="/notifications.html" target="_blank" rel="noopener noreferrer">View all notifications</a>';
   list.appendChild(viewAll);
 }
 
@@ -211,7 +211,7 @@ function openNotificationModal(notification) {
     if (notification.is_read === 0) {
       try {
         await api.post('/notifications/mark-read', {
-          notification_id: notification_id,
+          notification_ids: [notification_id],
         });
         toastSuccess('Notification marked as read', 400);
         notification.is_read = 1;
