@@ -1,9 +1,11 @@
 import api from '@/common/js/api';
 import { bsToastError, bsToastSuccess } from '@/common/js/bsToast';
+import cronstrue from 'cronstrue';
 
 const SCHEDULER_COLUMNS = [
   { label: 'Function', field: 'task_name', sortable: true },
   { label: 'Description', field: 'schedule_description', sortable: true },
+  { label: 'Created By', field: 'created_by', sortable: true },
   { label: 'Type', field: 'schedule_type', sortable: true },
   { label: 'Expression', field: 'cron_expression', sortable: true },
   { label: 'Enabled', field: 'is_enabled', sortable: true },
@@ -75,12 +77,25 @@ function getExecutionStatusBadge(status) {
   }
 }
 
+function getCreatedByValue(schedule) {
+  return (
+    schedule.created_by_name ||
+    schedule.created_by ||
+    schedule.created_by_username ||
+    schedule.created_by_user_name ||
+    schedule.created_by_display_name ||
+    ''
+  );
+}
+
 function getCellValue(schedule, field) {
   switch (field) {
     case 'task_name':
       return schedule.task_name || '';
     case 'schedule_description':
       return schedule.schedule_description || '';
+    case 'created_by':
+      return getCreatedByValue(schedule);
     case 'schedule_type':
       return schedule.schedule_type || '';
     case 'cron_expression':
@@ -98,6 +113,10 @@ function getCellValue(schedule, field) {
   }
 }
 
+function shouldShowFilter(column) {
+  return column.label === 'Function' || column.label === 'Created By';
+}
+
 function populateTableHeaders() {
   const oldHead1 = document.getElementById('sclTableHead1');
   const head1 = oldHead1.cloneNode(true);
@@ -105,7 +124,7 @@ function populateTableHeaders() {
   head1.id = 'sclTableHead1';
 
   head1.innerHTML = '';
-  SCHEDULER_COLUMNS.forEach((column) => {
+  SCHEDULER_COLUMNS.forEach((column, index) => {
     const th = document.createElement('th');
     const div = document.createElement('div');
     div.className = 'd-flex justify-content-between align-items-center';
@@ -113,7 +132,7 @@ function populateTableHeaders() {
     span.textContent = column.label;
     div.appendChild(span);
 
-    if (column.label === 'Function') {
+    if (shouldShowFilter(column)) {
       const sortBtn = document.createElement('button');
       sortBtn.type = 'button';
       sortBtn.className = 'scl-filter-btn btn btn-link btn-sm p-0 text-dark';
@@ -122,7 +141,7 @@ function populateTableHeaders() {
       sortBtn.setAttribute('data-bs-auto-close', 'outside');
       sortBtn.setAttribute('aria-expanded', 'false');
       sortBtn.dataset.col = column.label;
-      sortBtn.dataset.colIndex = '1';
+      sortBtn.dataset.colIndex = String(index + 1);
       const icon = document.createElement('i');
       icon.className = 'fa-solid fa-chevron-down';
       sortBtn.appendChild(icon);
@@ -198,12 +217,6 @@ function populateTableHeaders() {
 
     if (action === 'edit') {
       openScheduleModal(scheduleId);
-    } else if (action === 'history') {
-      tableState.selectedScheduleId = scheduleId;
-      renderSchedules();
-      loadExecutionHistory();
-    } else if (action === 'run') {
-      runSchedule(scheduleId);
     }
   });
 }
@@ -438,6 +451,7 @@ function renderSchedules() {
         <tr class="${isSelected ? 'table-active' : ''}" data-schedule-id="${schedule.schedule_id}">
           <td>${escapeHtml(schedule.task_name || '—')}</td>
           <td>${escapeHtml(schedule.schedule_description || '—')}</td>
+          <td>${escapeHtml(getCreatedByValue(schedule) || '—')}</td>
           <td>${escapeHtml(schedule.schedule_type || '—')}</td>
           <td>${escapeHtml(schedule.cron_expression || '—')}</td>
           <td>${getEnabledBadge(schedule)}</td>
@@ -448,12 +462,6 @@ function renderSchedules() {
             <div class="d-flex gap-1 flex-wrap">
               <button type="button" class="btn btn-xs btn-outline-dark" data-action="edit" data-schedule-id="${schedule.schedule_id}">
                 <i class="fa-solid fa-pencil" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="btn btn-xs btn-outline-dark" data-action="history" data-schedule-id="${schedule.schedule_id}">
-                <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="btn btn-xs btn-outline-dark" data-action="run" data-schedule-id="${schedule.schedule_id}">
-                <i class="fa-solid fa-play" aria-hidden="true"></i>
               </button>
             </div>
           </td>
@@ -467,52 +475,18 @@ function renderSchedules() {
 function fillScheduleForm(schedule) {
   const descriptionInput = document.getElementById('scheduleDescription');
   const taskInput = document.getElementById('scheduleTask');
-  const typeSelect = document.getElementById('scheduleType');
   const cronInput = document.getElementById('cronExpression');
-  const runAtInput = document.getElementById('runAt');
   const enabledInput = document.getElementById('scheduleEnabled');
   const scheduleIdInput = document.getElementById('scheduleId');
-  const cronGroup = document.getElementById('cronExpressionGroup');
-  const runAtGroup = document.getElementById('runAtGroup');
 
-  if (
-    !descriptionInput ||
-    !taskInput ||
-    !typeSelect ||
-    !cronInput ||
-    !runAtInput ||
-    !enabledInput ||
-    !scheduleIdInput
-  )
-    return;
+  if (!descriptionInput || !taskInput || !cronInput || !enabledInput || !scheduleIdInput) return;
 
   scheduleIdInput.value = schedule.schedule_id;
   descriptionInput.value = schedule.schedule_description || '';
   taskInput.value = schedule.task_name || '';
-  typeSelect.value = schedule.schedule_type || 'cron';
   cronInput.value = schedule.cron_expression || '';
   enabledInput.checked = schedule.is_enabled === 1 || schedule.is_enabled === true;
-
-  const runAtValue = schedule.run_at || schedule.next_run_at || '';
-  if (runAtValue) {
-    const parsed = new Date(runAtValue);
-    if (!Number.isNaN(parsed.getTime())) {
-      const localValue = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16);
-      runAtInput.value = localValue;
-    }
-  } else {
-    runAtInput.value = '';
-  }
-
-  if (typeSelect.value === 'run_once') {
-    cronGroup.classList.add('d-none');
-    runAtGroup.classList.remove('d-none');
-  } else {
-    cronGroup.classList.remove('d-none');
-    runAtGroup.classList.add('d-none');
-  }
+  setCronValidationState(Boolean(schedule.cron_expression));
 }
 
 function openScheduleModal(scheduleId) {
@@ -591,48 +565,22 @@ async function loadExecutionHistory(scheduleId = tableState.selectedScheduleId) 
   }
 }
 
-async function runSchedule(scheduleId) {
-  setPageLoader(true);
-  try {
-    const response = await api.post('/scheduler/schedule/run', { schedule_id: scheduleId });
-    bsToastSuccess(response.message || 'Schedule queued for execution.');
-    await loadSchedulerData();
-    await loadExecutionHistory();
-  } catch {
-    bsToastError('Unable to run the selected schedule.');
-  } finally {
-    setPageLoader(false);
-  }
-}
-
 async function saveSchedule() {
   const scheduleIdInput = document.getElementById('scheduleId');
   const descriptionInput = document.getElementById('scheduleDescription');
-  const typeSelect = document.getElementById('scheduleType');
   const cronInput = document.getElementById('cronExpression');
-  const runAtInput = document.getElementById('runAt');
   const enabledInput = document.getElementById('scheduleEnabled');
 
-  if (
-    !scheduleIdInput ||
-    !descriptionInput ||
-    !typeSelect ||
-    !cronInput ||
-    !runAtInput ||
-    !enabledInput
-  ) {
+  if (!scheduleIdInput || !descriptionInput || !cronInput || !enabledInput) {
     return;
   }
 
   const payload = {
     schedule_id: Number(scheduleIdInput.value),
     schedule_description: descriptionInput.value.trim(),
-    schedule_type: typeSelect.value,
-    cron_expression: typeSelect.value === 'cron' ? cronInput.value.trim() : null,
-    run_at:
-      typeSelect.value === 'run_once' && runAtInput.value
-        ? new Date(runAtInput.value).toISOString()
-        : null,
+    schedule_type: 'cron',
+    cron_expression: cronInput.value.trim(),
+    run_at: null,
     is_enabled: enabledInput.checked ? 1 : 0,
   };
 
@@ -654,28 +602,51 @@ async function saveSchedule() {
   }
 }
 
+function getCronDescription(expression) {
+  try {
+    return cronstrue.toString(expression, { locale: 'en' });
+  } catch {
+    return 'Invalid cron expression';
+  }
+}
+
+function setCronValidationState(isValid) {
+  const descriptionInput = document.getElementById('scheduleDescription');
+  const saveButton = document.getElementById('saveScheduleBtn');
+
+  if (!descriptionInput || !saveButton) return;
+
+  descriptionInput.classList.toggle('is-invalid', !isValid);
+  saveButton.disabled = !isValid;
+
+  if (!isValid) {
+    descriptionInput.setAttribute('title', 'Cron expression is invalid');
+  } else {
+    descriptionInput.removeAttribute('title');
+  }
+}
+
 async function validateCronExpression() {
   const cronInput = document.getElementById('cronExpression');
-  const previewText = document.getElementById('cronPreviewText');
-  if (!cronInput || !previewText) return;
+  const descriptionInput = document.getElementById('scheduleDescription');
+  if (!cronInput || !descriptionInput) return;
 
   const expression = cronInput.value.trim();
   if (!expression) {
-    previewText.textContent = 'Enter a cron expression to validate it.';
+    descriptionInput.value = '';
+    setCronValidationState(false);
     return;
   }
 
   setPageLoader(true);
   try {
-    const response = await api.post('/scheduler/cron/validate', {
-      cron_expression: expression,
-      count: 5,
-    });
-    previewText.textContent = response.is_valid
-      ? `Next runs: ${response.next_runs?.join(', ') || '—'}`
-      : response.message || 'The cron expression is not valid.';
+    const description = getCronDescription(expression);
+    const isValid = description !== 'Invalid cron expression';
+    descriptionInput.value = description;
+    setCronValidationState(isValid);
   } catch {
     bsToastError('Unable to validate the cron expression.');
+    setCronValidationState(false);
   } finally {
     setPageLoader(false);
   }
@@ -697,18 +668,10 @@ async function loadSchedulerData() {
 export async function initSchedulerPage() {
   populateTableHeaders();
   document.getElementById('saveScheduleBtn')?.addEventListener('click', saveSchedule);
-  document.getElementById('validateCronBtn')?.addEventListener('click', validateCronExpression);
-  document.getElementById('scheduleType')?.addEventListener('change', (event) => {
-    const cronGroup = document.getElementById('cronExpressionGroup');
-    const runAtGroup = document.getElementById('runAtGroup');
-    if (!cronGroup || !runAtGroup) return;
-    if (event.target.value === 'run_once') {
-      cronGroup.classList.add('d-none');
-      runAtGroup.classList.remove('d-none');
-    } else {
-      cronGroup.classList.remove('d-none');
-      runAtGroup.classList.add('d-none');
-    }
+
+  const cronInput = document.getElementById('cronExpression');
+  cronInput?.addEventListener('input', () => {
+    validateCronExpression();
   });
 
   await loadSchedulerData();
