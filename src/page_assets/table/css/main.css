@@ -87,6 +87,10 @@ td .form-check-input {
   border-top: 0;
 }
 
+#sclTableDiv {
+  max-height: 280px;
+}
+
 .scl-table td {
   white-space: nowrap;
   line-height: 1.2;
