@@ -60,6 +60,21 @@ function getRunningBadge(schedule) {
   return '<span class="badge bg-secondary">Idle</span>';
 }
 
+function prettyIfJson(value) {
+  const rawValue = value === null || value === undefined ? '' : String(value);
+  const trimmed = rawValue.trim();
+
+  if (trimmed.length > 0 && (trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    try {
+      return JSON.stringify(JSON.parse(trimmed), null, 2);
+    } catch {
+      // Fall back to the original value when it is not valid JSON.
+    }
+  }
+
+  return rawValue;
+}
+
 function getExecutionStatusBadge(status) {
   switch (String(status).toLowerCase()) {
     case 'success':
@@ -75,15 +90,33 @@ function getExecutionStatusBadge(status) {
   }
 }
 
-function getCreatedByValue(schedule) {
-  return (
-    schedule.created_by_name ||
-    schedule.created_by ||
-    schedule.created_by_username ||
-    schedule.created_by_user_name ||
-    schedule.created_by_display_name ||
-    ''
-  );
+function canEditSchedule(schedule) {
+  return String(schedule?.schedule_type ?? '').toLowerCase() === 'cron';
+}
+
+async function runSchedule(scheduleId) {
+  if (!scheduleId) return;
+
+  setPageLoader(true);
+  try {
+    const response = await api.post('/scheduler/run', { schedule_id: scheduleId });
+    bsToastSuccess(response?.message || 'Run request sent successfully.');
+
+    const updatedNextRunAt = response?.next_run_at ?? response?.schedule?.next_run_at;
+    if (updatedNextRunAt !== undefined) {
+      const schedule = tableState.schedules.find((item) => item.schedule_id === scheduleId);
+      if (schedule) {
+        schedule.next_run_at = updatedNextRunAt;
+        renderSchedules();
+      }
+    }
+
+    await loadExecutionHistory();
+  } catch {
+    bsToastError('Unable to run the selected schedule.');
+  } finally {
+    setPageLoader(false);
+  }
 }
 
 function getCellValue(schedule, field) {
@@ -93,7 +126,7 @@ function getCellValue(schedule, field) {
     case 'schedule_description':
       return schedule.schedule_description || '';
     case 'created_by':
-      return getCreatedByValue(schedule);
+      return schedule.created_by || '';
     case 'schedule_type':
       return schedule.schedule_type || '';
     case 'cron_expression':
@@ -214,7 +247,15 @@ function populateTableHeaders() {
     const action = actionButton.dataset.action;
 
     if (action === 'edit') {
-      openScheduleModal(scheduleId);
+      const schedule = tableState.schedules.find((item) => item.schedule_id === scheduleId);
+      if (schedule && canEditSchedule(schedule)) {
+        openScheduleModal(scheduleId);
+      }
+      return;
+    }
+
+    if (action === 'run') {
+      runSchedule(scheduleId);
     }
   });
 }
@@ -432,11 +473,13 @@ function renderSchedules() {
   tbody.innerHTML = visibleSchedules
     .map((schedule) => {
       const isSelected = schedule.schedule_id === tableState.selectedScheduleId;
+      const canEdit = canEditSchedule(schedule);
+      const isEnabled = schedule.is_enabled === 1 || schedule.is_enabled === true;
       return `
         <tr class="${isSelected ? 'table-active' : ''}" data-schedule-id="${schedule.schedule_id}">
           <td>${escapeHtml(schedule.task_name || '—')}</td>
           <td>${escapeHtml(schedule.schedule_description || '—')}</td>
-          <td>${escapeHtml(getCreatedByValue(schedule) || '—')}</td>
+          <td>${escapeHtml(schedule.created_by || '—')}</td>
           <td>${escapeHtml(schedule.schedule_type || '—')}</td>
           <td>${escapeHtml(schedule.cron_expression || '—')}</td>
           <td>${getEnabledBadge(schedule)}</td>
@@ -445,7 +488,10 @@ function renderSchedules() {
           <td>${escapeHtml(formatDateTime(schedule.next_run_at))}</td>
           <td>
             <div class="d-flex gap-1 flex-wrap">
-              <button type="button" class="btn btn-xs btn-outline-dark" data-action="edit" data-schedule-id="${schedule.schedule_id}">
+              <button type="button" class="btn btn-xs btn-outline-dark" data-action="run" data-schedule-id="${schedule.schedule_id}" title="Run schedule now" ${isEnabled ? '' : 'disabled'}>
+                <i class="fa-solid fa-play" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-dark" data-action="edit" data-schedule-id="${schedule.schedule_id}" ${canEdit ? '' : 'disabled'} title="${canEdit ? 'Edit schedule' : 'Only cron schedules are editable'}">
                 <i class="fa-solid fa-pencil" aria-hidden="true"></i>
               </button>
             </div>
@@ -527,6 +573,7 @@ function renderExecutionHistory(executions) {
       const resultText =
         execution.error_message ||
         (execution.result_data ? JSON.stringify(execution.result_data) : '—');
+      const resultTitle = prettyIfJson(resultText);
       return `
         <tr>
           <td>${escapeHtml(execution.task_name || '—')}</td>
@@ -535,7 +582,7 @@ function renderExecutionHistory(executions) {
           <td>${escapeHtml(formatDateTime(execution.completed_at))}</td>
           <td>${escapeHtml(execution.duration_seconds ?? '—')}</td>
           <td>${escapeHtml(execution.retry_count ?? 0)}</td>
-          <td>${escapeHtml(resultText)}</td>
+          <td title="${escapeHtml(resultTitle)}">${escapeHtml(resultText)}</td>
         </tr>`;
     })
     .join('');
@@ -546,8 +593,6 @@ async function loadExecutionHistory(scheduleId = tableState.selectedScheduleId) 
   try {
     const response = await api.post('/scheduler/executions', {
       schedule_id: scheduleId || null,
-      limit: 50,
-      offset: 0,
     });
     tableState.executions = response.executions || [];
     renderExecutionHistory(tableState.executions);
@@ -579,8 +624,20 @@ async function saveSchedule() {
 
   setPageLoader(true);
   try {
-    const response = await api.post('/scheduler/schedule/update', payload);
+    const response = await api.post('/scheduler/update-schedule', payload);
     bsToastSuccess(response.message || 'Schedule updated successfully.');
+
+    const scheduleId = Number(scheduleIdInput.value);
+    const updatedNextRunAt = response?.next_run_at ?? response?.schedule?.next_run_at;
+
+    if (scheduleId && updatedNextRunAt !== undefined) {
+      const schedule = tableState.schedules.find((item) => item.schedule_id === scheduleId);
+      if (schedule) {
+        schedule.next_run_at = updatedNextRunAt;
+        renderSchedules();
+      }
+    }
+
     const modalElement = document.getElementById('scheduleModal');
     if (modalElement) {
       const modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
