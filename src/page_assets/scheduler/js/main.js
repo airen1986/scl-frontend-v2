@@ -42,6 +42,11 @@ ready(async () => {
       appState.user = user;
       sessionStorage.setItem('user', JSON.stringify(user));
       if (handleAccessControlRedirect(user)) return;
+
+      if (user.role_name !== 'SUPER_ADMIN') {
+        window.location.href = '/home-page.html';
+        return;
+      }
     } else {
       saveRedirectUrl();
       window.location.href = '/login.html';
