@@ -19,6 +19,35 @@ import { $, on, ready } from '@/common/js/dom';
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
+async function applyModuleAccessMenuVisibility() {
+  try {
+    const response = await api.post('/auth/modules', {}, { silent: true });
+    const modules = Array.isArray(response?.modules) ? response.modules : [];
+    const availableModules = modules.map((moduleName) => String(moduleName).trim().toLowerCase());
+
+    const hasScheduler = availableModules.includes('scheduler');
+    const hasUserManagement = availableModules.includes('usermanagement');
+
+    const schedulerMenu = document.getElementById('schedulerMenuItem');
+    if (schedulerMenu) {
+      schedulerMenu.style.display = hasScheduler ? '' : 'none';
+    }
+
+    const userManagementMenu = document.getElementById('userManagementMenuItem');
+    if (userManagementMenu) {
+      userManagementMenu.style.display = hasUserManagement ? '' : 'none';
+    }
+
+    const adminMenu = document.getElementById('adminMenuItem');
+    if (adminMenu) {
+      const shouldShowAdmin = hasScheduler || hasUserManagement;
+      adminMenu.style.display = shouldShowAdmin ? '' : 'none';
+    }
+  } catch {
+    // Ignore module access lookup failures and keep the current navbar state.
+  }
+}
+
 /** Return up to 2 uppercase initials from a display name. */
 function getInitials(name) {
   if (!name) return '?';
@@ -112,6 +141,8 @@ ready(async () => {
     window.location.href = '/login.html';
     return;
   }
+
+  await applyModuleAccessMenuVisibility();
 
   void updateRunningTaskUI(appState);
 
