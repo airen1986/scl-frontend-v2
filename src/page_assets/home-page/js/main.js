@@ -30,18 +30,18 @@ async function applyModuleAccessMenuVisibility() {
 
     const schedulerMenu = document.getElementById('schedulerMenuItem');
     if (schedulerMenu) {
-      schedulerMenu.style.display = hasScheduler ? '' : 'none';
+      schedulerMenu.classList.toggle('d-none', !hasScheduler);
     }
 
     const userManagementMenu = document.getElementById('userManagementMenuItem');
     if (userManagementMenu) {
-      userManagementMenu.style.display = hasUserManagement ? '' : 'none';
+      userManagementMenu.classList.toggle('d-none', !hasUserManagement);
     }
 
     const adminMenu = document.getElementById('adminMenuItem');
     if (adminMenu) {
       const shouldShowAdmin = hasScheduler || hasUserManagement;
-      adminMenu.style.display = shouldShowAdmin ? '' : 'none';
+      adminMenu.classList.toggle('d-none', !shouldShowAdmin);
     }
   } catch {
     // Ignore module access lookup failures and keep the current navbar state.
@@ -142,7 +142,7 @@ ready(async () => {
     return;
   }
 
-  await applyModuleAccessMenuVisibility();
+  void applyModuleAccessMenuVisibility();
 
   void updateRunningTaskUI(appState);
 
