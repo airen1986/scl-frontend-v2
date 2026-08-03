@@ -26,9 +26,21 @@
         <!-- Header card -->
         <div class="card mb-3 flex-shrink-0">
           <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
               <h4 class="card-title mb-0">Task Details</h4>
-              <span id="taskStatusBadge" class="badge fs-6"></span>
+              <div class="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  id="scheduleTaskBtn"
+                  data-bs-toggle="modal"
+                  data-bs-target="#scheduleTaskModal"
+                >
+                  <i class="fa-regular fa-calendar-days me-1" aria-hidden="true"></i>
+                  Schedule
+                </button>
+                <span id="taskStatusBadge" class="badge fs-6"></span>
+              </div>
             </div>
 
             <div class="row g-3">
@@ -184,6 +196,92 @@
               Restore
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Task modal -->
+    <div
+      class="modal fade"
+      id="scheduleTaskModal"
+      tabindex="-1"
+      aria-labelledby="scheduleTaskModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <form>
+            <div class="modal-header">
+              <h5 class="modal-title" id="scheduleTaskModalLabel">
+                <i class="fa-regular fa-calendar-days me-2" aria-hidden="true"></i>
+                Schedule Task
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="scheduleName" class="form-label">Schedule Name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="scheduleName"
+                  name="schedule_name"
+                  placeholder="Daily planning refresh"
+                />
+              </div>
+
+              <div class="mb-3">
+                <label for="cronExpression" class="form-label">Cron Expression</label>
+                <input
+                  type="text"
+                  class="form-control font-monospace"
+                  id="cronExpression"
+                  name="cron_expression"
+                  placeholder="0 2 * * *"
+                  aria-describedby="cronExpressionHelp"
+                />
+                <div id="cronExpressionHelp" class="form-text">
+                  Use minute, hour, day of month, month, and day of week.
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-sm-6">
+                  <label for="scheduleTimezone" class="form-label">Timezone</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="scheduleTimezone"
+                    name="timezone"
+                    placeholder="Asia/Calcutta"
+                  />
+                </div>
+                <div class="col-sm-6">
+                  <label for="scheduleStartDate" class="form-label">Start Date</label>
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="scheduleStartDate"
+                    name="start_date"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary ms-auto" id="saveScheduleBtn">
+                <i class="fa-regular fa-calendar-check me-1" aria-hidden="true"></i>
+                Save Schedule
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

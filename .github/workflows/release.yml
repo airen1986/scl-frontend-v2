@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: "Commit SHA, branch, or PR ref to release"
+        required: true
+        default: "main"
+      tag_name:
+        description: "Release tag name, for example v1.0.0"
+        required: true
+      release_name:
+        description: "Release title. Defaults to the tag name."
+        required: false
+      prerelease:
+        description: "Mark this release as a prerelease"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.target_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint JS
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+
+      - name: Package build artifact
+        run: |
+          tar -czf frontend-dist.tar.gz -C dist .
+          sha256sum frontend-dist.tar.gz > frontend-dist.tar.gz.sha256
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ inputs.tag_name }}
+          RELEASE_NAME: ${{ inputs.release_name || inputs.tag_name }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          target_sha="$(git rev-parse HEAD)"
+          prerelease_flag=""
+          if [ "$PRERELEASE" = "true" ]; then
+            prerelease_flag="--prerelease"
+          fi
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release edit "$TAG_NAME" \
+              --title "$RELEASE_NAME" \
+              --target "$target_sha" \
+              $prerelease_flag
+          else
+            gh release create "$TAG_NAME" \
+              --title "$RELEASE_NAME" \
+              --target "$target_sha" \
+              --notes "Release artifacts for ${{ inputs.target_ref }} at $target_sha." \
+              $prerelease_flag
+          fi
+
+          gh release upload "$TAG_NAME" frontend-dist.tar.gz frontend-dist.tar.gz.sha256 --clobber
