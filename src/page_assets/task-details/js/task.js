@@ -1,6 +1,7 @@
 import api from '@/common/js/api';
 import { $, on } from '@/common/js/dom';
 import { bsToastSuccess, bsToastError } from '@/common/js/bsToast';
+import cronstrue from 'cronstrue';
 
 const POLL_INTERVAL_MS = 15_000;
 
@@ -18,6 +19,10 @@ const ACTIVE_STATUSES = new Set(['PENDING', 'STARTED']);
 
 let pollTimer = null;
 let currentUser = null;
+let currentTaskDetails = null;
+let currentTaskStatus = '';
+let currentTaskSchedule = null;
+let canUpdateTaskSchedule = true;
 
 function getQueryParams() {
   const params = new URLSearchParams(window.location.search);
@@ -185,6 +190,7 @@ function renderIOSection(data) {
 }
 
 function renderDetails(params, data) {
+  currentTaskDetails = data;
   $('#detailModelName').textContent = params.model_name || '-';
   $('#detailProjectName').textContent = params.project_name || '-';
   $('#detailTaskName').textContent = data.task_display_name || '-';
@@ -192,6 +198,7 @@ function renderDetails(params, data) {
   $('#detailStartTime').textContent = formatDateTime(data.start_time);
 
   const status = (data.status || '').toUpperCase();
+  currentTaskStatus = status;
   const isActive = ACTIVE_STATUSES.has(status);
 
   const endTimeBlock = $('#endTimeBlock');
@@ -233,6 +240,7 @@ function renderDetails(params, data) {
   }
 
   $('#taskSuccessActions').classList.toggle('d-none', status !== 'SUCCESS');
+  $('#scheduleTaskBtn')?.classList.add('d-none');
 
   renderIOSection(data);
 
@@ -252,6 +260,10 @@ function renderDetails(params, data) {
   }
 
   return status;
+}
+
+function getScheduleTaskCode() {
+  return currentTaskDetails.task_code || '';
 }
 
 async function fetchTaskDetails(params) {
@@ -420,12 +432,176 @@ function bindLogButtons() {
   });
 }
 
+function getCronDescription(expression) {
+  try {
+    return cronstrue.toString(expression, { locale: 'en' });
+  } catch {
+    return 'Invalid cron expression';
+  }
+}
+
+function setCronValidationState(isValid) {
+  const cronInput = $('#cronExpression');
+  const saveButton = $('#saveScheduleBtn');
+
+  if (!cronInput || !saveButton) return;
+
+  cronInput.classList.toggle('is-invalid', !isValid);
+  saveButton.disabled = !isValid || !canUpdateTaskSchedule;
+}
+
+function normalizeEmail(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+function validateCronExpression() {
+  const cronInput = $('#cronExpression');
+  const descriptionInput = $('#scheduleDescription');
+  if (!cronInput || !descriptionInput) return;
+
+  const expression = cronInput.value.trim();
+  if (!expression) {
+    descriptionInput.value = '';
+    setCronValidationState(false);
+    return;
+  }
+
+  const description = getCronDescription(expression);
+  const isValid = description !== 'Invalid cron expression';
+  descriptionInput.value = description;
+  setCronValidationState(isValid);
+}
+
+function fillScheduleTaskForm(schedule = {}) {
+  const scheduleIdInput = $('#scheduleId');
+  const cronInput = $('#cronExpression');
+  const descriptionInput = $('#scheduleDescription');
+  const enabledInput = $('#scheduleEnabled');
+
+  if (!scheduleIdInput || !cronInput || !descriptionInput || !enabledInput) return;
+
+  scheduleIdInput.value = schedule.schedule_id || '';
+  cronInput.value = (schedule.cron_expression || '').trim();
+  descriptionInput.value = '';
+  enabledInput.checked = schedule.is_enabled === undefined ? true : schedule.is_enabled === 1;
+  canUpdateTaskSchedule =
+    !schedule.created_by || normalizeEmail(schedule.created_by) === normalizeEmail(currentUser);
+  validateCronExpression();
+}
+
+async function loadTaskSchedule(params) {
+  const taskCode = getScheduleTaskCode();
+  if (!taskCode || taskCode === '-') {
+    currentTaskSchedule = null;
+    fillScheduleTaskForm();
+    $('#scheduleTaskBtn')?.classList.add('d-none');
+    return;
+  }
+
+  try {
+    const schedule = await api.post(
+      '/scheduler/get-task-schedule',
+      {
+        task_code: taskCode,
+        model_name: params.model_name,
+        project_name: params.project_name,
+      },
+      { silent: true }
+    );
+    currentTaskSchedule = schedule;
+    fillScheduleTaskForm(schedule);
+    $('#scheduleTaskBtn')?.classList.remove('d-none');
+  } catch (err) {
+    currentTaskSchedule = null;
+    if (err.status === 403) {
+      $('#scheduleTaskBtn')?.classList.add('d-none');
+      return;
+    }
+    fillScheduleTaskForm();
+    if (err.status === 404) {
+      $('#scheduleTaskBtn')?.classList.toggle('d-none', currentTaskStatus !== 'SUCCESS');
+      return;
+    }
+    $('#scheduleTaskBtn')?.classList.add('d-none');
+    bsToastError('Unable to load this task schedule.');
+  }
+}
+
+async function saveTaskSchedule(params) {
+  const scheduleIdInput = $('#scheduleId');
+  const cronInput = $('#cronExpression');
+  const descriptionInput = $('#scheduleDescription');
+  const enabledInput = $('#scheduleEnabled');
+  const saveButton = $('#saveScheduleBtn');
+
+  if (!scheduleIdInput || !cronInput || !descriptionInput || !enabledInput || !saveButton) return;
+
+  const scheduleId = Number(scheduleIdInput.value) || null;
+
+  const payload = {
+    schedule_id: scheduleId,
+    task_id: params.task_id,
+    model_name: params.model_name,
+    project_name: params.project_name,
+    cron_expression: cronInput.value.trim(),
+    is_enabled: enabledInput.checked ? 1 : 0,
+  };
+
+  saveButton.disabled = true;
+  saveButton.innerHTML =
+    '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving...';
+  try {
+    const response = await api.post('/scheduler/set-task-schedule', payload);
+    const updatedScheduleId = response.schedule_id || scheduleId;
+    currentTaskSchedule = {
+      ...(currentTaskSchedule || {}),
+      schedule_id: updatedScheduleId,
+      cron_expression: payload.cron_expression,
+      is_enabled: payload.is_enabled,
+      next_run_at: response.next_run_at || currentTaskSchedule?.next_run_at || null,
+      created_by: currentTaskSchedule?.created_by || currentUser,
+    };
+    scheduleIdInput.value = updatedScheduleId || '';
+
+    const nextRunText = formatDateTime(response.next_run_at);
+    const successMessage =
+      response.next_run_at && nextRunText !== '-'
+        ? `${response.message || 'Schedule updated successfully.'} Next run: ${nextRunText}.`
+        : response.message || 'Schedule updated successfully.';
+    bsToastSuccess(successMessage, 0);
+    window.bootstrap.Modal.getInstance($('#scheduleTaskModal'))?.hide();
+  } catch {
+    bsToastError('Unable to save this task schedule.');
+  } finally {
+    saveButton.disabled = false;
+    saveButton.innerHTML = 'Save Schedule';
+    validateCronExpression();
+  }
+}
+
+function bindScheduleTaskModal(params) {
+  const modalElement = $('#scheduleTaskModal');
+  const cronInput = $('#cronExpression');
+
+  if (modalElement) {
+    modalElement.addEventListener('show.bs.modal', () => {
+      fillScheduleTaskForm(currentTaskSchedule || {});
+    });
+  }
+
+  cronInput?.addEventListener('input', validateCronExpression);
+  on($('#saveScheduleBtn'), 'click', () => saveTaskSchedule(params));
+}
+
 function bindTaskActions(params) {
   bindRefreshButton(params);
   bindCancelButton(params);
   bindCompareDbButton(params);
   bindRestoreDbButtons(params);
   bindLogButtons();
+  bindScheduleTaskModal(params);
 }
 
 export async function initTaskDetailsPage(user) {
@@ -442,6 +618,7 @@ export async function initTaskDetailsPage(user) {
     const data = await fetchTaskDetails(params);
     showView('taskContent');
     const status = renderDetails(params, data);
+    await loadTaskSchedule(params);
 
     if (ACTIVE_STATUSES.has(status)) {
       schedulePoll(params);
