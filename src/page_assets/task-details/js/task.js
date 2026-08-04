@@ -2,6 +2,7 @@ import api from '@/common/js/api';
 import { $, on } from '@/common/js/dom';
 import { bsToastSuccess, bsToastError } from '@/common/js/bsToast';
 import cronstrue from 'cronstrue';
+import { CronExpressionParser } from 'cron-parser';
 
 const POLL_INTERVAL_MS = 15_000;
 
@@ -440,6 +441,15 @@ function getCronDescription(expression) {
   }
 }
 
+function getNextCronRun(expression) {
+  try {
+    const interval = CronExpressionParser.parse(expression, { currentDate: new Date(), tz: 'UTC' });
+    return formatDateTime(interval.next().toDate());
+  } catch {
+    return '';
+  }
+}
+
 function setCronValidationState(isValid) {
   const cronInput = $('#cronExpression');
   const saveButton = $('#saveScheduleBtn');
@@ -459,11 +469,13 @@ function normalizeEmail(value) {
 function validateCronExpression() {
   const cronInput = $('#cronExpression');
   const descriptionInput = $('#scheduleDescription');
-  if (!cronInput || !descriptionInput) return;
+  const nextRunInput = $('#scheduleNextRun');
+  if (!cronInput || !descriptionInput || !nextRunInput) return;
 
   const expression = cronInput.value.trim();
   if (!expression) {
     descriptionInput.value = '';
+    nextRunInput.value = '';
     setCronValidationState(false);
     return;
   }
@@ -471,6 +483,7 @@ function validateCronExpression() {
   const description = getCronDescription(expression);
   const isValid = description !== 'Invalid cron expression';
   descriptionInput.value = description;
+  nextRunInput.value = isValid ? getNextCronRun(expression) : '';
   setCronValidationState(isValid);
 }
 
@@ -478,13 +491,15 @@ function fillScheduleTaskForm(schedule = {}) {
   const scheduleIdInput = $('#scheduleId');
   const cronInput = $('#cronExpression');
   const descriptionInput = $('#scheduleDescription');
+  const nextRunInput = $('#scheduleNextRun');
   const enabledInput = $('#scheduleEnabled');
 
-  if (!scheduleIdInput || !cronInput || !descriptionInput || !enabledInput) return;
+  if (!scheduleIdInput || !cronInput || !descriptionInput || !nextRunInput || !enabledInput) return;
 
   scheduleIdInput.value = schedule.schedule_id || '';
   cronInput.value = (schedule.cron_expression || '').trim();
   descriptionInput.value = '';
+  nextRunInput.value = '';
   enabledInput.checked = schedule.is_enabled === undefined ? true : schedule.is_enabled === 1;
   canUpdateTaskSchedule =
     !schedule.created_by || normalizeEmail(schedule.created_by) === normalizeEmail(currentUser);
