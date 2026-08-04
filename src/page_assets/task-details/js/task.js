@@ -304,6 +304,9 @@ async function loadAndRender(params, isPolling = false) {
       schedulePoll(params);
     } else {
       stopPolling();
+      if (status === 'SUCCESS') {
+        await loadTaskSchedule(params);
+      }
     }
   } catch (err) {
     if (!isPolling) {
@@ -598,6 +601,7 @@ async function saveTaskSchedule(params) {
 
 function bindScheduleTaskModal(params) {
   const modalElement = $('#scheduleTaskModal');
+  const scheduleForm = $('#scheduleTaskForm');
   const cronInput = $('#cronExpression');
 
   if (modalElement) {
@@ -606,6 +610,11 @@ function bindScheduleTaskModal(params) {
     });
   }
 
+  scheduleForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if ($('#saveScheduleBtn')?.disabled) return;
+    saveTaskSchedule(params);
+  });
   cronInput?.addEventListener('input', validateCronExpression);
   on($('#saveScheduleBtn'), 'click', () => saveTaskSchedule(params));
 }
