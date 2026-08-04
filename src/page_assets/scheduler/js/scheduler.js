@@ -1,6 +1,7 @@
 import api from '@/common/js/api';
 import { bsToastError, bsToastSuccess } from '@/common/js/bsToast';
 import cronstrue from 'cronstrue';
+import { CronExpressionParser } from 'cron-parser';
 
 const SCHEDULER_COLUMNS = [
   { label: 'Function', field: 'task_name' },
@@ -507,13 +508,23 @@ function fillScheduleForm(schedule) {
   const descriptionInput = document.getElementById('scheduleDescription');
   const taskInput = document.getElementById('scheduleTask');
   const cronInput = document.getElementById('cronExpression');
+  const nextRunInput = document.getElementById('scheduleNextRun');
   const enabledInput = document.getElementById('scheduleEnabled');
   const scheduleIdInput = document.getElementById('scheduleId');
 
-  if (!descriptionInput || !taskInput || !cronInput || !enabledInput || !scheduleIdInput) return;
+  if (
+    !descriptionInput ||
+    !taskInput ||
+    !cronInput ||
+    !nextRunInput ||
+    !enabledInput ||
+    !scheduleIdInput
+  )
+    return;
 
   scheduleIdInput.value = schedule.schedule_id;
   descriptionInput.value = schedule.schedule_description || '';
+  nextRunInput.value = '';
   taskInput.value = schedule.task_name || '';
   const cronExpression = (schedule.cron_expression || '').trim();
   cronInput.value = cronExpression;
@@ -526,6 +537,7 @@ function fillScheduleForm(schedule) {
 
   const isValid = getCronDescription(cronExpression) !== 'Invalid cron expression';
   setCronValidationState(isValid);
+  validateCronExpression();
 }
 
 function openScheduleModal(scheduleId) {
@@ -660,6 +672,15 @@ function getCronDescription(expression) {
   }
 }
 
+function getNextCronRun(expression) {
+  try {
+    const interval = CronExpressionParser.parse(expression, { currentDate: new Date(), tz: 'UTC' });
+    return formatDateTime(interval.next().toDate());
+  } catch {
+    return '';
+  }
+}
+
 function setCronValidationState(isValid) {
   const cronInput = document.getElementById('cronExpression');
   const saveButton = document.getElementById('saveScheduleBtn');
@@ -673,11 +694,13 @@ function setCronValidationState(isValid) {
 function validateCronExpression() {
   const cronInput = document.getElementById('cronExpression');
   const descriptionInput = document.getElementById('scheduleDescription');
-  if (!cronInput || !descriptionInput) return;
+  const nextRunInput = document.getElementById('scheduleNextRun');
+  if (!cronInput || !descriptionInput || !nextRunInput) return;
 
   const expression = cronInput.value.trim();
   if (!expression) {
     descriptionInput.value = '';
+    nextRunInput.value = '';
     setCronValidationState(false);
     return;
   }
@@ -686,6 +709,7 @@ function validateCronExpression() {
     const description = getCronDescription(expression);
     const isValid = description !== 'Invalid cron expression';
     descriptionInput.value = description;
+    nextRunInput.value = isValid ? getNextCronRun(expression) : '';
     setCronValidationState(isValid);
   } catch {
     bsToastError('Unable to validate the cron expression.');
