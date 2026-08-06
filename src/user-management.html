@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management - Supply Chain Lite</title>
+    <link rel="icon" type="image/svg+xml" href="scc.svg" />
+  </head>
+  <body class="min-vh-100 d-flex flex-column">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-2">
+      <div class="container-fluid align-items-center">
+        <!-- Branding -->
+
+        <div class="d-flex align-items-center">
+          <div class="flex-shrink-0 d-flex align-items-center">
+            <img src="/summence_bw.png" alt="" width="36" height="36" />
+            <h1 class="fs-5 fw-bold text-dark ms-3 mb-0">SupplyChainLite</h1>
+          </div>
+        </div>
+
+        <!-- Mobile Toggle Button -->
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Navigation Items -->
+        <div class="collapse navbar-collapse align-items-center ms-lg-5" id="navbarNav">
+          <ul class="nav nav-tabs mb-0" id="managementTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="users-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#users-pane"
+                type="button"
+                role="tab"
+                aria-controls="users-pane"
+                aria-selected="true"
+              >
+                Users
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="roles-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#roles-pane"
+                type="button"
+                role="tab"
+                aria-controls="roles-pane"
+                aria-selected="false"
+              >
+                Roles
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- User Profile (Right Side) -->
+        <div class="navbar-actions d-flex align-items-center">
+          <div class="dropdown">
+            <a
+              class="nav-link text-dark d-flex align-items-center p-0"
+              href="home-page.html"
+              role="button"
+              aria-expanded="false"
+            >
+              <div
+                class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                style="width: 40px; height: 40px; font-weight: bold; position: relative"
+              >
+                <i class="fa-solid fa-home"></i>
+              </div>
+            </a>
+          </div>
+          <div class="dropdown">
+            <a
+              class="nav-link text-dark d-flex align-items-center p-0"
+              href="#"
+              role="button"
+              id="userDropdown"
+              aria-label="User menu"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <div
+                id="displayAvatar"
+                class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                style="width: 40px; height: 40px; font-weight: bold"
+              >
+                JD
+              </div>
+            </a>
+            <ul
+              class="dropdown-menu dropdown-menu-end"
+              id="userInfoActions"
+              aria-labelledby="userDropdown"
+            >
+              <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid flex-fill py-4 user-management-page">
+      <div class="tab-content" id="managementTabsContent">
+        <section
+          class="tab-pane fade show active pt-0 mx-4 mb-0"
+          id="users-pane"
+          role="tabpanel"
+          aria-labelledby="users-tab"
+          tabindex="0"
+        >
+          <div id="userManagementPane" class="row flex-fill">
+            <div class="col-md-3 mb-3" id="userListContainer">
+              <div class="card h-100">
+                <div class="card-body" id="userListBody" style="overflow-y: auto">
+                  <h4 class="card-title text-center mb-3">Users</h4>
+                  <div class="list-group" id="userList">
+                    <a href="#" class="list-group-item list-group-item-action ps-1 active">
+                      <i class="fa-solid fa-user"></i>
+                      akhilesh@summence.com
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-1">
+                      <i class="fa-solid fa-user"></i>
+                      varsha@summence.com
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-1">
+                      <i class="fa-solid fa-user"></i>
+                      akhilesh.airen@gmail.com
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-1">
+                      <i class="fa-solid fa-user"></i>
+                      abhishek.bansal@reddit.com
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-1">
+                      <i class="fa-solid fa-user"></i>
+                      another.user@bhalte.com
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-1">
+                      <i class="fa-solid fa-user"></i>
+                      uske.papa@google.com
+                    </a>
+                  </div>
+                </div>
+                <div class="card-footer text-left py-2 px-2">
+                  <span class="text-muted">Current Project:</span>
+                  <span id="activeProjectDisplay" class="fw-semibold text-dark">NewB2</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-9 mb-3" id="userDetailsContainer">
+              <div class="card h-100">
+                <div class="card-body" id="userDetailsBody">
+                  <div class="d-flex gap-3 h-100">
+                    <div
+                      class="tab-content user-detail-content flex-fill"
+                      id="userDetailTabsContent"
+                    >
+                      <section
+                        class="tab-pane fade show active pt-0 mb-0 me-5"
+                        id="user-details-pane"
+                        role="tabpanel"
+                        aria-labelledby="user-details-tab"
+                        tabindex="0"
+                      >
+                        <form>
+                          <div class="user-detail-grid">
+                            <label class="form-label" for="selectedUserEmail">Email</label>
+                            <input
+                              class="form-control"
+                              id="selectedUserEmail"
+                              type="email"
+                              value="priya.sharma@summence.com"
+                            />
+
+                            <label class="form-label" for="selectedUserRole">
+                              Permission Level
+                            </label>
+                            <select class="form-select" id="selectedUserRole">
+                              <option selected>Admin</option>
+                              <option>Planner</option>
+                              <option>Analyst</option>
+                              <option>Viewer</option>
+                            </select>
+
+                            <label class="form-label" for="selectedFirstName">First Name</label>
+                            <input
+                              class="form-control"
+                              id="selectedFirstName"
+                              type="text"
+                              value="Priya"
+                            />
+
+                            <span class="form-label">Status</span>
+                            <div class="form-check form-switch user-switch">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                id="selectedUserStatus"
+                                checked
+                              />
+                              <label class="form-check-label" for="selectedUserStatus">
+                                Active
+                              </label>
+                            </div>
+
+                            <span class="form-label">Worksheet Access</span>
+                            <div class="form-check form-switch user-switch">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                id="worksheetAccess"
+                                checked
+                              />
+                              <label class="form-check-label" for="worksheetAccess">
+                                Read &amp; Write
+                              </label>
+                            </div>
+                          </div>
+                        </form>
+                      </section>
+
+                      <section
+                        class="tab-pane fade pt-0 mb-0 me-5"
+                        id="level-access-pane"
+                        role="tabpanel"
+                        aria-labelledby="level-access-tab"
+                        tabindex="0"
+                      >
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <label class="form-label" for="accessExpiry">Access Expiry</label>
+                            <input
+                              class="form-control"
+                              id="accessExpiry"
+                              type="date"
+                              value="2026-12-31"
+                            />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label" for="selectedRegion">Region Access</label>
+                            <select class="form-select" id="selectedRegion">
+                              <option selected>All regions</option>
+                              <option>North America</option>
+                              <option>APAC</option>
+                              <option>Europe</option>
+                            </select>
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label" for="accessConstraints">
+                              User Constraints
+                            </label>
+                            <textarea class="form-control" id="accessConstraints" rows="4">
+Full access to models, roles, templates, and admin modules.</textarea>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section
+                        class="tab-pane fade pt-0 mb-0 me-5"
+                        id="user-groups-pane"
+                        role="tabpanel"
+                        aria-labelledby="user-groups-tab"
+                        tabindex="0"
+                      >
+                        <div class="row g-3">
+                          <div class="col-sm-6">
+                            <div class="form-check border rounded p-3 ps-5">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="groupAdmins"
+                                checked
+                              />
+                              <label class="form-check-label fw-semibold" for="groupAdmins">
+                                Administrators
+                              </label>
+                            </div>
+                          </div>
+                          <div class="col-sm-6">
+                            <div class="form-check border rounded p-3 ps-5">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="groupPlanning"
+                                checked
+                              />
+                              <label class="form-check-label fw-semibold" for="groupPlanning">
+                                Planning Leads
+                              </label>
+                            </div>
+                          </div>
+                          <div class="col-sm-6">
+                            <div class="form-check border rounded p-3 ps-5">
+                              <input class="form-check-input" type="checkbox" id="groupReview" />
+                              <label class="form-check-label fw-semibold" for="groupReview">
+                                Executive Review
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section
+                        class="tab-pane fade pt-0 mb-0 me-5"
+                        id="user-modules-pane"
+                        role="tabpanel"
+                        aria-labelledby="user-modules-tab"
+                        tabindex="0"
+                      >
+                        <div class="template-list border rounded p-3">
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              id="templateDemand"
+                              checked
+                            />
+                            <label class="form-check-label" for="templateDemand">
+                              Demand Planning
+                            </label>
+                          </div>
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              id="templateNetwork"
+                              checked
+                            />
+                            <label class="form-check-label" for="templateNetwork">
+                              Network Design
+                            </label>
+                          </div>
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              id="templateInventory"
+                            />
+                            <label class="form-check-label" for="templateInventory">
+                              Inventory Policy
+                            </label>
+                          </div>
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="templateReview" />
+                            <label class="form-check-label" for="templateReview">
+                              Executive Review
+                            </label>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                    <ul
+                      class="nav flex-column user-detail-tabs"
+                      id="userDetailTabs"
+                      role="tablist"
+                      aria-orientation="vertical"
+                    >
+                      <li class="nav-item" role="presentation">
+                        <button
+                          class="nav-link active"
+                          id="user-details-tab"
+                          data-bs-toggle="tab"
+                          data-bs-target="#user-details-pane"
+                          type="button"
+                          role="tab"
+                          aria-controls="user-details-pane"
+                          aria-selected="true"
+                        >
+                          User Details
+                        </button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button
+                          class="nav-link"
+                          id="level-access-tab"
+                          data-bs-toggle="tab"
+                          data-bs-target="#level-access-pane"
+                          type="button"
+                          role="tab"
+                          aria-controls="level-access-pane"
+                          aria-selected="false"
+                        >
+                          Level Access
+                        </button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button
+                          class="nav-link"
+                          id="user-groups-tab2"
+                          data-bs-toggle="tab"
+                          data-bs-target="#user-groups-pane"
+                          type="button"
+                          role="tab"
+                          aria-controls="user-groups-pane"
+                          aria-selected="false"
+                        >
+                          User Groups
+                        </button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button
+                          class="nav-link"
+                          id="user-modules-tab2"
+                          data-bs-toggle="tab"
+                          data-bs-target="#user-modules-pane"
+                          type="button"
+                          role="tab"
+                          aria-controls="user-modules-pane"
+                          aria-selected="false"
+                        >
+                          User Modules
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade pt-0 mx-4"
+          id="roles-pane"
+          role="tabpanel"
+          aria-labelledby="roles-tab"
+          tabindex="0"
+        ></section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-center py-2 mt-auto border-top">
+      <div class="container">
+        <div class="d-flex align-items-center justify-content-center mb-2">
+          <img src="/summence_bw.png" alt="" width="32" height="32" />
+        </div>
+        <p class="text-white mb-0">Supply Chain Lite</p>
+      </div>
+    </footer>
+
+    <script type="module" src="page_assets/user-management/js/main.js"></script>
+  </body>
+</html>
