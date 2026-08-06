@@ -35,6 +35,17 @@
   color: var(--bs-nav-tabs-link-active-color);
 }
 
+#managementTabContent {
+  min-height: 0;
+  min-width: 0;
+}
+
+#managementTabContent > .tab-pane.active {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+
 .user-management-page {
   background-color: var(--bs-body-bg);
 }
@@ -105,6 +116,7 @@
 }
 
 .user-detail-content {
+  min-width: 0;
   padding-top: 0;
 }
 
