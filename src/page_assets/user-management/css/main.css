@@ -272,7 +272,8 @@
     min-height: auto;
   }
 
-  #userDetailsBody > .d-flex {
+  #userDetailsBody > .d-flex,
+  #roleDetailsBody > .d-flex {
     flex-direction: column;
   }
 
