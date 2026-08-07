@@ -118,7 +118,7 @@
       <div class="tab-content d-flex flex-column flex-fill" id="managementTabContent">
         <div
           id="users-pane"
-          class="tab-pane fade show active row flex-fill"
+          class="tab-pane fade show active row flex-fill mx-0"
           role="tabpanel"
           aria-labelledby="users-tab"
         >
@@ -126,6 +126,16 @@
             <div class="card h-100">
               <div class="card-body" id="userListBody" style="overflow-y: auto">
                 <h4 class="card-title text-center mb-3">Users</h4>
+                <div class="input-group mb-3" id="userSearchGroup">
+                  <input
+                    type="search"
+                    class="form-control"
+                    id="userSearchInput"
+                    placeholder="Search users..."
+                    aria-label="Search users"
+                  />
+                  <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                </div>
                 <div class="list-group" id="userList">
                   <a href="#" class="list-group-item list-group-item-action ps-1 active">
                     <i class="fa-solid fa-user"></i>
@@ -151,11 +161,29 @@
                     <i class="fa-solid fa-user"></i>
                     uske.papa@google.com
                   </a>
+                  <a href="#" class="list-group-item list-group-item-action ps-1">
+                    <i class="fa-solid fa-user"></i>
+                    varsha@summence.com
+                  </a>
+                  <a href="#" class="list-group-item list-group-item-action ps-1">
+                    <i class="fa-solid fa-user"></i>
+                    akhilesh.airen@gmail.com
+                  </a>
+                  <a href="#" class="list-group-item list-group-item-action ps-1">
+                    <i class="fa-solid fa-user"></i>
+                    abhishek.bansal@reddit.com
+                  </a>
                 </div>
               </div>
-              <div class="card-footer text-left py-2 px-2">
-                <span class="text-muted">Current Project:</span>
-                <span id="activeProjectDisplay" class="fw-semibold text-dark">NewB2</span>
+              <div class="card-footer text-left py-2 px-2" id="paginationButtons">
+                <div class="btn-group w-100" role="group" aria-label="User list pagination">
+                  <button type="button" class="btn btn-outline-secondary">Previous</button>
+                  <button type="button" class="btn btn-dark">1</button>
+                  <button type="button" class="btn btn-outline-secondary">2</button>
+                  <button type="button" class="btn btn-outline-secondary">3</button>
+                  <button type="button" class="btn btn-outline-secondary">4</button>
+                  <button type="button" class="btn btn-outline-secondary">Next</button>
+                </div>
               </div>
             </div>
           </div>
@@ -415,22 +443,287 @@ Full access to models, roles, templates, and admin modules.</textarea>
                   </ul>
                 </div>
               </div>
+              <div class="card-footer d-flex justify-content-end py-2 px-2" id="useractionButtons">
+                <div class="btn-group w-30" role="group" aria-label="User action buttons">
+                  <button type="button" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-plus me-1"></i>
+                    Add New
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-floppy-disk me-1"></i>
+                    Save As
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-check me-1"></i>
+                    Save
+                  </button>
+                  <button type="button" class="btn btn-danger">
+                    <i class="fa-solid fa-trash-can me-1"></i>
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div
           id="roles-pane"
-          class="tab-pane fade flex-fill"
+          class="tab-pane fade row flex-fill mx-0"
           role="tabpanel"
           aria-labelledby="roles-tab"
           tabindex="0"
         >
-          <div class="row flex-fill">
-            <div class="col-12">
-              <div class="card h-100">
-                <div class="card-body">
-                  <h4 class="card-title">Roles</h4>
-                  <p class="text-muted">Role management content will appear here.</p>
+          <div class="col-md-3 mb-3 mb-md-0" id="roleListContainer">
+            <div class="card h-100">
+              <div class="card-body" id="roleListBody" style="overflow-y: auto">
+                <h4 class="card-title text-center mb-3">Roles</h4>
+                <div class="list-group" id="roleList">
+                  <a href="#" class="list-group-item list-group-item-action ps-1 active">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Administrator
+                  </a>
+                  <a href="#" class="list-group-item list-group-item-action ps-1">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Planner
+                  </a>
+                  <a href="#" class="list-group-item list-group-item-action ps-1">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Analyst
+                  </a>
+                  <a href="#" class="list-group-item list-group-item-action ps-1">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Viewer
+                  </a>
+                  <a href="#" class="list-group-item list-group-item-action ps-1">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Executive Review
+                  </a>
+                  <a href="#" class="list-group-item list-group-item-action ps-1">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Planning Lead
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-9 mb-md-0 mb-3" id="roleDetailsContainer">
+            <div class="card h-100">
+              <div class="card-body" id="roleDetailsBody">
+                <div class="d-flex gap-3 h-100">
+                  <div class="tab-content user-detail-content flex-fill" id="roleDetailTabsContent">
+                    <section
+                      class="tab-pane fade show active pt-0 mb-0 me-5"
+                      id="role-details-pane"
+                      role="tabpanel"
+                      aria-labelledby="role-details-tab"
+                      tabindex="0"
+                    >
+                      <form>
+                        <div class="user-detail-grid">
+                          <label class="form-label" for="selectedRoleName">Role Name</label>
+                          <input
+                            class="form-control"
+                            id="selectedRoleName"
+                            type="text"
+                            value="Administrator"
+                          />
+
+                          <label class="form-label" for="selectedRoleDescription">
+                            Description
+                          </label>
+                          <textarea class="form-control" id="selectedRoleDescription" rows="4">
+Full access to user management, roles, models, and system configuration.</textarea>
+
+                          <span class="form-label">Status</span>
+                          <div class="form-check form-switch user-switch">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              role="switch"
+                              id="selectedRoleStatus"
+                              checked
+                            />
+                            <label class="form-check-label" for="selectedRoleStatus">Active</label>
+                          </div>
+
+                          <span class="form-label">Admin Role</span>
+                          <div class="form-check form-switch user-switch">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              role="switch"
+                              id="adminRoleFlag"
+                              checked
+                            />
+                            <label class="form-check-label" for="adminRoleFlag">Yes</label>
+                          </div>
+                        </div>
+                      </form>
+                    </section>
+
+                    <section
+                      class="tab-pane fade pt-0 mb-0 me-5"
+                      id="role-permissions-pane"
+                      role="tabpanel"
+                      aria-labelledby="role-permissions-tab"
+                      tabindex="0"
+                    >
+                      <div class="template-list border rounded p-3">
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="permUserManage"
+                            checked
+                          />
+                          <label class="form-check-label" for="permUserManage">
+                            User Management
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="permRoleManage"
+                            checked
+                          />
+                          <label class="form-check-label" for="permRoleManage">
+                            Role Management
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="permDemandPlanning"
+                            checked
+                          />
+                          <label class="form-check-label" for="permDemandPlanning">
+                            Demand Planning
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="permNetworkDesign"
+                            checked
+                          />
+                          <label class="form-check-label" for="permNetworkDesign">
+                            Network Design
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="permInventoryPolicy"
+                          />
+                          <label class="form-check-label" for="permInventoryPolicy">
+                            Inventory Policy
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="permExecutiveReview"
+                          />
+                          <label class="form-check-label" for="permExecutiveReview">
+                            Executive Review
+                          </label>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section
+                      class="tab-pane fade pt-0 mb-0 me-5"
+                      id="role-users-pane"
+                      role="tabpanel"
+                      aria-labelledby="role-users-tab"
+                      tabindex="0"
+                    >
+                      <div class="list-group" id="roleAssignedUsers">
+                        <div class="list-group-item d-flex align-items-center ps-1">
+                          <i class="fa-solid fa-user me-2"></i>
+                          akhilesh@summence.com
+                        </div>
+                        <div class="list-group-item d-flex align-items-center ps-1">
+                          <i class="fa-solid fa-user me-2"></i>
+                          priya.sharma@summence.com
+                        </div>
+                        <div class="list-group-item d-flex align-items-center ps-1">
+                          <i class="fa-solid fa-user me-2"></i>
+                          abhishek.bansal@reddit.com
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                  <ul
+                    class="nav flex-column user-detail-tabs"
+                    id="roleDetailTabs"
+                    role="tablist"
+                    aria-orientation="vertical"
+                  >
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link active"
+                        id="role-details-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#role-details-pane"
+                        type="button"
+                        role="tab"
+                        aria-controls="role-details-pane"
+                        aria-selected="true"
+                      >
+                        Role Details
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link"
+                        id="role-permissions-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#role-permissions-pane"
+                        type="button"
+                        role="tab"
+                        aria-controls="role-permissions-pane"
+                        aria-selected="false"
+                      >
+                        Permissions
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link"
+                        id="role-users-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#role-users-pane"
+                        type="button"
+                        role="tab"
+                        aria-controls="role-users-pane"
+                        aria-selected="false"
+                      >
+                        Users
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div class="card-footer d-flex justify-content-end py-2 px-2" id="roleActionButtons">
+                <div class="btn-group w-30" role="group" aria-label="Role action buttons">
+                  <button type="button" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-plus me-1"></i>
+                    Add New
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-check me-1"></i>
+                    Save
+                  </button>
+                  <button type="button" class="btn btn-danger">
+                    <i class="fa-solid fa-trash-can me-1"></i>
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
