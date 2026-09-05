@@ -2,6 +2,7 @@ export function initDirectory({ listId, searchId, paginationId, icon, label, onS
   let records = [];
   let page = 0;
   let selectedRecord = null;
+  let draftLabel = '';
   const pageSize = 10;
   const list = document.getElementById(listId);
   const search = searchId ? document.getElementById(searchId) : null;
@@ -17,6 +18,16 @@ export function initDirectory({ listId, searchId, paginationId, icon, label, onS
     const pages = Math.max(1, Math.ceil(matches.length / pageSize));
     page = Math.min(page, pages - 1);
     list.replaceChildren();
+    if (draftLabel) {
+      const draft = document.createElement('a');
+      draft.href = '#';
+      draft.className = 'list-group-item list-group-item-action ps-1 active';
+      const draftIcon = document.createElement('i');
+      draftIcon.className = `fa-solid ${icon} me-2`;
+      draft.append(draftIcon, document.createTextNode(draftLabel));
+      draft.addEventListener('click', (event) => event.preventDefault());
+      list.append(draft);
+    }
     for (const record of matches.slice(page * pageSize, (page + 1) * pageSize)) {
       const item = document.createElement('a');
       item.href = '#';
@@ -80,9 +91,12 @@ export function initDirectory({ listId, searchId, paginationId, icon, label, onS
       render();
     });
   function select(record) {
+    if (onSelect(record) === false) return false;
+    const recordIndex = visibleRecords().indexOf(record);
+    if (recordIndex !== -1) page = Math.floor(recordIndex / pageSize);
     selectedRecord = record;
     render();
-    onSelect(record);
+    return true;
   }
 
   return {
@@ -92,8 +106,18 @@ export function initDirectory({ listId, searchId, paginationId, icon, label, onS
       page = 0;
       render();
     },
+    select: (record) => select(record),
     selectFirst: () => {
       if (records.length) select(records[0]);
+    },
+    setDraft: (labelText) => {
+      draftLabel = labelText;
+      selectedRecord = null;
+      render();
+    },
+    clearDraft: () => {
+      draftLabel = '';
+      render();
     },
   };
 }

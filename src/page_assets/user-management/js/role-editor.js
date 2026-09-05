@@ -1,8 +1,9 @@
 import api from '@/common/js/api';
-import { bsToastSuccess } from '@/common/js/bsToast';
+import { bsToastError, bsToastSuccess } from '@/common/js/bsToast';
 
 export function initRoleEditor(state, refreshData) {
   let selectedRole = null;
+  let savedSnapshot = '';
   const name = document.getElementById('selectedRoleName');
   const description = document.getElementById('selectedRoleDescription');
   const canAddNewModel = document.getElementById('adminRoleFlag');
@@ -15,6 +16,27 @@ export function initRoleEditor(state, refreshData) {
     document.querySelector('label[for="adminRoleFlag"]').textContent = canAddNewModel.checked
       ? 'Yes'
       : 'No';
+  }
+
+  function snapshot() {
+    return JSON.stringify({
+      name: name.value,
+      description: description.value,
+      canAddNewModel: canAddNewModel.checked,
+      homePage: homePage.value,
+      modules: [...permissions.querySelectorAll('input:checked')]
+        .map((input) => input.value)
+        .sort(),
+    });
+  }
+
+  function markSaved() {
+    savedSnapshot = snapshot();
+  }
+
+  function confirmDiscard() {
+    if (!savedSnapshot || savedSnapshot === snapshot()) return true;
+    return window.confirm('You have unsaved role changes. Discard them and continue?');
   }
 
   function renderHomePages() {
@@ -65,6 +87,7 @@ export function initRoleEditor(state, refreshData) {
   }
 
   function select(role) {
+    if (!confirmDiscard()) return false;
     selectedRole = role;
     name.value = role.RoleName;
     description.value = role.RoleDescription;
@@ -73,9 +96,12 @@ export function initRoleEditor(state, refreshData) {
     homePage.value = role.HomePage;
     renderModules(role.Modules || []);
     renderAssignedUsers(role.RoleName);
+    markSaved();
+    return true;
   }
 
   function add() {
+    if (!confirmDiscard()) return false;
     selectedRole = null;
     name.value = '';
     description.value = '';
@@ -84,6 +110,8 @@ export function initRoleEditor(state, refreshData) {
     homePage.selectedIndex = 0;
     renderModules();
     assignedUsers.replaceChildren();
+    markSaved();
+    return true;
   }
 
   async function save() {
@@ -94,12 +122,33 @@ export function initRoleEditor(state, refreshData) {
       Modules: [...permissions.querySelectorAll('input:checked')].map((input) => input.value),
       CanAddNewModel: Number(canAddNewModel.checked),
     };
-    if (!payload.RoleName || !payload.RoleDescription || !payload.HomePage) return;
+    if (!payload.RoleName || !payload.RoleDescription || !payload.HomePage) return false;
+    if (
+      !selectedRole &&
+      state.roles.some((role) => role.RoleName.toLowerCase() === payload.RoleName.toLowerCase())
+    ) {
+      bsToastError('A role with this name already exists.');
+      name.focus();
+      return false;
+    }
     const endpoint = selectedRole ? 'update-role' : 'add-role';
     if (selectedRole) payload.RoleId = selectedRole.RoleId;
     const response = await api.post(`/user-management/${endpoint}`, payload);
     bsToastSuccess(response.message);
     await refreshData();
+
+    const savedRole = selectedRole
+      ? selectedRole
+      : state.roles.find(
+          (role) => role.RoleName?.toLowerCase() === payload.RoleName.toLowerCase()
+        ) || {
+          ...payload,
+          RoleId: response.RoleId || null,
+          CanAddNewModel: Number(payload.CanAddNewModel),
+        };
+
+    markSaved();
+    return savedRole;
   }
 
   return {
@@ -107,8 +156,11 @@ export function initRoleEditor(state, refreshData) {
     add,
     save,
     refresh: () => {
+      const selectedModules = [...permissions.querySelectorAll('input:checked')].map(
+        (input) => input.value
+      );
       renderHomePages();
-      if (!selectedRole) renderModules();
+      if (!selectedRole) renderModules(selectedModules);
     },
   };
 }

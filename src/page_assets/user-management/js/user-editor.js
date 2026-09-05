@@ -1,8 +1,9 @@
 import api from '@/common/js/api';
-import { bsToastSuccess } from '@/common/js/bsToast';
+import { bsToastError, bsToastSuccess } from '@/common/js/bsToast';
 
 export function initUserEditor(state, refreshData) {
   let selectedUser = null;
+  let savedSnapshot = '';
   const email = document.getElementById('selectedUserEmail');
   const displayName = document.getElementById('selectedFirstName');
   const role = document.getElementById('selectedUserRole');
@@ -16,6 +17,29 @@ export function initUserEditor(state, refreshData) {
     document.querySelector('label[for="selectedUserStatus"]').textContent = active.checked
       ? 'Active'
       : 'Inactive';
+  }
+
+  function snapshot() {
+    return JSON.stringify({
+      email: email.value,
+      displayName: displayName.value,
+      role: role.value,
+      active: active.checked,
+      expiry: expiry.value,
+      maxRuns: maxRunsInput.value,
+      templates: [...templates.querySelectorAll('input:checked')]
+        .map((input) => input.value)
+        .sort(),
+    });
+  }
+
+  function markSaved() {
+    savedSnapshot = snapshot();
+  }
+
+  function confirmDiscard() {
+    if (!savedSnapshot || savedSnapshot === snapshot()) return true;
+    return window.confirm('You have unsaved user changes. Discard them and continue?');
   }
 
   function renderRoles() {
@@ -52,6 +76,7 @@ export function initUserEditor(state, refreshData) {
   }
 
   function select(user) {
+    if (!confirmDiscard()) return false;
     selectedUser = user;
     email.value = user.UserEmail;
     email.readOnly = true;
@@ -62,9 +87,12 @@ export function initUserEditor(state, refreshData) {
     expiry.value = user.EndDate;
     maxRunsInput.value = user.MaxConcurrentRuns;
     renderTemplates(user.Templates || []);
+    markSaved();
+    return true;
   }
 
   function add() {
+    if (!confirmDiscard()) return false;
     selectedUser = null;
     email.value = '';
     email.readOnly = false;
@@ -75,6 +103,8 @@ export function initUserEditor(state, refreshData) {
     expiry.value = '';
     maxRunsInput.value = 1;
     renderTemplates();
+    markSaved();
+    return true;
   }
 
   async function save() {
@@ -98,12 +128,43 @@ export function initUserEditor(state, refreshData) {
       payload.MaxConcurrentRuns < 1
     ) {
       email.form.reportValidity();
-      return;
+      return false;
+    }
+    if (
+      !selectedUser &&
+      state.userDetails.some(
+        (user) => user.UserEmail.toLowerCase() === payload.UserEmail.toLowerCase()
+      )
+    ) {
+      bsToastError('A user with this email already exists.');
+      email.focus();
+      return false;
     }
     const endpoint = selectedUser ? 'update-user' : 'add-user';
     const response = await api.post(`/user-management/${endpoint}`, payload);
     bsToastSuccess(response.message);
     await refreshData();
+
+    const savedUser = selectedUser
+      ? selectedUser
+      : state.userDetails.find(
+          (user) => user.UserEmail?.toLowerCase() === payload.UserEmail.toLowerCase()
+        ) || {
+          ...payload,
+          IsActive: Number(active.checked),
+        };
+
+    if (
+      !selectedUser &&
+      !state.userDetails.some(
+        (user) => user.UserEmail?.toLowerCase() === payload.UserEmail.toLowerCase()
+      )
+    ) {
+      state.userDetails.unshift(savedUser);
+    }
+
+    markSaved();
+    return savedUser;
   }
 
   return {
@@ -111,8 +172,11 @@ export function initUserEditor(state, refreshData) {
     add,
     save,
     refresh: () => {
+      const selectedTemplates = [...templates.querySelectorAll('input:checked')].map(
+        (input) => input.value
+      );
       renderRoles();
-      if (!selectedUser) renderTemplates();
+      if (!selectedUser) renderTemplates(selectedTemplates);
     },
   };
 }
