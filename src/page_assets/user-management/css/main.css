@@ -164,6 +164,10 @@
   width: 3rem;
 }
 
+.user-switch .form-check-input:not(:checked) {
+  background-color: var(--bs-body-bg);
+}
+
 .user-switch .form-check-label {
   color: var(--bs-heading-color);
   font-weight: 600;
