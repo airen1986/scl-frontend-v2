@@ -8,31 +8,8 @@ export function initUserEditor(state, refreshData) {
   const role = document.getElementById('selectedUserRole');
   const active = document.getElementById('selectedUserStatus');
   const expiry = document.getElementById('accessExpiry');
-  const maxRuns = document.getElementById('accessConstraints');
-  const templates = document.getElementById('user-modules-pane').querySelector('.template-list');
-  const detailGrid = email.closest('.user-detail-grid');
-  const expiryGroup = expiry.closest('.col-md-6');
-  const maxRunsGroup = maxRuns.closest('.col-12');
-  const templatesPane = templates.closest('section');
-
-  displayName.previousElementSibling.textContent = 'Display Name';
-  detailGrid.append(expiryGroup.querySelector('label'), expiry);
-  expiryGroup.remove();
-  const maxRunsLabel = maxRuns.previousElementSibling;
-  maxRuns.replaceWith(createNumberInput());
   const maxRunsInput = document.getElementById('maxConcurrentRuns');
-  const templatesGrid = document.createElement('div');
-  templatesGrid.className = 'user-detail-grid';
-  const templatesLabel = document.createElement('span');
-  templatesLabel.className = 'form-label';
-  templatesLabel.textContent = 'Templates';
-  maxRunsLabel.textContent = 'Maximum Concurrent Runs';
-  templatesGrid.append(templatesLabel, templates, maxRunsLabel, maxRunsInput);
-  maxRunsGroup.remove();
-  templatesPane.replaceChildren(templatesGrid);
-  document.getElementById('user-modules-tab2').textContent = 'Templates';
-  document.getElementById('level-access-tab').closest('li').remove();
-  document.getElementById('level-access-pane').remove();
+  const templates = document.getElementById('userTemplates');
   active.addEventListener('change', updateActiveLabel);
 
   function updateActiveLabel() {
@@ -138,15 +115,4 @@ export function initUserEditor(state, refreshData) {
       if (!selectedUser) renderTemplates();
     },
   };
-}
-
-function createNumberInput() {
-  const input = document.createElement('input');
-  input.className = 'form-control';
-  input.id = 'maxConcurrentRuns';
-  input.type = 'number';
-  input.min = '1';
-  input.step = '1';
-  input.required = true;
-  return input;
 }

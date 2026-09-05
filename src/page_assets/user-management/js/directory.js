@@ -40,16 +40,38 @@ export function initDirectory({ listId, searchId, paginationId, icon, label, onS
     }
     if (!pagination) return;
     pagination.replaceChildren();
-    const previous = createPageButton('Previous', page === 0, () => {
-      page -= 1;
-      render();
-    });
-    const current = createPageButton(`${page + 1} / ${pages}`, true, () => {});
-    const next = createPageButton('Next', page === pages - 1, () => {
-      page += 1;
-      render();
-    });
-    pagination.append(previous, current, next);
+    const group = document.createElement('div');
+    group.className = 'btn-group w-100';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', 'User list pagination');
+    group.append(
+      createPageButton('Previous', page === 0, () => {
+        page -= 1;
+        render();
+      })
+    );
+    const firstPage = Math.max(0, Math.min(page - 1, pages - 4));
+    const lastPage = Math.min(pages, firstPage + 4);
+    for (let pageNumber = firstPage; pageNumber < lastPage; pageNumber += 1) {
+      group.append(
+        createPageButton(
+          String(pageNumber + 1),
+          false,
+          () => {
+            page = pageNumber;
+            render();
+          },
+          pageNumber === page
+        )
+      );
+    }
+    group.append(
+      createPageButton('Next', page === pages - 1, () => {
+        page += 1;
+        render();
+      })
+    );
+    pagination.append(group);
   }
 
   if (search)
@@ -76,10 +98,10 @@ export function initDirectory({ listId, searchId, paginationId, icon, label, onS
   };
 }
 
-function createPageButton(label, disabled, action) {
+function createPageButton(label, disabled, action, active = false) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = 'btn btn-outline-secondary';
+  button.className = `btn ${active ? 'btn-dark' : 'btn-outline-secondary'}`;
   button.textContent = label;
   button.disabled = disabled;
   button.addEventListener('click', action);

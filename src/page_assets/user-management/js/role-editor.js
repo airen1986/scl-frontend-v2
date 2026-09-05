@@ -6,20 +6,9 @@ export function initRoleEditor(state, refreshData) {
   const name = document.getElementById('selectedRoleName');
   const description = document.getElementById('selectedRoleDescription');
   const canAddNewModel = document.getElementById('adminRoleFlag');
-  const permissions = document
-    .getElementById('role-permissions-pane')
-    .querySelector('.template-list');
+  const permissions = document.getElementById('roleModules');
   const assignedUsers = document.getElementById('roleAssignedUsers');
-  const homePage = document.createElement('select');
-
-  homePage.id = 'selectedRoleHomePage';
-  homePage.className = 'form-select';
-  const homePageLabel = document.createElement('label');
-  homePageLabel.className = 'form-label';
-  homePageLabel.htmlFor = homePage.id;
-  homePageLabel.textContent = 'Home Page';
-  name.closest('.user-detail-grid').append(homePageLabel, homePage);
-  document.getElementById('role-permissions-tab').textContent = 'Modules';
+  const homePage = document.getElementById('selectedRoleHomePage');
   canAddNewModel.addEventListener('change', updateCanAddModelLabel);
 
   function updateCanAddModelLabel() {
