@@ -122,7 +122,10 @@ export function initRoleEditor(state, refreshData) {
       Modules: [...permissions.querySelectorAll('input:checked')].map((input) => input.value),
       CanAddNewModel: Number(canAddNewModel.checked),
     };
-    if (!payload.RoleName || !payload.RoleDescription || !payload.HomePage) return false;
+    if (!payload.RoleName || !payload.RoleDescription || !payload.HomePage) {
+      name.form?.reportValidity();
+      return false;
+    }
     if (
       !selectedRole &&
       state.roles.some((role) => role.RoleName.toLowerCase() === payload.RoleName.toLowerCase())
