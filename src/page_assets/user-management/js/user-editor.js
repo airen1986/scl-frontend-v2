@@ -49,9 +49,19 @@ export function initUserEditor(state, refreshData) {
       const option = document.createElement('option');
       option.value = currentRole.RoleName;
       option.textContent = currentRole.RoleName;
+      option.disabled =
+        currentRole.RoleName === 'SUPER_ADMIN' && selectedUser?.RoleName !== 'SUPER_ADMIN';
       option.selected = currentRole.RoleName === currentValue;
       role.append(option);
     }
+    selectFirstAvailableRole();
+  }
+
+  function selectFirstAvailableRole() {
+    const selectedOption = role.selectedOptions[0];
+    if (selectedOption && !selectedOption.disabled) return;
+    const firstAvailableRole = [...role.options].find((option) => !option.disabled);
+    if (firstAvailableRole) role.value = firstAvailableRole.value;
   }
 
   function renderTemplates(selectedTemplates = []) {
@@ -82,6 +92,7 @@ export function initUserEditor(state, refreshData) {
     email.readOnly = true;
     displayName.value = user.DisplayName;
     role.value = user.RoleName;
+    renderRoles();
     active.checked = user.IsActive === 1;
     updateActiveLabel();
     expiry.value = user.EndDate;
@@ -97,12 +108,24 @@ export function initUserEditor(state, refreshData) {
     email.value = '';
     email.readOnly = false;
     displayName.value = '';
-    role.selectedIndex = 0;
+    renderRoles();
     active.checked = true;
     updateActiveLabel();
     expiry.value = '';
     maxRunsInput.value = 1;
     renderTemplates();
+    markSaved();
+    return true;
+  }
+
+  function saveAs() {
+    if (!selectedUser) return false;
+    selectedUser = null;
+    email.value = '';
+    email.readOnly = false;
+    displayName.value = '';
+    expiry.value = '';
+    renderRoles();
     markSaved();
     return true;
   }
@@ -170,7 +193,9 @@ export function initUserEditor(state, refreshData) {
   return {
     select,
     add,
+    saveAs,
     save,
+    hasSelectedUser: () => selectedUser !== null,
     refresh: () => {
       const selectedTemplates = [...templates.querySelectorAll('input:checked')].map(
         (input) => input.value

@@ -110,6 +110,7 @@ export function initDirectory({ listId, searchId, paginationId, icon, label, onS
     selectFirst: () => {
       if (records.length) select(records[0]);
     },
+    hasSelection: () => selectedRecord !== null || Boolean(draftLabel),
     setDraft: (labelText) => {
       draftLabel = labelText;
       selectedRecord = null;

@@ -252,6 +252,20 @@
   overflow-y: auto;
 }
 
+#roleDetailTabsContent,
+#role-permissions-pane.active {
+  height: 100%;
+}
+
+#role-permissions-pane.active {
+  display: flex;
+}
+
+#roleModules {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
 .permission-matrix {
   min-width: 720px;
 }
