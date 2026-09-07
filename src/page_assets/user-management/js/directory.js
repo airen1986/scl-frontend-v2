@@ -54,7 +54,7 @@ export function initDirectory({ listId, searchId, paginationId, icon, label, onS
     const group = document.createElement('div');
     group.className = 'btn-group w-100';
     group.setAttribute('role', 'group');
-    group.setAttribute('aria-label', 'User list pagination');
+    group.setAttribute('aria-label', `${listId} pagination`);
     group.append(
       createPageButton('Previous', page === 0, () => {
         page -= 1;
